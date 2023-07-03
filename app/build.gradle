@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.secureshellv'
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.example.secureshellv"
+        minSdk 24
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.5.0'
+    // https://mvnrepository.com/artifact/com.jcraft/jsch
+    implementation group: 'com.jcraft', name: 'jsch', version: '0.1.55'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation files('C:/Users/Sina/AndroidStudioProjects/SecureShellV/app/libs/V1/tun2socks.aar')
+    // https://mvnrepository.com/artifact/sshtools/j2ssh-core
+    implementation group: 'sshtools', name: 'j2ssh-core', version: '0.2.9'
+    // https://mvnrepository.com/artifact/sshtools/j2ssh-common
+    implementation group: 'sshtools', name: 'j2ssh-common', version: '0.2.9'
+    // required to avoid crash on Android 12 API 31
+    implementation 'androidx.work:work-runtime-ktx:2.8.1'
+    testImplementation 'junit:junit:4.13.2'
+    compileOnly 'org.projectlombok:lombok:1.18.16'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+}
