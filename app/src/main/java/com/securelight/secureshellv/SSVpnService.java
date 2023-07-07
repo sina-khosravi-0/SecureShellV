@@ -5,147 +5,137 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.annotation.NonNull;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class SSVpnService extends VpnService {
 
     public final String TAG = this.getClass().getName();
 
-    public static final String ACTION_CONNECT = "com.example.secureshellv.action.START";
-    public static final String ACTION_DISCONNECT = "com.example.secureshellv.action.STOP";
-    public static final String CHANNEL_ID = "";
-    ParcelFileDescriptor iFace;
-    private final AtomicReference<Thread> mConnectingThread = new AtomicReference<>();
-    private final AtomicReference<Connection> mConnection = new AtomicReference<>();
-    private final AtomicInteger mNextConnectionId = new AtomicInteger(1);
+    private ParcelFileDescriptor vpnInterface;
+    private SSVpnService vpnService;
+    private final Set<String> packages = new HashSet<>();
 
+    private Thread connectionThread;
+    private ConnectionHandler connectionHandler;
+    private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+        @Override
+        public void onAvailable(@NonNull Network network) {
+            super.onAvailable(network);
+        }
+
+        @Override
+        public void onLost(@NonNull Network network) {
+            super.onLost(network);
+        }
+
+        @Override
+        public void onUnavailable() {
+            super.onUnavailable();
+        }
+    };
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if ("stop_kill".equals(intent.getAction())) {
+            if ("stop_vpn_service".equals(intent.getAction())) {
                 try {
-                    disconnect();
-                    Log.i(getClass().getName(), "VPN service stopped");
+                    stopVpnService();
+                    Log.i(TAG, "VPN service stopped");
                 } catch (IOException e) {
-                    Log.e(getClass().getName(), "Error during stopping VPN service ", e);
+                    Log.e(TAG, "Error during stopping VPN service ", e);
                 }
                 stopSelf();
             }
         }
     };
 
-    private static class Connection extends Pair<Thread, ParcelFileDescriptor> {
-        public Connection(Thread thread, ParcelFileDescriptor pfd) {
-            super(thread, pfd);
-        }
-    }
-
-    public interface OnEstablishListener {
-        void onEstablish(ParcelFileDescriptor tunInterface);
-    }
-
     @Override
     public void onCreate() {
         super.onCreate();
-        iFace = configure();
+        vpnService = this;
+        ConnectivityManager connectivityManager = getSystemService(ConnectivityManager.class);
+        NetworkRequest networkRequest = new NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build();
+        connectivityManager.requestNetwork(networkRequest, networkCallback);
+
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-        lbm.registerReceiver(stopBr, new IntentFilter("stop_kill"));
+        lbm.registerReceiver(stopBr, new IntentFilter("stop_vpn_service"));
     }
-
-    private ParcelFileDescriptor configure() throws PackageManager.NameNotFoundException {
-        VpnService.Builder builder = mService.new Builder();
-        // Todo: Address is used in port forwarding
-        builder.addAddress(config.getHost(), 24);
-        builder.addRoute("0.0.0.0", 0);
-        builder.addDnsServer(config.getDnsHost());
-
-        for (String p : mPackages) {
-            builder.addDisallowedApplication(p);
-        }
-        final ParcelFileDescriptor vpnInterface;
-        builder.setSession(config.getHost());
-        synchronized (mService) {
-            vpnInterface = builder.establish();
-            if (mOnEstablishListener != null) {
-                mOnEstablishListener.onEstablish(vpnInterface);
-            }
-        }
-        Log.i(TAG, "New interface: " + vpnInterface);
-        return vpnInterface;
-    }
-
-
-    public void setOnEstablishListener(OnEstablishListener listener) {
-        mOnEstablishListener = listener;
-    }
-
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        VPNSettings config = (VPNSettings) intent.getSerializableExtra("config");
-        startVpn(config);
+        VPNSettings vpnSettings = (VPNSettings) intent.getSerializableExtra("config");
+        startVpn(vpnSettings);
         return super.onStartCommand(intent, flags, startId);
     }
 
-    SockConnection sockConnection;
-
-    private void startVpn(VPNSettings config) {
-        Set<String> packages = new HashSet<>();
-        packages.add(getPackageName());
-        // Termius
-//        packages.add("com.server.auditor.ssh.client");
-        sockConnection = new SockConnection(this, config, packages);
+    private void startVpn(VPNSettings vpnSettings) {
+        addPackagesToExclude();
         VpnService.prepare(this);
-        Log.d(TAG, "Prepared");
-        startConnection(sockConnection);
-
-    }
-
-    private void startConnection(final SockConnection connection) {
-        final Thread thread = new Thread(connection);
-        setConnectingThread(thread);
-        connection.setOnEstablishListener(tunInterface -> {
-            mConnectingThread.compareAndSet(thread, null);
-            setConnection(new Connection(thread, tunInterface));
-        });
-        thread.start();
-    }
-
-    private void setConnectingThread(final Thread thread) {
-        final Thread oldThread = mConnectingThread.getAndSet(thread);
-        if (oldThread != null) {
-            oldThread.interrupt();
+        Log.d(TAG, "VPN service prepared");
+        try {
+            vpnInterface = configureVPNInterface(vpnSettings);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "name not found exception", e);
         }
+        startConnectionHandler(vpnSettings);
     }
 
-    private void setConnection(final Connection connection) {
-        final Connection oldConnection = mConnection.getAndSet(connection);
-        if (oldConnection != null) {
-            try {
-                System.out.println("fuck");
-                oldConnection.first.interrupt();
-                oldConnection.second.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Closing VPN interface", e);
-            }
+    private void startConnectionHandler(VPNSettings vpnSettings) {
+        connectionHandler = new ConnectionHandler(vpnSettings, vpnInterface);
+        connectionThread = new Thread(connectionHandler);
+        connectionThread.start();
+
+    }
+
+    private void addPackagesToExclude() {
+        packages.add(getPackageName());
+        // todo: add other packages to exclude
+
+    }
+
+    /**
+     * Using Host address and Port provided from VpnSettings, the VpnService builder will be supplied
+     * to create the desired VPN interface.
+     *
+     * @param vpnSettings vpn settings set prior.
+     * @return A ParcelFileDescriptor as the vpn interface.
+     */
+    private ParcelFileDescriptor configureVPNInterface(VPNSettings vpnSettings)
+            throws PackageManager.NameNotFoundException {
+        VpnService.Builder builder = vpnService.new Builder();
+        builder.addAddress(vpnSettings.getHost(), 24);
+        builder.addRoute("0.0.0.0", 0);
+
+        builder.addDnsServer(vpnSettings.getDnsHost());
+        for (String p : packages) {
+            builder.addDisallowedApplication(p);
         }
+        builder.setSession(vpnSettings.getHost());
+        ParcelFileDescriptor vpnInterface = builder.establish();
+        Log.d(TAG, "VPN interface configured: " + vpnInterface);
+        return vpnInterface;
     }
 
-    private void disconnect() throws IOException {
-        setConnectingThread(null);
-        setConnection(null);
-        sockConnection.disconnect();
+    private void stopVpnService() throws IOException {
+        connectionThread.interrupt();
+        vpnInterface.close();
         stopForeground(true);
     }
 }
