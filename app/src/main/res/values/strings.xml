@@ -4,4 +4,6 @@
     <string name="disconnect">Disconnect</string>
     <string name="stop">Stop</string>
     <string name="start">Start</string>
+    <string name="kill">Destroy</string>
+    <string name="check">Check</string>
 </resources>

@@ -8,8 +8,8 @@ public class ServerConfig implements Serializable {
     private int port;
 
     public ServerConfig(){
-        host = "127.0.0.1";
-        port = 2000;
+        host = "10.87.0.37";
+        port = 10808;
     }
 
     public int getPort() {

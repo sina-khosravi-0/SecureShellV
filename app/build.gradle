@@ -12,7 +12,7 @@ android {
         targetSdk 33
         versionCode 1
         versionName "1.0"
-
+        ndk.abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -22,6 +22,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -39,15 +40,14 @@ dependencies {
     implementation group: 'com.jcraft', name: 'jsch', version: '0.1.55'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation files('C:/Users/Sina/AndroidStudioProjects/SecureShellV/app/libs/V1/tun2socks.aar')
-    // https://mvnrepository.com/artifact/sshtools/j2ssh-core
-    implementation group: 'sshtools', name: 'j2ssh-core', version: '0.2.9'
-    // https://mvnrepository.com/artifact/sshtools/j2ssh-common
-    implementation group: 'sshtools', name: 'j2ssh-common', version: '0.2.9'
+// https://mvnrepository.com/artifact/javax.management/jmx
+    implementation 'javax.management:jmx:1.2.1'
+    implementation 'org.apache.sshd:sshd-core:2.10.0'
+    implementation 'org.apache.mina:mina-core:2.0.19'
     // required to avoid crash on Android 12 API 31
     implementation 'androidx.work:work-runtime-ktx:2.8.1'
     testImplementation 'junit:junit:4.13.2'
     compileOnly 'org.projectlombok:lombok:1.18.16'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-
 }

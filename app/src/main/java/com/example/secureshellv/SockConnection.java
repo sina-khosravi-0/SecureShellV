@@ -65,10 +65,10 @@ public class SockConnection implements Runnable {
         FileInputStream input = new FileInputStream(iface.getFileDescriptor());
         FileOutputStream output = new FileOutputStream(iface.getFileDescriptor());
         PacketFlow packetFlow = new MyPacketFlow(output);
-
         ByteBuffer packet = ByteBuffer.allocate(MAX_PACKET_SIZE);
         Tun2socks.startSocks(packetFlow, mConfig.getHost(), mConfig.getPort());
         Log.d(TAG, "Socks5 Created");
+
         while (!stopped) {
             boolean idle = true;
             int length = input.read(packet.array());
@@ -88,10 +88,12 @@ public class SockConnection implements Runnable {
 
     private ParcelFileDescriptor configure(ServerConfig config) throws IllegalArgumentException, PackageManager.NameNotFoundException {
         VpnService.Builder builder = mService.new Builder();
-        builder.setMtu(1500);
-        builder.addAddress("10.87.0.2", 24);
+        // Todo: Address is used in port forwarding
+        builder.addAddress("10.87.0.37", 24);
         builder.addRoute("0.0.0.0", 0);
 
+
+        builder.addDnsServer("8.8.8.8");
         for (String p : mPackages) {
 //            builder.addAllowedApplication(p);
             builder.addDisallowedApplication(p);

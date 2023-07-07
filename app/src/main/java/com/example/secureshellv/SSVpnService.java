@@ -56,8 +56,6 @@ public class SSVpnService extends VpnService {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         ServerConfig config = (ServerConfig) intent.getSerializableExtra("config");
-//        PendingIntent mConfigureIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class),
-//                PendingIntent.FLAG_UPDATE_CURRENT);
         startVpn(config);
         return super.onStartCommand(intent, flags, startId);
     }
@@ -67,7 +65,7 @@ public class SSVpnService extends VpnService {
     private void startVpn(ServerConfig config) {
         Set<String> packages = new HashSet<>();
         packages.add(getPackageName());
-        packages.add("com.server.auditor.ssh.client");
+//        packages.add("com.server.auditor.ssh.client");
         sockConnection = new SockConnection(this, config, packages);
         VpnService.prepare(this);
         Log.d(TAG, "Prepared");

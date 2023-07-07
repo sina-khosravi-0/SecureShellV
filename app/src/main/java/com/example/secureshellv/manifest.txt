@@ -1,0 +1,16 @@
+SSH port forwarding is done with Apache mina sshd.
+    Note: Add following lines to build.gradle for mina-sshd to be able to work:
+            implementation 'javax.management:jmx:1.2.1'
+            implementation 'org.apache.sshd:sshd-core:2.10.0'
+            implementation 'org.apache.mina:mina-core:2.0.19'
+        Also Add these lines to  proguard-rules:
+            -keep class org.apache.mina.** {*;}
+            -keep class org.apache.sshd.** {*;}
+            -dontwarn org.apache.sshd.**
+            -dontwarn org.apache.mina.**
+        And this line to settings.gradle in repositories after under google() and mavenCentral():
+            maven {
+                url 'https://www.datanucleus.org/downloads/maven2/'
+            }
+For 64 or 32 bit support add these options to defaultConfig in build.gradle(app level):
+    ndk.abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'

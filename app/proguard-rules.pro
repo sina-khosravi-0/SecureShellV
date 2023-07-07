@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+    -keep class org.apache.mina.** {*;}
+    -keep class org.apache.sshd.** {*;}
+
+   -dontwarn org.apache.sshd.**
+   -dontwarn org.apache.mina.**
