@@ -1,4 +1,4 @@
-package com.example.secureshellv;
+package com.securelight.secureshellv;
 
 import org.junit.Test;
 

@@ -39,7 +39,7 @@ dependencies {
     // https://mvnrepository.com/artifact/com.jcraft/jsch
     implementation group: 'com.jcraft', name: 'jsch', version: '0.1.55'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation files('C:/Users/Sina/AndroidStudioProjects/SecureShellV/app/libs/V1/tun2socks.aar')
+    implementation files('C:/Users/Sina/AndroidStudioProjects/SecureShellV/app/libs/tun2socks.aar')
 // https://mvnrepository.com/artifact/javax.management/jmx
     implementation 'javax.management:jmx:1.2.1'
     implementation 'org.apache.sshd:sshd-core:2.10.0'

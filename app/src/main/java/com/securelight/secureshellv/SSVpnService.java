@@ -1,9 +1,10 @@
-package com.example.secureshellv;
+package com.securelight.secureshellv;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
@@ -24,7 +25,7 @@ public class SSVpnService extends VpnService {
     public static final String ACTION_CONNECT = "com.example.secureshellv.action.START";
     public static final String ACTION_DISCONNECT = "com.example.secureshellv.action.STOP";
     public static final String CHANNEL_ID = "";
-
+    ParcelFileDescriptor iFace;
     private final AtomicReference<Thread> mConnectingThread = new AtomicReference<>();
     private final AtomicReference<Connection> mConnection = new AtomicReference<>();
     private final AtomicInteger mNextConnectionId = new AtomicInteger(1);
@@ -33,8 +34,12 @@ public class SSVpnService extends VpnService {
         @Override
         public void onReceive(Context context, Intent intent) {
             if ("stop_kill".equals(intent.getAction())) {
-                System.out.println("Stop KILL");
-                disconnect();
+                try {
+                    disconnect();
+                    Log.i(getClass().getName(), "VPN service stopped");
+                } catch (IOException e) {
+                    Log.e(getClass().getName(), "Error during stopping VPN service ", e);
+                }
                 stopSelf();
             }
         }
@@ -46,25 +51,59 @@ public class SSVpnService extends VpnService {
         }
     }
 
+    public interface OnEstablishListener {
+        void onEstablish(ParcelFileDescriptor tunInterface);
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
+        iFace = configure();
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(stopBr, new IntentFilter("stop_kill"));
     }
 
+    private ParcelFileDescriptor configure() throws PackageManager.NameNotFoundException {
+        VpnService.Builder builder = mService.new Builder();
+        // Todo: Address is used in port forwarding
+        builder.addAddress(config.getHost(), 24);
+        builder.addRoute("0.0.0.0", 0);
+        builder.addDnsServer(config.getDnsHost());
+
+        for (String p : mPackages) {
+            builder.addDisallowedApplication(p);
+        }
+        final ParcelFileDescriptor vpnInterface;
+        builder.setSession(config.getHost());
+        synchronized (mService) {
+            vpnInterface = builder.establish();
+            if (mOnEstablishListener != null) {
+                mOnEstablishListener.onEstablish(vpnInterface);
+            }
+        }
+        Log.i(TAG, "New interface: " + vpnInterface);
+        return vpnInterface;
+    }
+
+
+    public void setOnEstablishListener(OnEstablishListener listener) {
+        mOnEstablishListener = listener;
+    }
+
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        ServerConfig config = (ServerConfig) intent.getSerializableExtra("config");
+        VPNSettings config = (VPNSettings) intent.getSerializableExtra("config");
         startVpn(config);
         return super.onStartCommand(intent, flags, startId);
     }
 
     SockConnection sockConnection;
 
-    private void startVpn(ServerConfig config) {
+    private void startVpn(VPNSettings config) {
         Set<String> packages = new HashSet<>();
         packages.add(getPackageName());
+        // Termius
 //        packages.add("com.server.auditor.ssh.client");
         sockConnection = new SockConnection(this, config, packages);
         VpnService.prepare(this);
@@ -94,6 +133,7 @@ public class SSVpnService extends VpnService {
         final Connection oldConnection = mConnection.getAndSet(connection);
         if (oldConnection != null) {
             try {
+                System.out.println("fuck");
                 oldConnection.first.interrupt();
                 oldConnection.second.close();
             } catch (IOException e) {
@@ -102,89 +142,10 @@ public class SSVpnService extends VpnService {
         }
     }
 
-    private void disconnect() {
+    private void disconnect() throws IOException {
         setConnectingThread(null);
         setConnection(null);
         sockConnection.disconnect();
         stopForeground(true);
     }
-
-
 }
-//public class SSVpnService extends VpnService {
-//    public static final String ACTION_CONNECT = "com.example.secureshellv.START";
-//    public static final String ACTION_DISCONNECT = "com.example.secureshellv.STOP";
-//    private PendingIntent mConfigureIntent;
-//
-//    @Override
-//    public void onCreate() {
-//        mConfigureIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
-//    }
-//
-//    @Override
-//    public int onStartCommand(Intent intent, int flags, int startId) {
-////        connect("shit");
-//        return START_STICKY;
-//    }
-//
-//    private void connect() {
-//        // Extract information from the shared preferences.
-//        new Thread(() -> {
-//            final SocketAddress serverAddress = new InetSocketAddress("127.0.0.1", 2000);
-//            try {
-//                run(serverAddress);
-//            } catch (InterruptedException | IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }).start();
-//    }
-//
-//    private void connect(String shit){
-//        new Thread(() -> {
-//            final SocketAddress serverAddress = new InetSocketAddress("127.0.0.1", 2000);
-//            try {
-//                DatagramChannel tunnel = DatagramChannel.open();
-//                protect(tunnel.socket());
-//                tunnel.connect(serverAddress);
-//                tunnel.configureBlocking(false);
-//                Builder builder = this.new Builder();
-//                builder.addAddress("198.18.0.1", 32);
-//                builder.addRoute("0.0.0.0", 0);
-//                builder.addDisallowedApplication(getApplicationContext().getPackageName());
-//                builder.setSession("IPv4/Global");
-//                builder.establish();
-//                builder.allowFamily(OsConstants.AF_INET);
-//            } catch (IOException | PackageManager.NameNotFoundException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }).start();
-//
-//    }
-//
-//    private void run(SocketAddress server)
-//            throws InterruptedException, IllegalArgumentException, IllegalStateException, IOException {
-//        ParcelFileDescriptor iface = null;
-//        DatagramChannel tunnel = DatagramChannel.open();
-//        protect(tunnel.socket());
-//        tunnel.connect(server);
-//        tunnel.configureBlocking(false);
-//        configureVirtualInterface();
-//    }
-//
-//    private ParcelFileDescriptor configureVirtualInterface() throws IllegalArgumentException {
-//        // Configure a builder while parsing the parameters.
-//        VpnService.Builder builder = this.new Builder();
-//        try {
-//            builder.addAddress("192.168.2.2", 24);
-//            builder.addRoute("0.0.0.0", 0);
-//            builder.addDnsServer("192.168.1.1");
-//
-//        } catch (NumberFormatException e) {
-//            throw new IllegalArgumentException("Bad parameter: " + e);
-//        }
-//        builder.setSession("127.0.0.1").setConfigureIntent(mConfigureIntent);
-//
-//        // Create a new interface using the builder and save the parameters.
-//        return builder.establish();
-//    }
-//}

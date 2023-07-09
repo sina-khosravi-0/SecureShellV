@@ -1,5 +1,6 @@
-SSH port forwarding is done with Apache mina sshd.
-    Note: Add following lines to build.gradle for mina-sshd to be able to work:
+1. SSH port forwarding is done with Apache mina sshd.
+    Note1: The proxy has to be established prior to the Tun2Socks service to avoid possible exceptions.
+    Note2: Add following lines to build.gradle for mina-sshd to be able to work:
             implementation 'javax.management:jmx:1.2.1'
             implementation 'org.apache.sshd:sshd-core:2.10.0'
             implementation 'org.apache.mina:mina-core:2.0.19'
@@ -12,5 +13,7 @@ SSH port forwarding is done with Apache mina sshd.
             maven {
                 url 'https://www.datanucleus.org/downloads/maven2/'
             }
-For 64 or 32 bit support add these options to defaultConfig in build.gradle(app level):
+2. For 64 or 32 bit support add these options to defaultConfig in build.gradle(app level):
     ndk.abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+3. This line is mandatory in build.gradle to avoid crash on android 12 and above:
+    implementation 'androidx.work:work-runtime-ktx:2.8.1'

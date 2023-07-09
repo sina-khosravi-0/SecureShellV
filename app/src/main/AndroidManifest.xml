@@ -20,7 +20,7 @@
         android:theme="@style/Theme.SecureShellV"
         tools:targetApi="31" >
 
-        <service android:name=".SSVpnService"
+        <service android:name="com.securelight.secureshellv.SSVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:exported="true">
             <intent-filter>
@@ -29,7 +29,7 @@
         </service>
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.securelight.secureshellv.MainActivity"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
