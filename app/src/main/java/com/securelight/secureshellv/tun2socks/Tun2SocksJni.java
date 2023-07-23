@@ -1,6 +1,13 @@
-package com.securelight.secureshellv;
+/*
+ * Copyright (C) Psiphon Inc.
+ * Released under badvpn licence: https://github.com/ambrop72/badvpn#license
+ */
+
+package com.securelight.secureshellv.tun2socks;
 
 import android.util.Log;
+
+import com.securelight.secureshellv.Constants;
 
 public class Tun2SocksJni {
 
@@ -16,7 +23,17 @@ public class Tun2SocksJni {
     // runTun2Socks blocks until tun2socks is stopped by calling terminateTun2Socks.
     // It's safe to call terminateTun2Socks from a different thread.
     //
-    // logTun2Socks is called from tun2socks when an event is to be logged.
+    // logTun2Socks is called from tun2socks.c when an event is to be logged.
+
+//    public static native int runTun2Socks(
+//            int vpnInterfaceFileDescriptor,
+//            int vpnInterfaceMTU,
+//            String vpnIpAddress,
+//            String vpnNetMask,
+//            String socksServerAddress,
+//            String udpRelayAddress,
+//            String dnsResolverAddress,
+//            int transparentDNS);
 
     public static native int runTun2Socks(
             int vpnInterfaceFileDescriptor,
@@ -24,15 +41,15 @@ public class Tun2SocksJni {
             String vpnIpAddress,
             String vpnNetMask,
             String socksServerAddress,
-            String udpRelayAddress,
-            String dnsResolverAddress,
-            int transparentDNS);
+            String udpgwServerAddress,
+            int udpgwTransparentDNS,
+            int isDebugging);
 
     public static native int terminateTun2Socks();
 
     public static void logTun2Socks(String level, String channel, String msg) {
         String logMsg = String.format("%s (%s): %s", level, channel, msg);
-        Log.i("Tun2Socks", logMsg);
+        if (Constants.DEBUG) Log.v("Tun2Socks", logMsg);
     }
 
     static {

@@ -1,56 +1,31 @@
 package com.securelight.secureshellv;
 
-import android.app.admin.NetworkEvent;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.LinkProperties;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkInfo;
-import android.net.NetworkRequest;
 import android.net.VpnService;
-import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.securelight.secureshellv.SSH.SSHConnectionManager;
-
-import org.apache.sshd.client.SshClient;
-import org.apache.sshd.client.session.ClientSession;
-import org.apache.sshd.client.session.forward.PortForwardingTracker;
-import org.apache.sshd.common.Service;
-import org.apache.sshd.common.future.CancelOption;
-import org.apache.sshd.common.session.Session;
-import org.apache.sshd.common.session.SessionDisconnectHandler;
-import org.apache.sshd.common.session.helpers.TimeoutIndicator;
+import com.securelight.secureshellv.ssh.SSHConnectionManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
-import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 
 public class MainActivity extends AppCompatActivity {
 
 
-    VPNSettings vpnSettings = new VPNSettings();
+    VpnSettings vpnSettings = new VpnSettings();
     boolean connected = false;
     ApplicationInfo packageInfo;
-    private SSHConnectionManager sshConnectionManager;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -111,5 +86,15 @@ public class MainActivity extends AppCompatActivity {
 
     public void onDestroyClicked(View view) {
         System.exit(0);
+    }
+
+    public void onYesClicked(View view) {
+        Intent intent = new Intent("yes__");
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    public void onNoClicked(View view) {
+        Intent intent = new Intent("no__");
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 }

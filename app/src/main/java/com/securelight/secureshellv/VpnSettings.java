@@ -2,15 +2,17 @@ package com.securelight.secureshellv;
 
 import java.io.Serializable;
 
-public class VPNSettings implements Serializable {
+public class VpnSettings implements Serializable {
 
     private String host;
     private int port;
     private String dnsHost;
+    private String subnet;
 
-    public VPNSettings(){
-        host = "10.87.0.37";
-//        host = "127.0.0.1";
+    public VpnSettings(){
+        host = "10.0.0.1";
+        subnet = "10.0.0.0";
+
         port = 10808;
         dnsHost = "8.8.8.8";
     }
@@ -39,4 +41,7 @@ public class VPNSettings implements Serializable {
         this.dnsHost = dnsHost;
     }
 
+    public String getSubnet() {
+        return subnet;
+    }
 }
