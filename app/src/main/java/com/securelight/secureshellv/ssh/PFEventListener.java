@@ -4,13 +4,11 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.securelight.secureshellv.ConnectionHandler;
+import com.securelight.secureshellv.connection.ConnectionHandler;
 
 import org.apache.sshd.common.forward.PortForwardingEventListener;
 import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
-
-import java.io.IOException;
 
 public class PFEventListener implements PortForwardingEventListener {
     private String TAG = getClass().getName();

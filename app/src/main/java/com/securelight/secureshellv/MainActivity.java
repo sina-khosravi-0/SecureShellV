@@ -11,8 +11,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.securelight.secureshellv.ssh.SSHConnectionManager;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -21,11 +19,9 @@ import java.net.URL;
 
 
 public class MainActivity extends AppCompatActivity {
-
-
     VpnSettings vpnSettings = new VpnSettings();
-    boolean connected = false;
     ApplicationInfo packageInfo;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,10 +33,6 @@ public class MainActivity extends AppCompatActivity {
             throw new RuntimeException(e);
         }
     }
-
-    public static long initialTx = 0;
-    public static long newTx = 0;
-    public long received = 0;
 
     public void onCheckClicked(View view) throws MalformedURLException {
         Toast myToast = Toast.makeText(this, "connected", Toast.LENGTH_SHORT);
@@ -60,15 +52,14 @@ public class MainActivity extends AppCompatActivity {
     public void onStartClicked(View view) {
         Intent intent = VpnService.prepare(this);
         if (intent != null) {
-            startActivityForResult(intent, 0);
+            startActivity(intent);
         } else {
             onActivityResult(0, RESULT_OK, null);
         }
-
     }
 
     public void onStopClicked(View view) {
-        Intent intent = new Intent("stop_vpn_service");
+        Intent intent = new Intent(SSVpnService.VPN_SERVICE_STOP_BR);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
@@ -81,9 +72,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Intent getServiceIntent() {
-        return new Intent(this, SSVpnService.class).putExtra("config", vpnSettings);
+        return new Intent(this, SSVpnService.class).putExtra("config", vpnSettings)
+                /*.setAction(Intent.ACTION_VIEW)
+                .addCategory(Intent.CATEGORY_DEFAULT)
+                .addCategory(Intent.CATEGORY_BROWSABLE)
+                .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .setPackage(getPackageName())*/;
     }
 
+    // todo: implement app exit sequence
     public void onDestroyClicked(View view) {
         System.exit(0);
     }

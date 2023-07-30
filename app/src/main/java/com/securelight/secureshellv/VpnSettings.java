@@ -8,9 +8,11 @@ public class VpnSettings implements Serializable {
     private int port;
     private String dnsHost;
     private String subnet;
+    int prefix;
 
     public VpnSettings(){
-        host = "10.0.0.1";
+        host = "10.12.10.13";
+        prefix = 24;
         subnet = "10.0.0.0";
 
         port = 10808;
@@ -43,5 +45,9 @@ public class VpnSettings implements Serializable {
 
     public String getSubnet() {
         return subnet;
+    }
+
+    public int getPrefix() {
+        return prefix;
     }
 }

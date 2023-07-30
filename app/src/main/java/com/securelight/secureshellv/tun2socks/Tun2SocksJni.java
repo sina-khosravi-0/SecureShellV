@@ -47,9 +47,19 @@ public class Tun2SocksJni {
 
     public static native int terminateTun2Socks();
 
+    public static native long getRxBytes();
+
+    public static native long getTxBytes();
+
+    public static native long getUDPBytes();
+
     public static void logTun2Socks(String level, String channel, String msg) {
         String logMsg = String.format("%s (%s): %s", level, channel, msg);
         if (Constants.DEBUG) Log.v("Tun2Socks", logMsg);
+    }
+
+    public static void sendTrafficData(long txBytes, long rxBytes) {
+        Log.v("Tun2Socks", "Transmit: " + txBytes + "\n\tReceived: " + rxBytes);
     }
 
     static {

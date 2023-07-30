@@ -3,14 +3,13 @@ package com.securelight.secureshellv.ssh;
 import android.os.Build;
 import android.util.Log;
 
-import com.securelight.secureshellv.ConnectionHandler;
+import com.securelight.secureshellv.connection.ConnectionHandler;
 import com.securelight.secureshellv.VpnSettings;
 import com.securelight.secureshellv.database.ClientData;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.forward.PortForwardingTracker;
-import org.apache.sshd.common.SshException;
 import org.apache.sshd.common.future.CancelOption;
 import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.session.SessionHeartbeatController;
@@ -18,20 +17,19 @@ import org.apache.sshd.common.session.SessionListener;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
 
 import java.io.IOException;
-import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class SSHConnectionManager {
+public class SSHManager {
     private final String TAG = getClass().getName();
     private final ConnectionHandler connectionHandler;
     private SshClient sshClient;
     private ClientSession session;
-    private List<PortForwardingTracker> portForwardingTrackers;
+    private final List<PortForwardingTracker> portForwardingTrackers;
     private final VpnSettings vpnSettings;
 
-    public SSHConnectionManager(VpnSettings vpnSettings, ConnectionHandler connectionHandler) {
+    public SSHManager(VpnSettings vpnSettings, ConnectionHandler connectionHandler) {
         this.connectionHandler = connectionHandler;
         this.vpnSettings = vpnSettings;
         portForwardingTrackers = new ArrayList<>();
@@ -45,38 +43,45 @@ public class SSHConnectionManager {
         sshClient.start();
     }
 
-    public boolean setupConnection() {
+    public void setupConnection() {
         try {
+            // wait for InternetAccessHandler to notify
+            synchronized (this) {
+                wait();
+            }
+            /* for some reason verify method forces timeout after about 12 seconds even
+            * when no timeout is specified */
             session = sshClient.connect(ClientData.getUserName(), getSshAddress(), 22)
-                    .verify().getSession();
+                    .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT).getSession();
             session.addSessionListener(getSessionListener());
             session.addPortForwardingEventListener(new PFEventListener(connectionHandler));
             session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE, TimeUnit.MILLISECONDS, 500);
             session.addPasswordIdentity(String.valueOf(ClientData.getSshPassword()));
-            session.auth().verify(1500, CancelOption.CANCEL_ON_TIMEOUT);
-            return true;
-        } catch (SshException e) {
+            session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
+        } catch (IOException e) {
             Log.d(TAG, e.getMessage());
             Log.e(TAG, "Connection failed.");
+            // don't let method return before successfully connecting
             setupConnection();
-        } catch (IOException e) {
-            Log.d(TAG, "Connection setup error", e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Unexpected Error occurred.");
         }
-        return false;
     }
 
     private SessionListener getSessionListener() {
         return new SessionListener() {
             @Override
             public void sessionClosed(Session session) {
+                Log.d(TAG, "Session closed: " + session);
                 getPortForwardingTrackers().forEach(portForwardingTracker -> {
+                    Log.v(TAG, portForwardingTracker + " closing.");
                     try {
                         portForwardingTracker.close();
-                        Log.v(TAG, portForwardingTracker + " closed.");
                     } catch (IOException e) {
-                        Log.e(TAG, "PF closing error");
+                        throw new RuntimeException(e);
                     }
                 });
+                portForwardingTrackers.clear();
             }
 
             @Override
@@ -101,16 +106,14 @@ public class SSHConnectionManager {
     }
 
     public void close() throws IOException {
-        if (session.isOpen()) {
-            session.close();
-        }
+        session.close();
 //        session = null;
         portForwardingTrackers.clear();
     }
 
     public String getSshAddress() {
         //todo: calculate best server (possibly based on selected options e.g location, ISP)
-        List<String> serversAddresses = ClientData.getServerAddresses();
+        List<String> serverAddresses = ClientData.getServerAddresses();
         return "64.226.64.126";
     }
 
