@@ -1,5 +1,6 @@
 package com.securelight.secureshellv.ssh;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 import android.util.Log;
 
@@ -15,8 +16,10 @@ import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.session.SessionHeartbeatController;
 import org.apache.sshd.common.session.SessionListener;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
+import org.apache.sshd.core.CoreModuleProperties;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -36,11 +39,13 @@ public class SSHManager {
         init();
     }
 
+    @SuppressLint("NewApi")
     private void init() {
         System.setProperty("user.home", Build.MODEL);
         Log.d(TAG, "Set user.home to '" + Build.MODEL + "'");
         sshClient = SshClient.setUpDefaultClient();
         sshClient.start();
+        CoreModuleProperties.IDLE_TIMEOUT.set(sshClient, Duration.ofSeconds(2));
     }
 
     public void setupConnection() {
@@ -52,10 +57,10 @@ public class SSHManager {
             /* for some reason verify method forces timeout after about 12 seconds even
             * when no timeout is specified */
             session = sshClient.connect(ClientData.getUserName(), getSshAddress(), 22)
-                    .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT).getSession();
+                    .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT).getClientSession();
             session.addSessionListener(getSessionListener());
             session.addPortForwardingEventListener(new PFEventListener(connectionHandler));
-            session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE, TimeUnit.MILLISECONDS, 500);
+//            session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE, TimeUnit.MILLISECONDS, 500);
             session.addPasswordIdentity(String.valueOf(ClientData.getSshPassword()));
             session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
         } catch (IOException e) {

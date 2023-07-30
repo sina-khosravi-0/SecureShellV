@@ -2,15 +2,21 @@ package com.securelight.secureshellv.connection;
 
 import android.app.Application;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 
 import com.securelight.secureshellv.VpnSettings;
-import com.securelight.secureshellv.connection.InternetAccessHandler;
 import com.securelight.secureshellv.ssh.SSHManager;
 import com.securelight.secureshellv.tun2socks.Tun2SocksManager;
 
+import org.apache.sshd.client.channel.ChannelExec;
+import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.client.session.forward.PortForwardingTracker;
 
+import java.io.IOException;
+import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConnectionHandler extends Thread {
@@ -52,8 +58,11 @@ public class ConnectionHandler extends Thread {
                     ClientSession.ClientSessionEvent.TIMEOUT), 0);
             tun2SocksManager.stop();
             // reconnect
+            Log.v(TAG, "reconnecting");
             sshManager.setupConnection();
+            Log.v(TAG, "reconnected?");
             sshManager.startPortForwarding();
+            Log.v(TAG, "reconnected");
             tun2SocksManager.start();
         }
     }
@@ -66,17 +75,22 @@ public class ConnectionHandler extends Thread {
 
     /**
      * @param ignored is there to differentiate method from Thread.stop()
-    * */
+     */
     public void stop(boolean ignored) {
         isServiceOn.set(false);
     }
 
     public void no() {
-
+        String string = String.format("session: open:%s, authed:%s\n", sshManager.getSession().isOpen(),
+                sshManager.getSession().isAuthenticated());
+        for (PortForwardingTracker portForwardingTracker : sshManager.getPortForwardingTrackers()) {
+            string = String.format(string + "\t%s\n", portForwardingTracker.toString());
+        }
+        Log.v(TAG, string);
     }
 
     public void yes() {
-
+        System.out.println(getSshManager().getSession().getIdleTimeout());
     }
 
     public Application getApplication() {

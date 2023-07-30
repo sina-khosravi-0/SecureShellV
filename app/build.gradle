@@ -6,7 +6,6 @@ plugins {
 android {
     namespace 'com.securelight.secureshellv'
     compileSdk 33
-
     defaultConfig {
         applicationId "com.securelight.secureshellv"
         minSdk 24

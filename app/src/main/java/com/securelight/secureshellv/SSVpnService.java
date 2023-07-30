@@ -221,15 +221,15 @@ public class SSVpnService extends VpnService {
     }
 
     public void yes() {
-//        connectionHandler.yes();
-        mBuilder.setContentTitle("SSV"); //main title
-        mBuilder.setContentText("Connected"); //main text when you "haven't expanded" the notification yet
-        mBuilder.setPriority(Notification.PRIORITY_MAX);
-        mNotificationManager.notify(1, mBuilder.build());
+        connectionHandler.yes();
+//        mBuilder.setContentTitle("SSV"); //main title
+//        mBuilder.setContentText("Connected"); //main text when you "haven't expanded" the notification yet
+//        mBuilder.setPriority(Notification.PRIORITY_MAX);
+//        mNotificationManager.notify(1, mBuilder.build());
     }
 
     public void no() {
-//        connectionHandler.no();
+        connectionHandler.no();
 //        NotificationCompat.BigTextStyle bigText = new NotificationCompat.BigTextStyle();
 //        bigText.bigText("notificationsTextDetailMode"); //detail mode is the "expanded" notification
 //        bigText.setBigContentTitle("notificationTitleDetailMode");
