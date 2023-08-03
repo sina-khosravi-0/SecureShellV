@@ -24,7 +24,7 @@ public class PFEventListener implements PortForwardingEventListener {
     @Override
     public void establishedDynamicTunnel(Session session, SshdSocketAddress local,
                                          SshdSocketAddress boundAddress, Throwable reason) {
-        Log.d(TAG, "established dynamic PF: " + boundAddress, reason);
+        Log.d(TAG, "Established dynamic PF: " + boundAddress, reason);
         handler.post(() -> Toast.makeText(connectionHandler.getApplication(), "Connected", Toast.LENGTH_SHORT).show());
     }
 
@@ -36,7 +36,7 @@ public class PFEventListener implements PortForwardingEventListener {
 
     @Override
     public void establishedExplicitTunnel(Session session, SshdSocketAddress local, SshdSocketAddress remote, boolean localForwarding, SshdSocketAddress boundAddress, Throwable reason) {
-        Log.d(TAG, "established explicit PF: " + local + " <- "
+        Log.d(TAG, "Established explicit PF: " + local + " <- "
                 + remote, reason);
     }
 }

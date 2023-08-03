@@ -1,96 +1,92 @@
 package com.securelight.secureshellv.connection;
 
 import android.app.Application;
+import android.content.Intent;
 import android.os.ParcelFileDescriptor;
-import android.util.Log;
 
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.securelight.secureshellv.SSVpnService;
 import com.securelight.secureshellv.VpnSettings;
 import com.securelight.secureshellv.ssh.SSHManager;
 import com.securelight.secureshellv.tun2socks.Tun2SocksManager;
 
-import org.apache.sshd.client.channel.ChannelExec;
-import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.session.ClientSession;
-import org.apache.sshd.client.session.forward.PortForwardingTracker;
 
-import java.io.IOException;
-import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ConnectionHandler extends Thread {
     private final String TAG = getClass().getName();
     private final VpnSettings vpnSettings;
     private final ParcelFileDescriptor vpnInterface;
     private SSHManager sshManager;
+    private final Application application;
+    private final SSVpnService vpnService;
     private Tun2SocksManager tun2SocksManager;
-    private Application application;
     private final InternetAccessHandler internetAccessHandler;
+    private boolean serviceActive;
+    private final AtomicBoolean connected;
+    private final ReentrantLock lock;
+    private final Condition internetAccessCondition;
 
-    private AtomicBoolean isServiceOn = new AtomicBoolean(false);
 
-    public boolean isServiceOn() {
-        return isServiceOn.get();
-    }
-
-    public ConnectionHandler(VpnSettings vpnSettings, ParcelFileDescriptor vpnInterface, Application application) {
+    public ConnectionHandler(VpnSettings vpnSettings, ParcelFileDescriptor vpnInterface, SSVpnService vpnService) {
         this.vpnSettings = vpnSettings;
         this.vpnInterface = vpnInterface;
-        this.application = application;
+        this.application = vpnService.getApplication();
+        this.vpnService = vpnService;
+        connected = new AtomicBoolean();
+        lock = new ReentrantLock();
+        internetAccessCondition = lock.newCondition();
         internetAccessHandler = new InternetAccessHandler(this);
     }
 
     @Override
     public void run() {
-        isServiceOn.set(true);
+        serviceActive = true;
+        Intent intent = new Intent("yes__");
+        internetAccessHandler.setAccessChangeListener(accessType -> {
+            LocalBroadcastManager.getInstance(application).sendBroadcast(intent);
+        });
         internetAccessHandler.start();
 
         sshManager = new SSHManager(vpnSettings, this);
         tun2SocksManager = new Tun2SocksManager(vpnSettings, vpnInterface, application);
-
         sshManager.setupConnection();
         sshManager.startPortForwarding();
         tun2SocksManager.start();
 
-        while (isServiceOn()) {
+        while (serviceActive) {
+            connected.set(true);
+            LocalBroadcastManager.getInstance(application).sendBroadcast(intent);
             sshManager.getSession().waitFor(Arrays.asList(ClientSession.ClientSessionEvent.CLOSED,
                     ClientSession.ClientSessionEvent.TIMEOUT), 0);
-            tun2SocksManager.stop();
+            connected.set(false);
+            LocalBroadcastManager.getInstance(application).sendBroadcast(intent);
             // reconnect
-            Log.v(TAG, "reconnecting");
             sshManager.setupConnection();
-            Log.v(TAG, "reconnected?");
             sshManager.startPortForwarding();
-            Log.v(TAG, "reconnected");
-            tun2SocksManager.start();
         }
     }
 
     @Override
     public void interrupt() {
-        isServiceOn.set(false);
-        no();
-    }
-
-    /**
-     * @param ignored is there to differentiate method from Thread.stop()
-     */
-    public void stop(boolean ignored) {
-        isServiceOn.set(false);
+        super.interrupt();
+        serviceActive = false;
+        // done in separate thread to avoid hanging the main thread
+        tun2SocksManager.stop();
+        new Thread(sshManager::close).start();
     }
 
     public void no() {
-        String string = String.format("session: open:%s, authed:%s\n", sshManager.getSession().isOpen(),
-                sshManager.getSession().isAuthenticated());
-        for (PortForwardingTracker portForwardingTracker : sshManager.getPortForwardingTrackers()) {
-            string = String.format(string + "\t%s\n", portForwardingTracker.toString());
-        }
-        Log.v(TAG, string);
+
     }
 
     public void yes() {
-        System.out.println(getSshManager().getSession().getIdleTimeout());
+        sshManager.close();
     }
 
     public Application getApplication() {
@@ -107,5 +103,20 @@ public class ConnectionHandler extends Thread {
 
     public SSHManager getSshManager() {
         return sshManager;
+    }
+
+    public boolean isConnected() {
+        return connected.get();
+    }
+    public boolean isServiceActive() {
+        return serviceActive;
+    }
+
+    public ReentrantLock getLock() {
+        return lock;
+    }
+
+    public Condition getInternetAccessCondition() {
+        return internetAccessCondition;
     }
 }

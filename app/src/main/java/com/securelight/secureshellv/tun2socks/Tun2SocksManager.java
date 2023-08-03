@@ -35,8 +35,10 @@ public class Tun2SocksManager {
     }
 
     public void stop() {
+        if (isRunning) {
+            new Thread(Tun2SocksJni::terminateTun2Socks).start();
+        }
         isRunning = false;
-        new Thread(Tun2SocksJni::terminateTun2Socks).start();
     }
 
     public boolean isRunning() {

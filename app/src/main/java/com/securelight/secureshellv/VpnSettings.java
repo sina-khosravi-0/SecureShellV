@@ -11,6 +11,7 @@ public class VpnSettings implements Serializable {
     int prefix;
 
     public VpnSettings(){
+        //fixme: check for free a free range and set one
         host = "10.12.10.13";
         prefix = 24;
         subnet = "10.0.0.0";

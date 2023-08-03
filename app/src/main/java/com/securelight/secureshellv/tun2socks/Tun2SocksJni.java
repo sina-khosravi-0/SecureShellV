@@ -9,32 +9,20 @@ import android.util.Log;
 
 import com.securelight.secureshellv.Constants;
 
+/**
+ * runTun2Socks takes a tun device file descriptor (from Android's VpnService,
+ * for example) and plugs it into tun2socks, which routes the tun TCP traffic
+ * through the specified SOCKS proxy. UDP traffic is sent to the specified
+ * udpgw server.
+ * The tun device file descriptor should be set to non-blocking mode.
+ * tun2Socks does *not* take ownership of the tun device file descriptor; the
+ * caller is responsible for closing it after tun2socks terminates.
+ * runTun2Socks blocks until tun2socks is stopped by calling terminateTun2Socks.
+ * It's safe to call terminateTun2Socks from a different thread.
+ * logTun2Socks is called from tun2socks.c when an event is to be logged.
+ */
 public class Tun2SocksJni {
-
-    // runTun2Socks takes a tun device file descriptor (from Android's VpnService,
-    // for example) and plugs it into tun2socks, which routes the tun TCP traffic
-    // through the specified SOCKS proxy. UDP traffic is sent to the specified
-    // udpgw server.
-    //
-    // The tun device file descriptor should be set to non-blocking mode.
-    // tun2Socks does *not* take ownership of the tun device file descriptor; the
-    // caller is responsible for closing it after tun2socks terminates.
-    //
-    // runTun2Socks blocks until tun2socks is stopped by calling terminateTun2Socks.
-    // It's safe to call terminateTun2Socks from a different thread.
-    //
-    // logTun2Socks is called from tun2socks.c when an event is to be logged.
-
-//    public static native int runTun2Socks(
-//            int vpnInterfaceFileDescriptor,
-//            int vpnInterfaceMTU,
-//            String vpnIpAddress,
-//            String vpnNetMask,
-//            String socksServerAddress,
-//            String udpRelayAddress,
-//            String dnsResolverAddress,
-//            int transparentDNS);
-
+    //basically the same as an interface methods
     public static native int runTun2Socks(
             int vpnInterfaceFileDescriptor,
             int vpnInterfaceMTU,
