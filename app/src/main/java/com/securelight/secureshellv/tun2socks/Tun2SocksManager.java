@@ -15,6 +15,7 @@ public class Tun2SocksManager {
     private Application application;
     private Thread tun2SocksThread;
     public boolean run = true;
+
     public Tun2SocksManager(final VpnSettings vpnSettings, ParcelFileDescriptor vpnInterface, Application application) {
         this.vpnSettings = vpnSettings;
         this.vpnInterface = vpnInterface;

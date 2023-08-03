@@ -133,7 +133,7 @@ public class SSHManager {
      * closes clientSession and signals setup connection to wake up.
      * it will keep signaling until connection thread is dead to avoid
      * dead-locking in setup connection.
-     * */
+     */
     public void close() {
         boolean closed = false;
         do {

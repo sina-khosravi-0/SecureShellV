@@ -108,6 +108,7 @@ public class ConnectionHandler extends Thread {
     public boolean isConnected() {
         return connected.get();
     }
+
     public boolean isServiceActive() {
         return serviceActive;
     }
