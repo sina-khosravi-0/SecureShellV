@@ -1,11 +1,13 @@
 package com.securelight.secureshellv.connection;
 
+import com.securelight.secureshellv.Values;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public class InternetAccessHandler extends Thread {
-    public final String TAG = getClass().getName();
+    private final String TAG = InternetAccessHandler.class.getSimpleName();
     private AccessChangeListener accessChangeListener;
     private AccessType accessType;
     private int interval;
@@ -24,20 +26,15 @@ public class InternetAccessHandler extends Thread {
 
     public InternetAccessHandler(ConnectionHandler connectionHandler) {
         this.connectionHandler = connectionHandler;
-        accessType = AccessType.VOID;
         interval = 1000;
     }
 
     @Override
     public void run() {
-        int counterInitialValue = 4;
-        int counter = counterInitialValue;
-
-        accessType = checkAndGetAccessType();
-
         while (connectionHandler.isServiceActive()) {
             if (connectionHandler.getSshManager() != null) {
                 AccessType tempType = checkAndGetAccessType();
+
                 switch (tempType) {
                     case FULL_ACCESS:
                         connectionHandler.getLock().lock();
@@ -46,29 +43,35 @@ public class InternetAccessHandler extends Thread {
                         } finally {
                             connectionHandler.getLock().unlock();
                         }
+
                         if (accessType != tempType) {
                             accessType = tempType;
+                            connectionHandler.networkStateString = Values.FULL_INTERNET_ACCESS_STRING;
                             accessChangeListener.onAccessTypeChanged(accessType);
                         }
                         break;
                     case IRAN_ACCESS:
                         if (accessType != tempType) {
                             accessType = tempType;
+                            connectionHandler.networkStateString = Values.RESTRICTED_INTERNET_ACCESS_STRING;
                             accessChangeListener.onAccessTypeChanged(accessType);
                         }
                         break;
                     case NONE:
+                        if (accessType != tempType) {
+                            accessType = tempType;
+                            connectionHandler.networkStateString = Values.NO_INTERNET_ACCESS_STRING;
+                            accessChangeListener.onAccessTypeChanged(accessType);
+                        }
+                        break;
                     case VOID:
-                        if (counter == 0) {
-                            if (accessType != tempType) {
-                                accessType = tempType;
-                                accessChangeListener.onAccessTypeChanged(accessType);
-                            }
-                            counter = counterInitialValue;
+                        if (accessType != tempType) {
+                            accessType = tempType;
+                            connectionHandler.networkStateString = Values.NETWORK_UNAVAILABLE_STRING;
+                            accessChangeListener.onAccessTypeChanged(accessType);
                         }
                         break;
                 }
-                counter--;
             }
 
             // todo: can possibly avoid busy wait?
@@ -80,15 +83,15 @@ public class InternetAccessHandler extends Thread {
     }
 
     private AccessType checkAndGetAccessType() {
+        if (!connectionHandler.isNetworkIFaceAvailable()) {
+            return AccessType.VOID;
+        }
         Socket socket = new Socket();
         try {
-            socket.connect(new InetSocketAddress("google.com", 443), 2000);
+            socket.connect(new InetSocketAddress("google.com", 443), 6000);
             socket.close();
             return AccessType.FULL_ACCESS;
         } catch (IOException e) {
-            if (e.getMessage().contains("ECONNREFUSED")) {
-                return AccessType.VOID;
-            }
             try {
                 socket.connect(new InetSocketAddress("snapp.ir", 443), 2000);
                 socket.close();

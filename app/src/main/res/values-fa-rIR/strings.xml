@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stop">توقف</string>
+    <string name="start">شروع</string>
+    <string name="kill">بستن</string>
+    <string name="check">چک</string>
+    <string name="disconnected">متصل نیست</string>
+    <string name="connected">متصل</string>
+    <string name="connecting">در حال اتصال</string>
+    <string name="full_internet_access">اینترنت جهانی</string>
+    <string name="restricted_internet_access">اینترانت ایران</string>
+    <string name="no_internet_access">بدون دسترسی به اینترنت</string>
+    <string name="network_unavailable">لطفا اینترنت خود را روشن کنید</string>
+    <string name="internet_access_state">وضعیت اینترنت</string>
+</resources>

@@ -8,7 +8,7 @@ android {
     compileSdk 33
     defaultConfig {
         applicationId "com.securelight.secureshellv"
-        minSdk 24
+        minSdk 26
         targetSdk 33
         versionCode 1
         versionName "1.0"
@@ -47,6 +47,8 @@ dependencies {
     implementation 'org.apache.sshd:sshd-core:2.10.0'
     implementation 'net.i2p.crypto:eddsa:0.3.0'
     implementation 'org.apache.mina:mina-core:2.0.19'
+    implementation "androidx.media:media:1.6.0"
+    implementation 'androidx.gridlayout:gridlayout:1.0.0'
 //    implementation "androidx.core:core-ktx:$core_version"
     testImplementation 'junit:junit:4.13.2'
 

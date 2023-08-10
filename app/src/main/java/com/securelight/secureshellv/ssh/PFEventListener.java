@@ -11,7 +11,7 @@ import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
 
 public class PFEventListener implements PortForwardingEventListener {
-    private String TAG = getClass().getName();
+    private String TAG = getClass().getSimpleName();
     private ConnectionHandler connectionHandler;
 
     Handler handler;

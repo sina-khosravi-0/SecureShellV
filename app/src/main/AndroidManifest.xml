@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -21,13 +20,24 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SecureShellV"
         android:usesCleartextTraffic="true"
-        tools:targetApi="31">
+        tools:targetApi="33">
+        <receiver
+            android:name=".VpnBroadcastReceiver"
+            android:enabled="true"
+            android:exported="false">
+                <intent-filter>
+                    <action android:name="com.securelight.secureshellv.STOP" />
+                    <action android:name="com.securelight.secureshellv.START" />
+                </intent-filter>
+        </receiver>
+
         <service
             android:name=".SSVpnService"
             android:exported="true"
             android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService" />
+
             </intent-filter>
         </service>
 

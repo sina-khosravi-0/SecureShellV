@@ -1,6 +1,5 @@
 package com.securelight.secureshellv.ssh;
 
-import android.annotation.SuppressLint;
 import android.os.Build;
 import android.util.Log;
 
@@ -25,11 +24,13 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class SSHManager {
-    private final String TAG = getClass().getName();
+    private final String TAG = getClass().getSimpleName();
     private final ConnectionHandler connectionHandler;
     private SshClient sshClient;
     private ClientSession session;
+    private ClientSession sessionIran;
     private final List<PortForwardingTracker> portForwardingTrackers;
+
     private final VpnSettings vpnSettings;
 
     public SSHManager(VpnSettings vpnSettings, ConnectionHandler connectionHandler) {
@@ -39,13 +40,15 @@ public class SSHManager {
         init();
     }
 
-    @SuppressLint("NewApi")
     private void init() {
         System.setProperty("user.home", Build.MODEL);
         Log.d(TAG, "Set user.home to '" + Build.MODEL + "'");
         sshClient = SshClient.setUpDefaultClient();
+
         sshClient.start();
-        CoreModuleProperties.IDLE_TIMEOUT.set(sshClient, Duration.ofMillis(6000));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CoreModuleProperties.IDLE_TIMEOUT.set(sshClient, Duration.ofMillis(6000));
+        }
     }
 
     public void setupConnection() {
@@ -73,15 +76,34 @@ public class SSHManager {
                 } finally {
                     connectionHandler.getLock().unlock();
                 }
+                // todo: do something about this mess
+                // opening session for iran server
                 /* for some reason verify method forces timeout after about 12 seconds even
                  * when no timeout is specified */
+//                sessionIran = sshClient.connect(ClientData.getUserName(), "one.weary.tech", 22)
+//                        .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
+//                        .getClientSession();
+//                sessionIran.addSessionListener(getSessionListener());
+//                sessionIran.addPortForwardingEventListener(new PFEventListener(connectionHandler));
+//                sessionIran.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
+//                        , TimeUnit.SECONDS, 3);
+//                sessionIran.addPasswordIdentity(String.valueOf(ClientData.getSshPassword()));
+//                sessionIran.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
+//                 open port 2000
+//                startIranPortForwarding();
+
+                // note: iran port forwarding forwards local port 20317 to one.weary.tech port 2000
+                // to 64.226.64.126 port 22
                 session = sshClient.connect(ClientData.getUserName(), getSshAddress(), 22)
-                        .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT).getClientSession();
+                        .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
+                        .getClientSession();
                 session.addSessionListener(getSessionListener());
                 session.addPortForwardingEventListener(new PFEventListener(connectionHandler));
-                session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE, TimeUnit.SECONDS, 3);
+                session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
+                        TimeUnit.SECONDS, 3);
                 session.addPasswordIdentity(String.valueOf(ClientData.getSshPassword()));
                 session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
+
                 successful = true;
             } catch (IOException e) {
                 Log.d(TAG, e.getMessage());
@@ -92,16 +114,25 @@ public class SSHManager {
     }
 
     public void startPortForwarding() {
-        if (session.isClosed() || !connectionHandler.isServiceActive()) {
-            // return if session is closed or service is not active
+        if (session == null || session.isClosed() || !connectionHandler.isServiceActive()) {
+            // return if session is null or closed or service is not active
             return;
         }
         try {
-            portForwardingTrackers.add(session.createLocalPortForwardingTracker(new SshdSocketAddress(vpnSettings.getHost(), 10809), new SshdSocketAddress("127.0.0.1", 3129)));
-            portForwardingTrackers.add(session.createDynamicPortForwardingTracker(new SshdSocketAddress(vpnSettings.getHost(), vpnSettings.getPort())));
+//            portForwardingTrackers.add(session.createLocalPortForwardingTracker(
+//            new SshdSocketAddress(vpnSettings.getHost(), 10809),
+//            new SshdSocketAddress("127.0.0.1", 3129)));
+            portForwardingTrackers.add(session.createDynamicPortForwardingTracker(
+                    new SshdSocketAddress(vpnSettings.getHost(), 10808)));
         } catch (IOException e) {
             Log.e(TAG, "error during port forwarding");
         }
+    }
+
+    public void startIranPortForwarding() throws IOException {
+        portForwardingTrackers.add(sessionIran.createLocalPortForwardingTracker(
+                new SshdSocketAddress("127.0.0.1", 20317),
+                new SshdSocketAddress("127.0.0.1", 2000)));
     }
 
     private SessionListener getSessionListener() {
@@ -136,14 +167,21 @@ public class SSHManager {
      */
     public void close() {
         boolean closed = false;
-        do {
-            try {
-                session.close();
-                closed = true;
-            } catch (IOException ignored) {
-                Log.d(TAG, "Session closing error. Retrying...");
+        closeSession:
+        {
+            if (session == null) {
+                break closeSession;
             }
-        } while (!closed);
+            do {
+                try {
+                    session.close();
+                    closed = true;
+                } catch (IOException ignored) {
+                    Log.d(TAG, "Session closing error. Retrying...");
+                }
+            } while (!closed);
+        }
+
         do {
             connectionHandler.getLock().lock();
             try {

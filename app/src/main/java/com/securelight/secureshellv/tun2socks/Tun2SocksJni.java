@@ -7,7 +7,7 @@ package com.securelight.secureshellv.tun2socks;
 
 import android.util.Log;
 
-import com.securelight.secureshellv.Constants;
+import com.securelight.secureshellv.Values;
 
 /**
  * runTun2Socks takes a tun device file descriptor (from Android's VpnService,
@@ -43,7 +43,7 @@ public class Tun2SocksJni {
 
     public static void logTun2Socks(String level, String channel, String msg) {
         String logMsg = String.format("%s (%s): %s", level, channel, msg);
-        if (Constants.DEBUG) Log.v("Tun2Socks", logMsg);
+        if (Values.DEBUG) Log.v("Tun2Socks", logMsg);
     }
 
     public static void sendTrafficData(long txBytes, long rxBytes) {
