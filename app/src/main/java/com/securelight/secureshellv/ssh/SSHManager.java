@@ -7,6 +7,7 @@ import com.securelight.secureshellv.VpnSettings;
 import com.securelight.secureshellv.connection.ConnectionHandler;
 import com.securelight.secureshellv.database.ClientData;
 
+import org.apache.sshd.client.ClientBuilder;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.forward.PortForwardingTracker;
@@ -27,6 +28,7 @@ public class SSHManager {
     private final String TAG = getClass().getSimpleName();
     private final ConnectionHandler connectionHandler;
     private SshClient sshClient;
+    private ClientBuilder clientBuilder;
     private ClientSession session;
     private ClientSession sessionIran;
     private final List<PortForwardingTracker> portForwardingTrackers;
@@ -44,26 +46,19 @@ public class SSHManager {
         System.setProperty("user.home", Build.MODEL);
         Log.d(TAG, "Set user.home to '" + Build.MODEL + "'");
         sshClient = SshClient.setUpDefaultClient();
-
         sshClient.start();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CoreModuleProperties.IDLE_TIMEOUT.set(sshClient, Duration.ofMillis(6000));
-        }
+        CoreModuleProperties.IDLE_TIMEOUT.set(sshClient, Duration.ofMillis(5000));
     }
 
     public void setupConnection() {
         boolean successful = false;
-        if (!connectionHandler.isServiceActive()) {
-            // return if service is not active and setup connection is called.
-            return;
-        }
-        do {
+        while (!successful && connectionHandler.isServiceActive()) {
             try {
                 // wait for InternetAccessHandler to notify on internet access
                 // or for stop method to notify.
                 try {
                     connectionHandler.getLock().lock();
-                    connectionHandler.getInternetAccessCondition().await();
+                    connectionHandler.getInternetAvailableCondition().await();
                     if (!connectionHandler.isServiceActive()) {
                         // return if after being notified, service is off to avoid connection after
                         // ConnectionHandler termination.
@@ -109,8 +104,7 @@ public class SSHManager {
                 Log.d(TAG, e.getMessage());
                 Log.e(TAG, "connection failed.");
             }
-        } while (!successful && connectionHandler.isServiceActive());
-
+        } // while (!successful && connectionHandler.isRunning())
     }
 
     public void startPortForwarding() {
@@ -167,11 +161,7 @@ public class SSHManager {
      */
     public void close() {
         boolean closed = false;
-        closeSession:
-        {
-            if (session == null) {
-                break closeSession;
-            }
+        if (session != null) {
             do {
                 try {
                     session.close();
@@ -181,20 +171,27 @@ public class SSHManager {
                 }
             } while (!closed);
         }
+        portForwardingTrackers.clear();
+    }
+
+    public void closeAndFinalize() {
+        close();
+        sshClient.stop();
 
         do {
             connectionHandler.getLock().lock();
             try {
-                connectionHandler.getInternetAccessCondition().signalAll();
+                connectionHandler.getInternetAvailableCondition().signalAll();
             } finally {
                 connectionHandler.getLock().unlock();
             }
-
             // don't stop signalling until we are sure we aren't stuck at:
-            // connectionHandler.getInternetAccessCondition().await()
-        } while (connectionHandler.isAlive());
+            // internetAvailableCondition().await()
+        } while (connectionHandler.isRunning());
+    }
 
-        portForwardingTrackers.clear();
+    public void cancelAvailabilityLock() {
+
     }
 
     public String getSshAddress() {

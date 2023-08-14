@@ -13,9 +13,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven {
-            url 'https://www.datanucleus.org/downloads/maven2/'
-        }
+        maven { url 'https://www.datanucleus.org/downloads/maven2/' }
+        maven { url "https://jitpack.io" }
     }
 }
 rootProject.name = "SecureShellV"

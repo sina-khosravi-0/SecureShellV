@@ -1,9 +1,7 @@
 package com.securelight.secureshellv.connection;
 
-import android.annotation.SuppressLint;
 import android.app.Application;
 import android.os.ParcelFileDescriptor;
-import android.util.JsonToken;
 
 import androidx.core.app.NotificationCompat;
 
@@ -22,6 +20,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ConnectionHandler extends Thread {
+    public final String SSH_DIRECT = "ssh-direct";
+    public final String SSH_TLS = "ssh-tls";
     private final String TAG = getClass().getSimpleName();
     private final VpnSettings vpnSettings;
     private final ParcelFileDescriptor vpnInterface;
@@ -33,11 +33,13 @@ public class ConnectionHandler extends Thread {
     private final AtomicBoolean connected;
     private final AtomicBoolean networkInterfaceAvailable;
     private final ReentrantLock lock;
-    private final Condition internetAccessCondition;
+    private final Condition internetAvailableCondition;
     public String connectionStateString = Values.CONNECTING_STRING;
     public String networkStateString = "";
+    private boolean running;
 
     public ConnectionHandler(VpnSettings vpnSettings, ParcelFileDescriptor vpnInterface, SSVpnService vpnService) {
+        setName("ConnectionHandler");
         this.vpnSettings = vpnSettings;
         this.vpnInterface = vpnInterface;
         this.application = vpnService.getApplication();
@@ -45,13 +47,16 @@ public class ConnectionHandler extends Thread {
         lock = new ReentrantLock();
         connected = new AtomicBoolean();
         networkInterfaceAvailable = new AtomicBoolean();
-        internetAccessCondition = lock.newCondition();
+        internetAvailableCondition = lock.newCondition();
         internetAccessHandler = new InternetAccessHandler(this);
+        internetAccessHandler.setDaemon(true);
     }
 
     @Override
     public void run() {
+        running = true;
         vpnService.setConnectionThreadRunning(true);
+
         internetAccessHandler.setAccessChangeListener(accessType -> updateNotification());
         internetAccessHandler.start();
 
@@ -80,24 +85,24 @@ public class ConnectionHandler extends Thread {
             sshManager.startPortForwarding();
         }
 
-        if (MainActivity.isAppClosing()) {
-            vpnService.getNotificationManager().cancel(vpnService.getOnGoingNotificationID());
-            return;
-        }
-
         networkStateString = "";
         connectionStateString = Values.DISCONNECTED_STRING;
         updateNotification();
+
+        // todo: preferably remove
         vpnService.onConnectionFinalized();
+
         vpnService.setConnectionThreadRunning(false);
+        running = false;
     }
 
     @Override
     public void interrupt() {
         super.interrupt();
+
         tun2SocksManager.stop();
         // done in separate thread to avoid hanging the main thread
-        new Thread(sshManager::close).start();
+        new Thread(sshManager::closeAndFinalize).start();
     }
 
     public void no() {
@@ -105,11 +110,13 @@ public class ConnectionHandler extends Thread {
     }
 
     private void updateNotification() {
-        NotificationCompat.Builder builder = vpnService.getNotificationBuilder();
-        builder.setContentTitle(connectionStateString);
-        builder.setContentText(String
-                .format("%s: %s", Values.INTERNET_ACCESS_STATE_STRING, networkStateString));
-        vpnService.getNotificationManager().notify(vpnService.getOnGoingNotificationID(), builder.build());
+        if (!MainActivity.isAppClosing()) {
+            NotificationCompat.Builder builder = vpnService.getNotificationBuilder();
+            builder.setContentTitle(connectionStateString);
+            builder.setContentText(String
+                    .format("%s: %s", Values.INTERNET_ACCESS_STATE_STRING, networkStateString));
+            vpnService.getNotificationManager().notify(vpnService.getOnGoingNotificationID(), builder.build());
+        }
     }
 
     public void yes() {
@@ -144,8 +151,8 @@ public class ConnectionHandler extends Thread {
         return lock;
     }
 
-    public Condition getInternetAccessCondition() {
-        return internetAccessCondition;
+    public Condition getInternetAvailableCondition() {
+        return internetAvailableCondition;
     }
 
     public boolean isNetworkIFaceAvailable() {
@@ -154,5 +161,13 @@ public class ConnectionHandler extends Thread {
 
     public void setNetworkIFaceAvailable(boolean isAvailable) {
         networkInterfaceAvailable.set(isAvailable);
+    }
+
+    public void onNetworkAvailable() {
+        internetAccessHandler.wakeup();
+    }
+
+    public boolean isRunning() {
+        return running;
     }
 }

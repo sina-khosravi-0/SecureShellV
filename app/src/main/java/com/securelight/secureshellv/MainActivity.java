@@ -1,10 +1,11 @@
 package com.securelight.secureshellv;
 
 import android.Manifest;
-import android.app.Service;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.VpnService;
@@ -17,7 +18,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.securelight.secureshellv.database.Configurations;
+
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
@@ -26,10 +30,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import de.fwinkel.android_stunnel.SSLVersion;
+import de.fwinkel.android_stunnel.StunnelBuilder;
+
 
 public class MainActivity extends AppCompatActivity {
     VpnSettings vpnSettings = new VpnSettings();
-    ApplicationInfo packageInfo;
     public static final String EXIT_APP_BR = "com.securelight.secureshellv.EXIT_APP";
     private static SSVpnService ssVpnService;
 
@@ -66,12 +72,12 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.VPN_SERVICE_START_BR));
         lbm.registerReceiver(exitBr, new IntentFilter(EXIT_APP_BR));
-        try {
-            //set app package info
-            packageInfo = this.getPackageManager().getApplicationInfo(getPackageName(), 0);
-        } catch (PackageManager.NameNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+
+        // saving preferences
+        SharedPreferences preferences = getPreferences(Activity.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putInt("ConnectProtocol", Constants.Protocol.DIRECT_SSH.index);
+        editor.apply();
     }
 
     private void checkAndAddPermissions() {
@@ -169,14 +175,16 @@ public class MainActivity extends AppCompatActivity {
     // todo: implement app exit sequence
     private void exitApp() {
         appClosing = true;
-        ssVpnService.stopForeground(Service.STOP_FOREGROUND_REMOVE);
         try {
             ssVpnService.finalizeAndStop();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (IOException ignored) {
         }
         finishAndRemoveTask();
+        finishActivity(0);
+        finish();
+        finishAffinity();
         Process.sendSignal(Process.myPid(), Process.SIGNAL_KILL);
+        System.exit(0);
     }
 
     public void onYesClicked(View view) {

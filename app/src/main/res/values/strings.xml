@@ -7,9 +7,9 @@
     <string name="disconnected">Disconnected</string>
     <string name="connected">Connected</string>
     <string name="connecting">Connecting...</string>
-    <string name="full_internet_access">World Wide Web</string>
-    <string name="restricted_internet_access">Iran Access Only</string>
+    <string name="full_internet_access">World Wide Internet</string>
+    <string name="restricted_internet_access">Iran Access Internet</string>
     <string name="no_internet_access">No Internet</string>
-    <string name="network_unavailable">Can\'t Find Network. Please Connect to a Network.</string>
-    <string name="internet_access_state">Internet State</string>
+    <string name="network_unavailable">Please Connect to a Network.</string>
+    <string name="internet_access_state">State</string>
 </resources>

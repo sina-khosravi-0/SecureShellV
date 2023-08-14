@@ -2,6 +2,7 @@ package com.securelight.secureshellv;
 
 import static androidx.core.app.NotificationCompat.EXTRA_NOTIFICATION_ID;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -9,13 +10,13 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.VpnService;
-import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -43,9 +44,9 @@ public class SSVpnService extends VpnService {
     private NotificationManager notificationManager;
     private ConnectionHandler connectionHandler;
     private ParcelFileDescriptor vpnInterface;
-    private NotificationCompat.Action startAction;
-    private NotificationCompat.Action stopAction;
-    private NotificationCompat.Action quitAction;
+    private NotificationCompat.Action notifStartAction;
+    private NotificationCompat.Action notifStopAction;
+    private NotificationCompat.Action notifQuitAction;
     private PendingIntent startPendingIntent;
     private PendingIntent stopPendingIntent;
     private PendingIntent quitPendingIntent;
@@ -57,6 +58,7 @@ public class SSVpnService extends VpnService {
             System.out.println("AVAILABLE");
             if (connectionHandler != null) {
                 connectionHandler.setNetworkIFaceAvailable(true);
+                connectionHandler.onNetworkAvailable();
             }
         }
 
@@ -97,6 +99,7 @@ public class SSVpnService extends VpnService {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(stopBr, new IntentFilter(VPN_SERVICE_STOP_BR));
 
+
         setupNotification();
     }
 
@@ -105,37 +108,21 @@ public class SSVpnService extends VpnService {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        Intent startIntent = new Intent(this, VpnBroadcastReceiver.class);
-        startIntent.setAction(VPN_SERVICE_START_BR);
-        startIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
-        startPendingIntent = PendingIntent.getBroadcast(
-                this, 0, startIntent, PendingIntent.FLAG_IMMUTABLE);
-
-        Intent stopIntent = new Intent(this, VpnBroadcastReceiver.class);
-        stopIntent.setAction(VPN_SERVICE_STOP_BR);
-        stopIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
-        stopPendingIntent = PendingIntent.getBroadcast(
-                this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE);
-
-        Intent quitIntent = new Intent(this, VpnBroadcastReceiver.class);
-        quitIntent.setAction(MainActivity.EXIT_APP_BR);
-        quitIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
-        quitPendingIntent = PendingIntent.getBroadcast(
-                this, 0, quitIntent, PendingIntent.FLAG_IMMUTABLE);
+        initNotifButtonIntents();
 
         notificationBuilder.setContentIntent(pendingIntent);
         notificationBuilder.setSmallIcon(R.mipmap.ic_launcher); //notification icon
-        notificationBuilder.setPriority(Notification.PRIORITY_MAX);
         notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         notificationBuilder.setVibrate(new long[]{0, 100, 100, 100});
         notificationBuilder.setShowWhen(false);
         notificationBuilder.setOngoing(true);
         notificationBuilder.setOnlyAlertOnce(true);
         notificationBuilder.setCategory(NotificationCompat.CATEGORY_EVENT);
-        startAction = new NotificationCompat.Action(R.drawable.start_vpn_notification, "Start", startPendingIntent);
-        stopAction = new NotificationCompat.Action(R.drawable.stop_vpn_notification, "Stop", stopPendingIntent);
-        quitAction = new NotificationCompat.Action(R.drawable.quit_app_icon, "Quit", quitPendingIntent);
-        notificationBuilder.addAction(quitAction);
+
+        notifStartAction = new NotificationCompat.Action(R.drawable.start_vpn_notification, "Start", startPendingIntent);
+        notifStopAction = new NotificationCompat.Action(R.drawable.stop_vpn_notification, "Stop", stopPendingIntent);
+        notifQuitAction = new NotificationCompat.Action(R.drawable.quit_app_icon, "Quit", quitPendingIntent);
+        notificationBuilder.addAction(notifQuitAction);
 
         // todo: decide for this garbage here
 //        NotificationCompat.BigTextStyle bigText = new NotificationCompat.BigTextStyle();
@@ -164,15 +151,13 @@ public class SSVpnService extends VpnService {
 
         notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationChannel channel;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            channel = new NotificationChannel(notificationChannelID,
-                    "VPN Ongoing Channel",
-                    NotificationManager.IMPORTANCE_HIGH);
-            channel.enableVibration(true);
-            channel.setVibrationPattern(new long[]{0, 100, 100, 100});
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-            }
+        channel = new NotificationChannel(notificationChannelID,
+                "VPN Ongoing Channel",
+                NotificationManager.IMPORTANCE_HIGH);
+        channel.enableVibration(true);
+        channel.setVibrationPattern(new long[]{0, 100, 100, 100});
+        if (notificationManager != null) {
+            notificationManager.createNotificationChannel(channel);
         }
 
         if (notificationManager != null) {
@@ -182,14 +167,34 @@ public class SSVpnService extends VpnService {
         }
     }
 
+    private void initNotifButtonIntents() {
+        Intent startIntent = new Intent(this, VpnBroadcastReceiver.class);
+        startIntent.setAction(VPN_SERVICE_START_BR);
+        startIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
+        startPendingIntent = PendingIntent.getBroadcast(
+                this, 0, startIntent, PendingIntent.FLAG_IMMUTABLE);
+
+        Intent stopIntent = new Intent(this, VpnBroadcastReceiver.class);
+        stopIntent.setAction(VPN_SERVICE_STOP_BR);
+        stopIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
+        stopPendingIntent = PendingIntent.getBroadcast(
+                this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE);
+
+        Intent quitIntent = new Intent(this, VpnBroadcastReceiver.class);
+        quitIntent.setAction(MainActivity.EXIT_APP_BR);
+        quitIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
+        quitPendingIntent = PendingIntent.getBroadcast(
+                this, 0, quitIntent, PendingIntent.FLAG_IMMUTABLE);
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         serviceActive.set(true);
         // set this instance as ssVpnService instance in main activity
         MainActivity.setSsVpnService(this);
         // set notification action buttons
-        notificationBuilder.clearActions().addAction(stopAction);
-        notificationBuilder.addAction(quitAction);
+        notificationBuilder.clearActions().addAction(notifStopAction);
+        notificationBuilder.addAction(notifQuitAction);
 
         VpnSettings vpnSettings = (VpnSettings) intent.getSerializableExtra("config");
         startVpn(vpnSettings);
@@ -200,7 +205,6 @@ public class SSVpnService extends VpnService {
                 .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build();
         connectivityManager.requestNetwork(networkRequest, networkCallback);
-
 
         return START_STICKY;
     }
@@ -216,7 +220,7 @@ public class SSVpnService extends VpnService {
         }
 
         //start connection thread
-        if (!connectionThreadRunning.get()) {
+        if (!connectionThreadRunning.get() && connectionHandler == null || !connectionHandler.isAlive()) {
             connectionHandler = new ConnectionHandler(vpnSettings, vpnInterface, this);
             connectionHandler.start();
         }
@@ -227,7 +231,6 @@ public class SSVpnService extends VpnService {
         packages.add("com.server.auditor.ssh.client");
 //      packages.add("com.android.chrome");
         // todo: add other packages to exclude
-
     }
 
     /**
@@ -239,7 +242,7 @@ public class SSVpnService extends VpnService {
     private ParcelFileDescriptor configureVPNInterface(VpnSettings vpnSettings)
             throws PackageManager.NameNotFoundException {
         VpnService.Builder builder = this.new Builder();
-        builder.setSession("SSVI");
+        builder.setSession("SSV Interface");
         builder.addAddress(vpnSettings.getHost(), vpnSettings.getPrefix());
         builder.addDnsServer(vpnSettings.getDnsHost());
 
@@ -284,20 +287,19 @@ public class SSVpnService extends VpnService {
      */
     public void finalizeAndStop() throws IOException {
         stopVpnService();
+        stopForeground(true);
+        notificationManager.cancelAll();
         stopSelf();
     }
 
     public void stopVpnService() throws IOException {
         MainActivity.setSsVpnService(null);
         serviceActive.set(false);
-
-        notificationBuilder.clearActions().addAction(startAction);
-        notificationBuilder.addAction(quitAction);
-        notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
-
         connectionHandler.interrupt();
         vpnInterface.close();
-
+        notificationBuilder.clearActions().addAction(notifStartAction);
+        notificationBuilder.addAction(notifQuitAction);
+        notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
     }
 
     /**
