@@ -6,10 +6,23 @@
     <string name="check">چک</string>
     <string name="disconnected">متصل نیست</string>
     <string name="connected">متصل</string>
-    <string name="connecting">در حال اتصال</string>
+    <string name="connecting">در حال اتصال…</string>
     <string name="full_internet_access">اینترنت جهانی</string>
     <string name="restricted_internet_access">اینترانت ایران</string>
     <string name="no_internet_access">دسترسی اینترنت وجود ندارد</string>
     <string name="network_unavailable">لطفا به یک شبکه متصل شوید</string>
     <string name="internet_access_state">وضعیت</string>
+    <string name="direct_ssh">مستقیم</string>
+    <string name="tls_ssh">دو جانبه TLS</string>
+    <string name="dual_hop_ssh">دوجانبه</string>
+    <string name="prompt_email">نام کاربری</string>
+    <string name="prompt_password">رمز</string>
+    <string name="action_sign_in">ورود یا ثبت نام</string>
+    <string name="action_sign_in_short">ورود</string>
+    <string name="welcome">! خوش آمدید</string>
+    <string name="invalid_username">نام کاربری معتبر نیست</string>
+    <string name="invalid_password">رمز باید ۴ حرف یا بیشتر باشد</string>
+    <string name="login_failed">ورود ناموفق بود</string>
+    <string name="signing_in_loading">در حال ورود …</string>
+    <string name="cannot_access_server">دسترسی به سرور موجود نیست</string>
 </resources>

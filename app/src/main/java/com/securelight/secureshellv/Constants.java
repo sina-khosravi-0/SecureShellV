@@ -1,14 +1,15 @@
 package com.securelight.secureshellv;
 
 public class Constants {
-    enum Protocol {
-        DIRECT_SSH(0), TLS_SSH(1), DUAL_SSH(2);
+    public enum Protocol {
+        DIRECT_SSH("direct"), TLS_SSH("tls"), DUAL_SSH("dual-hop");
 
-        public final int index;
+        public final String value;
 
-        Protocol(int index) {
-            this.index = index;
+        Protocol(String value) {
+            this.value = value;
         }
     }
+    public static String API_CACHE_PREFERENCES_NAME = "apiCache";
 
 }

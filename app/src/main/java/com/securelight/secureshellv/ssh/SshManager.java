@@ -3,11 +3,11 @@ package com.securelight.secureshellv.ssh;
 import android.os.Build;
 import android.util.Log;
 
+import com.securelight.secureshellv.Constants;
 import com.securelight.secureshellv.VpnSettings;
+import com.securelight.secureshellv.backend.UserData;
 import com.securelight.secureshellv.connection.ConnectionHandler;
-import com.securelight.secureshellv.database.ClientData;
 
-import org.apache.sshd.client.ClientBuilder;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.forward.PortForwardingTracker;
@@ -24,20 +24,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class SSHManager {
+public class SshManager {
     private final String TAG = getClass().getSimpleName();
     private final ConnectionHandler connectionHandler;
-    private SshClient sshClient;
-    private ClientBuilder clientBuilder;
-    private ClientSession session;
-    private ClientSession sessionIran;
     private final List<PortForwardingTracker> portForwardingTrackers;
-
     private final VpnSettings vpnSettings;
+    private final SshConfigs configs;
+    private SshClient sshClient;
+    private ClientSession session;
+    private ClientSession bridgeSession;
+    private boolean ready = false;
 
-    public SSHManager(VpnSettings vpnSettings, ConnectionHandler connectionHandler) {
+
+    public SshManager(VpnSettings vpnSettings, ConnectionHandler connectionHandler, SshConfigs configs) {
         this.connectionHandler = connectionHandler;
         this.vpnSettings = vpnSettings;
+        this.configs = configs;
         portForwardingTrackers = new ArrayList<>();
         init();
     }
@@ -50,8 +52,51 @@ public class SSHManager {
         CoreModuleProperties.IDLE_TIMEOUT.set(sshClient, Duration.ofMillis(5000));
     }
 
-    public void setupConnection() {
+    public void connect() {
+        ready = false;
         boolean successful = false;
+        while (!successful && connectionHandler.isServiceActive()) {
+            try {
+                // wait for InternetAccessHandler to notify on internet access
+                // or for stop method to notify.
+                try {
+                    connectionHandler.getLock().lock();
+                    connectionHandler.getInternetAvailableCondition().await();
+                    if (!connectionHandler.isServiceActive()) {
+                        // return if after being notified, service is off to avoid connecting after
+                        // ConnectionHandler termination.
+                        return;
+                    }
+                } catch (InterruptedException e) {
+                    Log.d(TAG, "Current thread was Interrupted");
+                    // return if interrupt was called, while waiting.
+                    return;
+                } finally {
+                    connectionHandler.getLock().unlock();
+                }
+
+                session = sshClient.connect(UserData.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
+                        .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
+                        .getClientSession();
+                session.addSessionListener(getSessionListener());
+                session.addPortForwardingEventListener(new PFEventListener());
+                session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
+                        TimeUnit.SECONDS, 3);
+                session.addPasswordIdentity(String.valueOf(UserData.getSshPassword()));
+                session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
+                ready = true;
+                successful = true;
+            } catch (IOException e) {
+                Log.d(TAG, e.getMessage());
+                Log.e(TAG, "connection failed.");
+            }
+        } // while (!successful && connectionHandler.isRunning())
+    }
+
+    public void connectWithBridge() {
+        ready = false;
+        boolean successful = false;
+        // will loop till connection is successful
         while (!successful && connectionHandler.isServiceActive()) {
             try {
                 // wait for InternetAccessHandler to notify on internet access
@@ -71,43 +116,44 @@ public class SSHManager {
                 } finally {
                     connectionHandler.getLock().unlock();
                 }
-                // todo: do something about this mess
-                // opening session for iran server
-                /* for some reason verify method forces timeout after about 12 seconds even
-                 * when no timeout is specified */
-//                sessionIran = sshClient.connect(ClientData.getUserName(), "one.weary.tech", 22)
-//                        .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
-//                        .getClientSession();
-//                sessionIran.addSessionListener(getSessionListener());
-//                sessionIran.addPortForwardingEventListener(new PFEventListener(connectionHandler));
-//                sessionIran.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
-//                        , TimeUnit.SECONDS, 3);
-//                sessionIran.addPasswordIdentity(String.valueOf(ClientData.getSshPassword()));
-//                sessionIran.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
-//                 open port 2000
-//                startIranPortForwarding();
 
-                // note: iran port forwarding forwards local port 20317 to one.weary.tech port 2000
-                // to 64.226.64.126 port 22
-                session = sshClient.connect(ClientData.getUserName(), getSshAddress(), 22)
+                // opening session for iran server
+                bridgeSession = sshClient.connect(UserData.getInstance().getUserName(), configs.bridgeHostAddress, configs.bridgeHostPort)
+                        .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
+                        .getClientSession();
+                bridgeSession.addSessionListener(getSessionListener());
+                bridgeSession.addPortForwardingEventListener(new PFEventListener());
+                bridgeSession.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
+                        , TimeUnit.SECONDS, 3);
+                bridgeSession.addPasswordIdentity(String.valueOf(UserData.getSshPassword()));
+                bridgeSession.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
+
+                // create local port forwarding
+                portForwardingTrackers.add(bridgeSession.createLocalPortForwardingTracker(
+                        new SshdSocketAddress(configs.hostAddress, configs.hostPort),
+                        // todo: fetch the port dynamically from server
+                        new SshdSocketAddress("127.0.0.1", 2000)));
+
+                session = sshClient.connect(UserData.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
                         .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
                         .getClientSession();
                 session.addSessionListener(getSessionListener());
-                session.addPortForwardingEventListener(new PFEventListener(connectionHandler));
+                session.addPortForwardingEventListener(new PFEventListener());
                 session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
                         TimeUnit.SECONDS, 3);
-                session.addPasswordIdentity(String.valueOf(ClientData.getSshPassword()));
+                session.addPasswordIdentity(String.valueOf(UserData.getSshPassword()));
                 session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
+                ready = true;
                 successful = true;
             } catch (IOException e) {
-                Log.d(TAG, e.getMessage());
+                Log.d(TAG, "error", e);
                 Log.e(TAG, "connection failed.");
             }
         } // while (!successful && connectionHandler.isRunning())
     }
 
-    public void startPortForwarding() {
+    public void createPortForwarding() {
         if (session == null || session.isClosed() || !connectionHandler.isServiceActive()) {
             // return if session is null or closed or service is not active
             return;
@@ -117,16 +163,10 @@ public class SSHManager {
 //            new SshdSocketAddress(vpnSettings.getHost(), 10809),
 //            new SshdSocketAddress("127.0.0.1", 3129)));
             portForwardingTrackers.add(session.createDynamicPortForwardingTracker(
-                    new SshdSocketAddress(vpnSettings.getHost(), 10808)));
+                    new SshdSocketAddress(configs.socksAddress, configs.socksPort)));
         } catch (IOException e) {
             Log.e(TAG, "error during port forwarding");
         }
-    }
-
-    public void startIranPortForwarding() throws IOException {
-        portForwardingTrackers.add(sessionIran.createLocalPortForwardingTracker(
-                new SshdSocketAddress("127.0.0.1", 20317),
-                new SshdSocketAddress("127.0.0.1", 2000)));
     }
 
     private SessionListener getSessionListener() {
@@ -155,9 +195,7 @@ public class SSHManager {
     }
 
     /**
-     * closes clientSession and signals setup connection to wake up.
-     * it will keep signaling until connection thread is dead to avoid
-     * dead-locking in setup connection.
+     * closes the session (and the bridge session)
      */
     public void close() {
         boolean closed = false;
@@ -171,9 +209,27 @@ public class SSHManager {
                 }
             } while (!closed);
         }
+        if (configs.connectionMethod == Constants.Protocol.DUAL_SSH) {
+            closed = false;
+            if (bridgeSession != null) {
+                do {
+                    try {
+                        bridgeSession.close();
+                        closed = true;
+                    } catch (IOException ignored) {
+                        Log.d(TAG, "Session closing error. Retrying...");
+                    }
+                } while (!closed);
+            }
+        }
         portForwardingTrackers.clear();
     }
 
+    /**
+     * signals internet available condition to wake up.
+     * it will keep signaling until connection thread is dead to avoid
+     * dead-locking in connect() method.
+     */
     public void closeAndFinalize() {
         close();
         sshClient.stop();
@@ -196,7 +252,7 @@ public class SSHManager {
 
     public String getSshAddress() {
         //todo: calculate best server (possibly based on selected options e.g location, ISP)
-        List<String> serverAddresses = ClientData.getServerAddresses();
+        List<String> serverAddresses = UserData.getInstance().getServerAddresses();
         return "64.226.64.126";
     }
 
@@ -210,5 +266,9 @@ public class SSHManager {
 
     public List<PortForwardingTracker> getPortForwardingTrackers() {
         return portForwardingTrackers;
+    }
+
+    public boolean isReady() {
+        return ready;
     }
 }

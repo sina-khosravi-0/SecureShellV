@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?><!--<shape xmlns:android="http://schemas.android.com/apk/res/android">-->
+<!--    <gradient-->
+<!--        android:angle="90"-->
+<!--        android:centerColor="#12333A"-->
+<!--        android:centerX="0.18"-->
+<!--        android:centerY="0.5"-->
+<!--        android:endColor="@color/black"-->
+<!--        android:startColor="#9A704B" />-->
+
+<!--    <corners-->
+<!--        android:topLeftRadius="40dp"-->
+<!--        android:topRightRadius="40dp" />-->
+<!--</shape>-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <svg height="500"
+            version="1.1"
+            viewBox="0 0 500 500"
+            width="500"
+            xmlns="http://www.w3.org/2000/svg"
+            xml:space="preserve">
+            <g
+                id="IDd4zj3hXOG1QVMnqkYdO"
+                transform="matrix(2.2848 0 0 1.3322718624 240 269.4987216984)">
+                <path
+                    style="stroke: rgb(21,87,14); stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(187,187,187); fill-rule: nonzero; opacity: 1;"
+                    d="M -35.01401 -24.53848 C -35.01401 -28.91416 -33.168929999999996 -32.64814 -30.65203 -33.36603 L -29.26937 -33.760400000000004 L -29.26937 -33.760400000000004 C -9.88956 -39.288050000000005 9.88956 -39.288050000000005 29.26937 -33.760400000000004 L 30.65203 -33.36603 L 30.65203 -33.36603 C 33.16893 -32.648140000000005 35.01401 -28.914160000000003 35.01401 -24.53848 L 35.01401 37.90614 L -35.013999999999996 37.90614 z"
+                    stroke-linecap="round"
+                    transform=" translate(0, 0)" />
+            </g>
+    </svg>
+    <group>
+        <path
+            android:strokeLineJoin="bevel"
+            android:strokeMiterLimit="4"
+            android:fillColor="@color/black"
+            android:pathData="M -35.01401 -24.53848 C -35.01401 -28.91416 -33.168929999999996 -32.64814 -30.65203 -33.36603 L -29.26937 -33.760400000000004 L -29.26937 -33.760400000000004 C -9.88956 -39.288050000000005 9.88956 -39.288050000000005 29.26937 -33.760400000000004 L 30.65203 -33.36603 L 30.65203 -33.36603 C 33.16893 -32.648140000000005 35.01401 -28.914160000000003 35.01401 -24.53848 L 35.01401 37.90614 L -35.013999999999996 37.90614 z"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

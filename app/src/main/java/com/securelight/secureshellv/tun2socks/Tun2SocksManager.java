@@ -1,8 +1,11 @@
 package com.securelight.secureshellv.tun2socks;
 
-import android.app.Application;
+import android.app.Activity;
+import android.content.SharedPreferences;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 
+import com.securelight.secureshellv.Constants;
 import com.securelight.secureshellv.VpnSettings;
 import com.securelight.secureshellv.connection.ConnectionHandler;
 
@@ -30,10 +33,13 @@ public class Tun2SocksManager {
                 return;
             }
             isRunning = true;
-            Tun2SocksJni.runTun2Socks(vpnInterface.getFd(), 1500, vpnSettings.getHost(),
-                    vpnSettings.getSubnet(), vpnSettings.getHost() + ":" + vpnSettings.getPort(),
+            connectionHandler.clearTun2socksDeath();
+            Tun2SocksJni.runTun2Socks(vpnInterface.getFd(), 1500, vpnSettings.getIFaceAddress(),
+                    vpnSettings.getIFaceSubnet(), vpnSettings.getIFaceAddress() + ":" + vpnSettings.getSocksPort(),
                     "127.0.0.1" + ":" + 7300,
                     1, -1);
+            Log.d(TAG, "after runTun2Socks()");
+            connectionHandler.tun2socksDied();
         });
         tun2SocksThread.start();
     }

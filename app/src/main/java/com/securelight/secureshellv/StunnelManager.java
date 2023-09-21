@@ -16,27 +16,26 @@ public class StunnelManager {
         stunnelBuilder = new StunnelBuilder(context);
     }
 
-    public void open() {
+    public void open(String hostAddress, int hostPort, int localPort) {
         
         try {
             stunnel = stunnelBuilder.addService()
                     .client()
-                    .acceptLocal(2000)
-                    .connect("one.weary.tech", 80)
+                    .acceptLocal(localPort)
+                    .connect(hostAddress, hostPort)
                     .sslVersion(SSLVersion.TLSv1_3)
                     .apply()
                     .start();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("couldn't start stunnel");
         }
-
     }
 
     public void close() {
         try {
             stunnel.close();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("couldn't stop stunnel");
         }
     }
 }

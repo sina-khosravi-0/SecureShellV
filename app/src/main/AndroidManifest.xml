@@ -13,6 +13,7 @@
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:extractNativeLibs="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -20,16 +21,30 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SecureShellV"
         android:usesCleartextTraffic="true"
-        android:extractNativeLibs="true"
         tools:targetApi="33">
+        <activity
+            android:name=".MainActivity2"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ui.login.LoginActivity"
+            android:exported="false"
+            android:label="@string/title_activity_login" />
+
         <receiver
-            android:name=".VpnBroadcastReceiver"
+            android:name=".MyBroadcastReceiver"
             android:enabled="true"
             android:exported="false">
-                <intent-filter>
-                    <action android:name="com.securelight.secureshellv.STOP" />
-                    <action android:name="com.securelight.secureshellv.START" />
-                </intent-filter>
+            <intent-filter>
+                <action android:name="com.securelight.secureshellv.STOP" />
+                <action android:name="com.securelight.secureshellv.START" />
+            </intent-filter>
         </receiver>
 
         <service
@@ -38,7 +53,6 @@
             android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService" />
-
             </intent-filter>
         </service>
 

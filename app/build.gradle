@@ -25,11 +25,14 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     packagingOptions {
         exclude 'META-INF/DEPENDENCIES'
+    }
+    buildFeatures {
+        viewBinding true
     }
 
 }
@@ -39,21 +42,32 @@ String core_version = "1.10.1"
 dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.6.1'
+
     // required to avoid crash on Android 12 API 31
     implementation 'androidx.work:work-runtime-ktx:2.8.1'
+    
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'javax.management:jmx:1.2.1'
     implementation 'org.apache.sshd:sshd-core:2.10.0'
     implementation 'org.apache.mina:mina-core:2.0.19'
-    // todo: use for api <24
-//    implementation 'org.apache.sshd:sshd-core:1.0.0'
-//    implementation 'org.apache.mina:mina-core:2.0.10'
+
+    /* todo: use for api <24
+    implementation 'org.apache.sshd:sshd-core:1.0.0'
+    implementation 'org.apache.mina:mina-core:2.0.10'*/
+
+    implementation 'com.android.volley:volley:1.2.1'
 
     implementation 'com.github.FWink:android-stunnel-lib:master-SNAPSHOT'
     implementation 'net.i2p.crypto:eddsa:0.3.0'
     implementation "androidx.media:media:1.6.0"
     implementation 'androidx.gridlayout:gridlayout:1.0.0'
+    implementation 'androidx.annotation:annotation:1.6.0'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.6.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1'
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.20"))
+    implementation 'androidx.navigation:navigation-fragment:2.6.0'
+    implementation 'androidx.navigation:navigation-ui:2.6.0'
 //    implementation "androidx.core:core-ktx:$core_version"
     testImplementation 'junit:junit:4.13.2'
 

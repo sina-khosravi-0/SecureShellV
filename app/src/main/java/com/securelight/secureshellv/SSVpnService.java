@@ -2,7 +2,6 @@ package com.securelight.secureshellv;
 
 import static androidx.core.app.NotificationCompat.EXTRA_NOTIFICATION_ID;
 
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -10,7 +9,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -50,6 +48,7 @@ public class SSVpnService extends VpnService {
     private PendingIntent startPendingIntent;
     private PendingIntent stopPendingIntent;
     private PendingIntent quitPendingIntent;
+    private Constants.Protocol connectionMethod = Constants.Protocol.TLS_SSH;
 
     private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
         @Override
@@ -80,7 +79,7 @@ public class SSVpnService extends VpnService {
             }
         }
     };
-    private final VpnBroadcastReceiver stopBr = new VpnBroadcastReceiver() {
+    private final MyBroadcastReceiver stopBr = new MyBroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (VPN_SERVICE_STOP_BR.equals(intent.getAction())) {
@@ -94,11 +93,37 @@ public class SSVpnService extends VpnService {
         }
     };
 
+    //TODO: remove after implementing database handling
+    private final MyBroadcastReceiver directBr = new MyBroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            connectionMethod = Constants.Protocol.DIRECT_SSH;
+        }
+    };
+
+    //TODO: remove after implementing database handling
+    private final MyBroadcastReceiver tlsBr = new MyBroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            connectionMethod = Constants.Protocol.TLS_SSH;
+        }
+    };
+
+    //TODO: remove after implementing database handling
+    private final MyBroadcastReceiver dualBr = new MyBroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            connectionMethod = Constants.Protocol.DUAL_SSH;
+        }
+    };
+
     @Override
     public void onCreate() {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(stopBr, new IntentFilter(VPN_SERVICE_STOP_BR));
-
+        lbm.registerReceiver(directBr, new IntentFilter("direct__"));
+        lbm.registerReceiver(tlsBr, new IntentFilter("tls__"));
+        lbm.registerReceiver(dualBr, new IntentFilter("dual__"));
 
         setupNotification();
     }
@@ -113,7 +138,6 @@ public class SSVpnService extends VpnService {
         notificationBuilder.setContentIntent(pendingIntent);
         notificationBuilder.setSmallIcon(R.mipmap.ic_launcher); //notification icon
         notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-        notificationBuilder.setVibrate(new long[]{0, 100, 100, 100});
         notificationBuilder.setShowWhen(false);
         notificationBuilder.setOngoing(true);
         notificationBuilder.setOnlyAlertOnce(true);
@@ -123,24 +147,6 @@ public class SSVpnService extends VpnService {
         notifStopAction = new NotificationCompat.Action(R.drawable.stop_vpn_notification, "Stop", stopPendingIntent);
         notifQuitAction = new NotificationCompat.Action(R.drawable.quit_app_icon, "Quit", quitPendingIntent);
         notificationBuilder.addAction(notifQuitAction);
-
-        // todo: decide for this garbage here
-//        NotificationCompat.BigTextStyle bigText = new NotificationCompat.BigTextStyle();
-//        bigText.setBigContentTitle(connectionStateString);
-//        bigText.bigText(String
-//                .format("%s: %s", Values.INTERNET_ACCESS_STATE_STRING, networkStateString)); //detail mode is the "expanded" notification
-//        bigText.setSummaryText("12.1"); //small text under notification
-
-//        androidx.media.app.NotificationCompat.DecoratedMediaCustomViewStyle decorated =
-//                new androidx.media.app.NotificationCompat.DecoratedMediaCustomViewStyle();
-//        decorated.setShowActionsInCompactView(0);
-//        NotificationCompat.DecoratedCustomViewStyle decorated =
-//                new NotificationCompat.DecoratedCustomViewStyle();
-
-//        RemoteViews notificationLayoutExpanded = new RemoteViews(vpnService.getPackageName(), R.layout.notification_expanded);
-//        RemoteViews notificationLayout = new RemoteViews(vpnService.getPackageName(), R.layout.notification_collapsed);
-//        builder.setCustomBigContentView(notificationLayoutExpanded);
-//        builder.setContent(notificationLayout);
 
         androidx.media.app.NotificationCompat.MediaStyle mediaStyle =
                 new androidx.media.app.NotificationCompat.MediaStyle();
@@ -155,7 +161,7 @@ public class SSVpnService extends VpnService {
                 "VPN Ongoing Channel",
                 NotificationManager.IMPORTANCE_HIGH);
         channel.enableVibration(true);
-        channel.setVibrationPattern(new long[]{0, 100, 100, 100});
+
         if (notificationManager != null) {
             notificationManager.createNotificationChannel(channel);
         }
@@ -168,19 +174,19 @@ public class SSVpnService extends VpnService {
     }
 
     private void initNotifButtonIntents() {
-        Intent startIntent = new Intent(this, VpnBroadcastReceiver.class);
+        Intent startIntent = new Intent(this, MyBroadcastReceiver.class);
         startIntent.setAction(VPN_SERVICE_START_BR);
         startIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         startPendingIntent = PendingIntent.getBroadcast(
                 this, 0, startIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        Intent stopIntent = new Intent(this, VpnBroadcastReceiver.class);
+        Intent stopIntent = new Intent(this, MyBroadcastReceiver.class);
         stopIntent.setAction(VPN_SERVICE_STOP_BR);
         stopIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         stopPendingIntent = PendingIntent.getBroadcast(
                 this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        Intent quitIntent = new Intent(this, VpnBroadcastReceiver.class);
+        Intent quitIntent = new Intent(this, MyBroadcastReceiver.class);
         quitIntent.setAction(MainActivity.EXIT_APP_BR);
         quitIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         quitPendingIntent = PendingIntent.getBroadcast(
@@ -196,7 +202,7 @@ public class SSVpnService extends VpnService {
         notificationBuilder.clearActions().addAction(notifStopAction);
         notificationBuilder.addAction(notifQuitAction);
 
-        VpnSettings vpnSettings = (VpnSettings) intent.getSerializableExtra("config");
+        VpnSettings vpnSettings = new VpnSettings();
         startVpn(vpnSettings);
 
         ConnectivityManager connectivityManager = getSystemService(ConnectivityManager.class);
@@ -205,7 +211,6 @@ public class SSVpnService extends VpnService {
                 .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build();
         connectivityManager.requestNetwork(networkRequest, networkCallback);
-
         return START_STICKY;
     }
 
@@ -222,6 +227,7 @@ public class SSVpnService extends VpnService {
         //start connection thread
         if (!connectionThreadRunning.get() && connectionHandler == null || !connectionHandler.isAlive()) {
             connectionHandler = new ConnectionHandler(vpnSettings, vpnInterface, this);
+            connectionHandler.setConnectionMethod(connectionMethod);
             connectionHandler.start();
         }
     }
@@ -229,8 +235,8 @@ public class SSVpnService extends VpnService {
     private void addPackagesToExclude() {
         packages.add(getPackageName());
         packages.add("com.server.auditor.ssh.client");
-//      packages.add("com.android.chrome");
-        // todo: add other packages to exclude
+//        packages.add("com.android.chrome");
+        // todo: add selected packages
     }
 
     /**
@@ -241,23 +247,17 @@ public class SSVpnService extends VpnService {
      */
     private ParcelFileDescriptor configureVPNInterface(VpnSettings vpnSettings)
             throws PackageManager.NameNotFoundException {
-        VpnService.Builder builder = this.new Builder();
+        Builder builder = this.new Builder();
         builder.setSession("SSV Interface");
-        builder.addAddress(vpnSettings.getHost(), vpnSettings.getPrefix());
+        builder.addAddress(vpnSettings.getIFaceAddress(), vpnSettings.getIFacePrefix());
         builder.addDnsServer(vpnSettings.getDnsHost());
-
-//        try {
-//            builder.addRoute(InetAddress.getByAddress(new byte[]{}), 32);
-//        } catch (UnknownHostException e) {
-//            throw new RuntimeException(e);
-//        }
-
         builder.addRoute("0.0.0.0", 0);
+
 
         for (String p : packages) {
             builder.addDisallowedApplication(p);
         }
-        builder.setSession(vpnSettings.getHost());
+        builder.setSession(vpnSettings.getIFaceAddress());
         ParcelFileDescriptor vpnInterface = builder.establish();
         Log.d(TAG, "VPN interface configured: " + vpnInterface);
         return vpnInterface;
@@ -310,9 +310,9 @@ public class SSVpnService extends VpnService {
     }
 
     public void yes() {
-//        connectionHandler.yes();
-        System.out.println("FUCK ME IN THE ASS");
+        connectionHandler.yes();
     }
+
 
     public void no() {
         connectionHandler.no();
@@ -346,5 +346,13 @@ public class SSVpnService extends VpnService {
 
     public void setConnectionThreadRunning(boolean running) {
         connectionThreadRunning.set(running);
+    }
+
+    public Constants.Protocol getConnectionMethod() {
+        return connectionMethod;
+    }
+
+    public void setConnectionMethod(Constants.Protocol connectionMethod) {
+        this.connectionMethod = connectionMethod;
     }
 }

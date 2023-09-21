@@ -6,51 +6,51 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.os.Process;
 import android.view.View;
-import android.widget.Toast;
+import android.widget.RadioGroup;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.securelight.secureshellv.database.Configurations;
+import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.ui.login.LoginActivity;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import de.fwinkel.android_stunnel.SSLVersion;
-import de.fwinkel.android_stunnel.StunnelBuilder;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class MainActivity extends AppCompatActivity {
-    VpnSettings vpnSettings = new VpnSettings();
     public static final String EXIT_APP_BR = "com.securelight.secureshellv.EXIT_APP";
+    public static final String DO_SIGN_IN_BR = "com.securelight.secureshellv.DO_SIGN_IN";
     private static SSVpnService ssVpnService;
 
     private static boolean appClosing = false;
-    private final VpnBroadcastReceiver startBr = new VpnBroadcastReceiver() {
+    private final MyBroadcastReceiver startBr = new MyBroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             startVpn();
         }
     };
 
-    private final VpnBroadcastReceiver exitBr = new VpnBroadcastReceiver() {
+    private final MyBroadcastReceiver exitBr = new MyBroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             exitApp();
+        }
+    };
+    private final MyBroadcastReceiver signInBr = new MyBroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            startActivity(new Intent(getApplicationContext(), LoginActivity.class));
         }
     };
 
@@ -58,6 +58,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        // initialize database handler singleton
+        DatabaseHandlerSingleton.getInstance(this);
+
+
         Values.CONNECTED_STRING = getString(R.string.connected);
         Values.DISCONNECTED_STRING = getString(R.string.disconnected);
         Values.CONNECTING_STRING = getString(R.string.connecting);
@@ -66,18 +70,26 @@ public class MainActivity extends AppCompatActivity {
         Values.NO_INTERNET_ACCESS_STRING = getString(R.string.no_internet_access);
         Values.NETWORK_UNAVAILABLE_STRING = getString(R.string.network_unavailable);
         Values.INTERNET_ACCESS_STATE_STRING = getString(R.string.internet_access_state);
+        Values.CANNOT_ACCESS_SERVER_STRING = getString(R.string.cannot_access_server);
 
         checkAndAddPermissions();
 
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.VPN_SERVICE_START_BR));
         lbm.registerReceiver(exitBr, new IntentFilter(EXIT_APP_BR));
+        lbm.registerReceiver(signInBr, new IntentFilter(DO_SIGN_IN_BR));
 
-        // saving preferences
-        SharedPreferences preferences = getPreferences(Activity.MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putInt("ConnectProtocol", Constants.Protocol.DIRECT_SSH.index);
-        editor.apply();
+        // TODO: fuck after database
+        ((RadioGroup) findViewById(R.id.protocolGroup)).setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.directSshProtocol) {
+                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("direct__"));
+            } else if (checkedId == R.id.tLSSshProtocol) {
+                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("tls__"));
+            } else if (checkedId == R.id.dualSshProtocol) {
+                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("dual__"));
+            }
+
+        });
     }
 
     private void checkAndAddPermissions() {
@@ -104,19 +116,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onCheckClicked(View view) throws MalformedURLException {
-        Toast myToast = Toast.makeText(this, "connected", Toast.LENGTH_SHORT);
+    public void onCheckClicked(View view) {
+        SharedPreferences preferences = getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
+        String accessToken = preferences.getString("access", "");
+        String refreshToken = preferences.getString("refresh", "");
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(() -> {
+            System.out.println(DatabaseHandlerSingleton.verifyToken(accessToken));
+        });
+//        System.out.println(DatabaseHandlerSingleton.verifyToken(refreshToken));
 
-        String urlString = "https://checkip.amazonaws.com/";
-        URL url = new URL(urlString);
-        new Thread(() -> {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()))) {
-                myToast.setText(br.readLine());
-                myToast.show();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
+//        Toast myToast = Toast.makeText(this, "connected", Toast.LENGTH_SHORT);
+//        System.out.println(getPreferences(MODE_PRIVATE).getString("ConnectProtocol", "N/A"));
+//        String urlString = "https://checkip.amazonaws.com/";
+//        URL url = new URL(urlString);
+//        new Thread(() -> {
+//            try (BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()))) {
+//                myToast.setText(br.readLine());
+//                myToast.show();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
     }
 
     public void onStartClicked(View view) {
@@ -157,8 +178,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private Intent getServiceIntent() {
-        return new Intent(this, SSVpnService.class).putExtra("config", vpnSettings)
-                .setAction(Intent.ACTION_VIEW)
+        return new Intent(this, SSVpnService.class).setAction(Intent.ACTION_VIEW)
                 .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
                         Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setPackage(getPackageName());
@@ -176,7 +196,9 @@ public class MainActivity extends AppCompatActivity {
     private void exitApp() {
         appClosing = true;
         try {
-            ssVpnService.finalizeAndStop();
+            if (ssVpnService != null) {
+                ssVpnService.finalizeAndStop();
+            }
         } catch (IOException ignored) {
         }
         finishAndRemoveTask();
@@ -188,17 +210,48 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onYesClicked(View view) {
-        ssVpnService.yes();
+//        ssVpnService.yes();
+//        SharedPreferences preferences = this.getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
+//        String accessToken = preferences.getString("refresh", "N/A");
+//        DatabaseHandlerSingleton instance = DatabaseHandlerSingleton.getInstance(this);
+//
+//        String url = "http://192.168.19.71:8000/api/token/verify/";
+//        JSONObject object;
+//        object = new JSONObject();
+//        try {
+//            object.put("token", accessToken);
+//        } catch (JSONException ignored) {
+//        }
+//        JsonObjectRequest jsonArrayRequest = new JsonObjectRequest
+//                (Request.Method.POST, url, object, aResponse -> {
+//                    System.out.println(aResponse.toString());
+//                }, error -> {
+//                    System.out.println("error.toString() = " + error.toString());
+//                }) {
+//            @Override
+//            public Map<String, String> getHeaders() {
+//                Map<String, String> params = new HashMap<>();
+//                params.put("Authorization", "Bearer " + accessToken);
+//                return params;
+//            }
+//        };
+//        instance.addToRequestQueue(jsonArrayRequest);
+//        startActivity(new Intent(getApplicationContext(), LoginActivity.class));
+
     }
 
     public void onNoClicked(View view) {
-        ssVpnService.no();
+//        ssVpnService.no();
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(DatabaseHandlerSingleton::fetchUserData);
+//        executorService.execute(DatabaseHandlerSingleton::doRefreshToken);
+//        DatabaseHandlerSingleton.doRefreshToken();
+
     }
 
     //todo: implement on low memory
     @Override
     protected void onResume() {
-        System.out.println("resume");
         super.onResume();
     }
 
