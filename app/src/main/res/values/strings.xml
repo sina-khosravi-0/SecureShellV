@@ -27,19 +27,21 @@
     <string name="login_failed">"Login failed"</string>
     <string name="signing_in_loading">Signing in…</string>
     <string name="cannot_access_server">Cannot access server</string>
-    <string name="title_activity_main_nav">MainActivityNav</string>
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Android Studio</string>
-    <string name="nav_header_subtitle">android.studio@android.com</string>
-    <string name="nav_header_desc">Navigation header</string>
-    <string name="action_settings">Settings</string>
+    <string name="bottom_sheet_home">Home</string>
+    <string name="bottom_sheet_account">Account</string>
+    <string name="bottom_sheet_settings">Settings</string>
+    <string name="bottom_sheet_server">Server</string>
+    <string name="bottom_sheet_more">More</string>
+    <string name="username">Username</string>
+    <string name="end_credit_date">End Credit Date</string>
+    <string name="remaining">Remaining</string>
+    <string name="used">Used</string>
+    <string name="total">Total</string>
+    <string name="unlimited_time">Unlimited Time</string>
+    <string name="unlimited_traffic">Unlimited Traffic</string>
+    <string name="connected_ips">Current Connected IPs</string>
+    <string name="traffic">Traffic:</string>
+    <string name="broadcast_message">Broadcast Message</string>
+    <string name="date">Date</string>
 
-    <string name="menu_home">Home</string>
-    <string name="menu_gallery">Gallery</string>
-    <string name="menu_slideshow">Slideshow</string>
-    <string name="title_activity_main2">MainActivity2</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
 </resources>
