@@ -25,4 +25,20 @@
     <string name="login_failed">ورود ناموفق بود</string>
     <string name="signing_in_loading">در حال ورود …</string>
     <string name="cannot_access_server">دسترسی به سرور موجود نیست</string>
+    <string name="bottom_sheet_home">خانه</string>
+    <string name="bottom_sheet_account">حساب</string>
+    <string name="bottom_sheet_settings">تنظیمات</string>
+    <string name="bottom_sheet_server">سرور</string>
+    <string name="bottom_sheet_more">بیشتر</string>
+    <string name="username">نام کاربری</string>
+    <string name="end_credit_date">تاریخ اتمام</string>
+    <string name="remaining">باقیمانده</string>
+    <string name="used">استفاده شده</string>
+    <string name="total">کل</string>
+    <string name="unlimited_time">زمان نامحدود</string>
+    <string name="unlimited_traffic">ترافیک نامحدود</string>
+    <string name="connected_ips">تعداد اتصالات جاری</string>
+    <string name="traffic">حجم:</string>
+    <string name="broadcast_message">پیغام پشتیبانی</string>
+    <string name="date">تاریخ</string>
 </resources>

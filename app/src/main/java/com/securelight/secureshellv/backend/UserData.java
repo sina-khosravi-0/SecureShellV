@@ -1,18 +1,18 @@
 package com.securelight.secureshellv.backend;
 
-import android.icu.util.Calendar;
 import android.media.Image;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class UserData {
     private static UserData userData;
     private String userName;
     private final List<String> serverAddresses = new ArrayList<>();
-    private double remainingGb;
-    private Date endCreditDate;
+    private double remainingTrafficGB;
+    private LocalDateTime endCreditDate;
     private long totalTrafficB;
     private long usedTrafficB;
     private boolean unlimitedCreditTime;
@@ -22,6 +22,7 @@ public class UserData {
     private int allowedIps;
     private Image paymentReceipt;
     private String message;
+    private LocalDateTime messageDate;
     private boolean messagePending;
     private int userId;
 
@@ -55,33 +56,37 @@ public class UserData {
                           int allowedIps,
                           String paymentReceipt,
                           String message,
+                          String messageDate,
                           boolean messagePending,
                           int userId) {
 
         if (userData == null) {
             return;
         }
-        System.out.println("hello");
-        this.remainingGb = remainingGb;
+        this.remainingTrafficGB = remainingGb;
 
-        Calendar calendar = Calendar.getInstance();
+//        Calendar calendar = Calendar.getInstance();
+//        try {
+//            // yy-mm-ddThh:mm:ss -> date=yy,mm,dd time=hh,mm,ss
+//            String[] dateTime = endCreditDate.split("T");
+//            String[] date = dateTime[0].split("-");
+//            String[] time = dateTime[1].split(":");
+//
+//            calendar.set(Integer.parseInt(date[0]),
+//                    Integer.parseInt(date[1]),
+//                    Integer.parseInt(date[2]),
+//                    Integer.parseInt(time[0]),
+//                    Integer.parseInt(time[1]),
+//                    Integer.parseInt(time[2]));
+//        } catch (NumberFormatException e) {
+//            calendar.set(0, 0, 0, 0, 0, 0);
+//        }
+
         try {
-            // yy-mm-ddThh:mm:ss -> date=yy,mm,dd time=hh,mm,ss
-            String[] dateTime = endCreditDate.split("T");
-            String[] date = dateTime[0].split("-");
-            String[] time = dateTime[1].split(":");
-
-            calendar.set(Integer.parseInt(date[0]),
-                    Integer.parseInt(date[1]),
-                    Integer.parseInt(date[2]),
-                    Integer.parseInt(time[0]),
-                    Integer.parseInt(time[1]),
-                    Integer.parseInt(time[2]));
-        } catch (NumberFormatException e) {
-            calendar.set(0, 0, 0, 0, 0, 0);
+            this.endCreditDate = LocalDateTime.parse(endCreditDate);
+        } catch (DateTimeParseException e) {
+            this.endCreditDate = LocalDateTime.parse("0001-01-01T00:00:00");
         }
-        this.endCreditDate = calendar.getTime();
-
         this.totalTrafficB = totalTrafficB;
         this.usedTrafficB = usedTrafficB;
         this.unlimitedCreditTime = unlimitedCreditTime;
@@ -91,6 +96,11 @@ public class UserData {
         this.allowedIps = allowedIps;
 //        this.paymentReceipt = paymentReceipt;
         this.message = message;
+        try {
+            this.messageDate = LocalDateTime.parse(messageDate);
+        } catch (DateTimeParseException e) {
+            this.messageDate = LocalDateTime.parse("0001-01-01T00:00:00");
+        }
         this.messagePending = messagePending;
         this.userId = userId;
     }
@@ -107,11 +117,11 @@ public class UserData {
         return allowedIps;
     }
 
-    public double getRemainingGb() {
-        return remainingGb;
+    public double getRemainingTrafficGB() {
+        return remainingTrafficGB;
     }
 
-    public Date getEndCreditDate() {
+    public LocalDateTime getEndCreditDate() {
         return endCreditDate;
     }
 
@@ -147,6 +157,10 @@ public class UserData {
         return message;
     }
 
+    public LocalDateTime getMessageDate() {
+        return messageDate;
+    }
+
     public boolean isMessagePending() {
         return messagePending;
     }
@@ -160,7 +174,7 @@ public class UserData {
         return "UserData{" +
                 "userName='" + userName + '\'' +
                 ", serverAddresses=" + serverAddresses +
-                ", remainingGb=" + remainingGb +
+                ", remainingGb=" + remainingTrafficGB +
                 ", endCreditDate=" + endCreditDate +
                 ", totalTrafficB=" + totalTrafficB +
                 ", usedTrafficB=" + usedTrafficB +
@@ -175,4 +189,6 @@ public class UserData {
                 ", userId=" + userId +
                 '}';
     }
+
+
 }

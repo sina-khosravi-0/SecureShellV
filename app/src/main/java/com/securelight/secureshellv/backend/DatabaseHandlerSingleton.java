@@ -196,6 +196,7 @@ public class DatabaseHandlerSingleton {
                         userCreditInfo.getInt("allowed_ips"),
                         userCreditInfo.getString("payment_receipt"),
                         response.getString("message"),
+                        response.getString("message_date"),
                         response.getBoolean("message_pending"),
                         response.getInt("user"));
             } catch (JSONException e) {

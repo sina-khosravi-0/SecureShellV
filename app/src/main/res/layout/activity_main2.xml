@@ -4,38 +4,61 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#152637"
+    android:background="#041820"
     tools:context=".MainActivity2">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="100dp">
+
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="220dp"
+            android:text="TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST "
+            android:textColor="#FF0000"
+            android:textSize="20sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/standard_bottom_sheet"
         android:layout_width="match_parent"
         android:layout_height="650dp"
-        android:elevation="8dp"
+        android:elevation="10dp"
         app:behavior_peekHeight="100dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/constraintLayout"
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/bottom_sheet_menu_tab_layout"
             android:layout_width="match_parent"
             android:layout_height="100dp"
-            android:background="@drawable/bottom_sheet_rounded_menu"
+            android:background="@drawable/bottom_sheet_sharp_menu"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_behavior="com.google.android.material.divider.">
+            android:contentDescription="bottom_sheet_tab_layout"
+            android:labelFor="@+id/tab_layout"
+            app:tabGravity="fill"
+            app:tabIconTint="@color/black"
+            app:tabIndicator="@null"
+            app:tabIndicatorColor="#00000000"
+            app:tabMode="fixed"
+            app:tabRippleColor="@android:color/transparent">
+        </com.google.android.material.tabs.TabLayout>
 
-            <Button
-                android:id="@+id/button7"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="40dp"
-                android:text="Button"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/bottom_sheet_view_pager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="100dp"
+            android:background="@color/bottom_sheet_grey"
+            app:layout_constraintTop_toBottomOf="@+id/bottom_sheet_menu_tab_layout" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
