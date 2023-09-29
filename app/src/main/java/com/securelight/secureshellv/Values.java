@@ -11,4 +11,5 @@ public class Values {
     public static String NETWORK_UNAVAILABLE_STRING;
     public static String INTERNET_ACCESS_STATE_STRING;
     public static String CANNOT_ACCESS_SERVER_STRING;
+
 }

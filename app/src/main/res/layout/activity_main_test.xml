@@ -4,10 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#041820"
-    tools:context=".MainActivity2">
+    android:background="?android:colorBackground"
+    tools:context=".MainActivityTest">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:paddingBottom="100dp">
@@ -24,13 +25,15 @@
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:id="@+id/standard_bottom_sheet"
         android:layout_width="match_parent"
         android:layout_height="650dp"
         android:elevation="10dp"
+        android:orientation="vertical"
         app:behavior_peekHeight="100dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
@@ -39,26 +42,19 @@
             android:layout_width="match_parent"
             android:layout_height="100dp"
             android:background="@drawable/bottom_sheet_sharp_menu"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:contentDescription="bottom_sheet_tab_layout"
+            android:backgroundTint="?attr/colorSecondaryContainer"
             android:labelFor="@+id/tab_layout"
+            android:layerType="software"
             app:tabGravity="fill"
-            app:tabIconTint="@color/black"
-            app:tabIndicator="@null"
-            app:tabIndicatorColor="#00000000"
+            app:tabIndicator="@drawable/tab_indicator"
+            app:tabIndicatorHeight="10dp"
             app:tabMode="fixed"
-            app:tabRippleColor="@android:color/transparent">
-        </com.google.android.material.tabs.TabLayout>
+            app:tabRippleColor="@android:color/transparent" />
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/bottom_sheet_view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="100dp"
-            android:background="@color/bottom_sheet_grey"
-            app:layout_constraintTop_toBottomOf="@+id/bottom_sheet_menu_tab_layout" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
+            android:background="?attr/colorSecondaryContainer" />
+    </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -7,7 +7,8 @@ import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class BottomSheetTabAdapter extends FragmentStateAdapter {
-    private int numberOfTabs;
+    private final int numberOfTabs;
+
     public BottomSheetTabAdapter(@NonNull FragmentManager fragmentManager, @NonNull Lifecycle lifecycle,
                                  int numberOfTabs) {
         super(fragmentManager, lifecycle);
@@ -20,7 +21,10 @@ public class BottomSheetTabAdapter extends FragmentStateAdapter {
         Fragment fragment;
         switch (position) {
             case 0:
-                fragment = new AccountFragment();
+                fragment = AccountFragment.newInstance();
+                break;
+            case 1:
+                fragment = ServerFragment.newInstance();
                 break;
             default:
                 fragment = new Fragment();
@@ -28,10 +32,9 @@ public class BottomSheetTabAdapter extends FragmentStateAdapter {
         return fragment;
     }
 
-
-
     @Override
     public int getItemCount() {
         return numberOfTabs;
     }
+
 }

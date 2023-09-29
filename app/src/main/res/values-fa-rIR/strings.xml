@@ -41,4 +41,13 @@
     <string name="traffic">حجم:</string>
     <string name="broadcast_message">پیغام پشتیبانی</string>
     <string name="date">تاریخ</string>
+    <string name="location">موقعیت</string>
+    <string name="no_location_selected">" موقعیتی انتخاب نشده"</string>
+    <string name="rapid_reconnect">اتصال سریع</string>
+    <string name="auto">خودکار</string>
+    <string name="connect_to_iran_server">اتصال به سرور ایران</string>
+    <string name="notice">توجه</string>
+    <string name="rapid_reconnect_alert_string">با فعال کردن این گزینه، وی پی ان تلاش میکند که پس از قطع اتصال سریعتر متصل شود. \n در صورت تجربه نکردن قطعی مکرر، این گزینه را خاموش بگذارید.</string>
+    <string name="ok">باشه</string>
+    <string name="iran_connect_alert_string">با فعال کردن این گزینه، وی پی ان از طریق سرور ایران متصل میشود.  این گزینه برای مواقعی که اتصال اینترنت شما بد است کاربرد بیشتری دارد.</string>
 </resources>

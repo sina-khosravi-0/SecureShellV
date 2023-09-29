@@ -1,10 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:divider="@drawable/empty_tall_divider"
+    android:gravity="center|top"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:showDividers="middle"
     tools:context=".ServerFragment">
 
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/server_location_text_input"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:hint="@string/location">
+
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            android:id="@+id/server_location_auto_complete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawableStart="@drawable/auto_server_select"
+            android:drawablePadding="10dp"
+            android:inputType="none"
+            android:labelFor="@+id/location_selection" />
+    </com.google.android.material.textfield.TextInputLayout>
 
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/rapid_reconnect_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/rapid_reconnect" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/connect_iran_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/connect_to_iran_server" />
+
+</LinearLayout>

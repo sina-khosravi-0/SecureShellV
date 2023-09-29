@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
+    android:padding="10dp"
     tools:context=".AccountFragment">
 
     <FrameLayout
@@ -17,7 +18,6 @@
             android:divider="@drawable/empty_tall_divider"
             android:layoutDirection="ltr"
             android:orientation="vertical"
-            android:paddingHorizontal="5dp"
             android:showDividers="middle">
 
             <LinearLayout
@@ -95,6 +95,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:maxLines="1"
+                            android:text="@string/remaining"
                             android:textAlignment="center" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -110,6 +111,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:maxLines="1"
+                            android:text="@string/used"
                             android:textAlignment="center" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -125,6 +127,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:maxLines="1"
+                            android:text="@string/total"
                             android:textAlignment="center" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
@@ -142,15 +145,13 @@
 
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="@string/unlimited_time" />
 
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
                     android:autoSizeMaxTextSize="20dp"
                     android:gravity="center"
                     android:maxLines="1"
@@ -160,6 +161,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:baselineAligned="false"
                 android:orientation="horizontal">
 
                 <com.google.android.material.textfield.TextInputLayout

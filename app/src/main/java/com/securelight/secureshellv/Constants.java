@@ -11,5 +11,10 @@ public class Constants {
         }
     }
     public static String API_CACHE_PREFERENCES_NAME = "apiCache";
+    public static String SERVER_LOCATION_DEFAULT = "ato";
+    public static String USER_SETTINGS_PREFERENCES_NAME = "userSettings";
+    public static String SERVER_LOCATION_PREFERENCES_NAME = "serverLocation";
+    public static String RAPID_SWITCH_PREFERENCES_NAME = "rapidSwitch";
+    public static String IRAN_SWITCH_PREFERENCES_NAME = "iranSwitch";
 
 }
