@@ -121,7 +121,6 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
             autoComplete.setCompoundDrawablesRelativeWithIntrinsicBounds
                     (icon, null, null, null);
         }
-        System.out.println("?");
     }
 
     @NonNull

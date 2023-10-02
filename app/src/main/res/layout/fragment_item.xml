@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/activity_vertical_margin">
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/package_list_item_item_checkbox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/text_margin"
+        android:layout_weight="6"
+        android:textAlignment="center"
+        android:paddingHorizontal="5dp"
+        android:textAppearance="?attr/textAppearanceListItem"
+        tools:text="text" />
+
+    <ImageView
+        android:id="@+id/package_list_item_icon"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:src="@drawable/flag_de"
+        tools:ignore="ContentDescription" />
+</LinearLayout>

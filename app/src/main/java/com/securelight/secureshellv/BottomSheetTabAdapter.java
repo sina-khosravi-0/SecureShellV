@@ -26,6 +26,9 @@ public class BottomSheetTabAdapter extends FragmentStateAdapter {
             case 1:
                 fragment = ServerFragment.newInstance();
                 break;
+            case 3:
+                fragment = SettingsFragment.newInstance();
+                break;
             default:
                 fragment = new Fragment();
         }

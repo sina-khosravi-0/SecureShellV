@@ -3,11 +3,16 @@ package com.securelight.secureshellv;
 
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -22,6 +27,10 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class MainActivityTest extends AppCompatActivity {
     LinearLayout bottomSheetLayout;
@@ -50,16 +59,56 @@ public class MainActivityTest extends AppCompatActivity {
 ////        bottomSheetBehavior.setPeekHeight((int) (coordinatorLayout.getHeight() * 0.10));
     }
 
+    public void getAllApps() throws PackageManager.NameNotFoundException {
+        final Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+
+        // get list of all the apps installed
+        List<ResolveInfo> ril = getPackageManager().queryIntentActivities(mainIntent, 0);
+        List<String> componentList = new ArrayList<>();
+        String name = null;
+        int i = 0;
+
+        // get size of ril and create a list
+        String[] apps = new String[ril.size()];
+        for (ResolveInfo ri : ril) {
+            if (ri.activityInfo != null) {
+                String s = "among these things";
+                // get package
+                Resources res = getPackageManager().getResourcesForApplication(ri.activityInfo.applicationInfo);
+                // if activity label res is found
+                if (ri.activityInfo.labelRes != 0) {
+                    name = res.getString(ri.activityInfo.labelRes);
+                } else {
+                    name = ri.activityInfo.applicationInfo.loadLabel(
+                            getPackageManager()).toString();
+                }
+                apps[i] = name;
+                i++;
+            }
+        }
+
+//        // set all the apps name in list view
+//        listView.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, apps));
+//        // write total count of apps available.
+//        text.setText(ril.size() + " Apps are installed");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        try {
+            getAllApps();
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         setContentView(R.layout.activity_main_test);
         setColors();
-        findViewById(R.id.textView2).setOnClickListener(l -> {
-            if (l.getTranslationY() != 0) {
-                l.animate().translationY(0).setDuration(1000).start();
+        findViewById(R.id.textView2).setOnClickListener(v -> {
+            if (v.getTranslationY() != 0) {
+                v.animate().translationY(0).setDuration(1000).start();
                 return;
             }
-            l.animate().translationY(-300).setDuration(1000).start();
+            v.animate().translationY(-300).setDuration(1000).start();
         });
         bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);

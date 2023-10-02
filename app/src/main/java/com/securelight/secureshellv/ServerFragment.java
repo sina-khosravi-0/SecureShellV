@@ -67,7 +67,7 @@ public class ServerFragment extends Fragment {
 
         autoComplete.setOnItemClickListener((parent, textView, position, menuItemId) -> {
             ((TextView) autoComplete).setCompoundDrawablesRelativeWithIntrinsicBounds(
-                    ((TextView) textView).getCompoundDrawables()[0],
+                    ((TextView) textView).getCompoundDrawablesRelative()[2],
                     null, null, null);
             preferencesSingleton.setServer(arrayAdapter.getCode(position));
         });

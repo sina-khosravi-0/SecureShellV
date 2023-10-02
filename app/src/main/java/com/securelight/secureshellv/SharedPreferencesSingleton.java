@@ -2,6 +2,11 @@ package com.securelight.secureshellv;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.ArraySet;
+
+import java.sql.Array;
+import java.util.HashSet;
+import java.util.Set;
 
 public class SharedPreferencesSingleton {
 
@@ -21,26 +26,68 @@ public class SharedPreferencesSingleton {
         return instance;
     }
 
-    public String getSelectedServerLocation() {
-        return userSettingsPreferences.getString(Constants.SERVER_LOCATION_PREFERENCES_NAME, Constants.SERVER_LOCATION_DEFAULT);
-    }
-
     public void setServer(String code) {
         userSettingsPreferences.edit().putString(Constants.SERVER_LOCATION_PREFERENCES_NAME, code).apply();
     }
 
-    public boolean isRapidSwitched() {
-        return userSettingsPreferences.getBoolean(Constants.RAPID_SWITCH_PREFERENCES_NAME, false);
+    public String getSelectedServerLocation() {
+        return userSettingsPreferences.getString(Constants.SERVER_LOCATION_PREFERENCES_NAME, Constants.SERVER_LOCATION_DEFAULT);
     }
 
     public void setRapidSwitched(boolean value) {
         userSettingsPreferences.edit().putBoolean(Constants.RAPID_SWITCH_PREFERENCES_NAME, value).apply();
     }
 
+    public boolean isRapidSwitched() {
+        return userSettingsPreferences.getBoolean(Constants.RAPID_SWITCH_PREFERENCES_NAME, false);
+    }
+
+    public void setIranSwitched(boolean value) {
+        userSettingsPreferences.edit().putBoolean(Constants.IRAN_SWITCH_PREFERENCES_NAME, value).apply();
+    }
+
     public boolean isIranSwitched() {
         return userSettingsPreferences.getBoolean(Constants.IRAN_SWITCH_PREFERENCES_NAME, false);
     }
-    public void setIranSwitched(boolean value) {
-        userSettingsPreferences.edit().putBoolean(Constants.IRAN_SWITCH_PREFERENCES_NAME, value).apply();
+
+    public void clearFilteredPackages() {
+        userSettingsPreferences.edit().remove(Constants.APP_FILTER_PACKAGES).apply();
+    }
+
+    public void addToPackageFilter(String packageName) {
+        Set<String> packages = userSettingsPreferences.getStringSet(Constants.APP_FILTER_PACKAGES,
+                        new HashSet<>());
+        Set<String> packagesCopy = new ArraySet<>();
+        packagesCopy.addAll(packages);
+        packagesCopy.add(packageName);
+        userSettingsPreferences.edit().putStringSet(Constants.APP_FILTER_PACKAGES, packagesCopy).apply();
+    }
+
+    public Set<String> getFilteredPackages() {
+        return userSettingsPreferences.getStringSet(Constants.APP_FILTER_PACKAGES,
+                new ArraySet<>());
+    }
+
+    public boolean isPackageFiltered(String packageName) {
+        HashSet<String> packages = (HashSet<String>) userSettingsPreferences.getStringSet(Constants.APP_FILTER_PACKAGES,
+                new HashSet<>());
+        System.out.println(packageName + " " + packages.stream().anyMatch(s -> s.equals(packageName)));
+
+        return packages.stream().anyMatch(s -> s.equals(packageName));
+    }
+
+    public void setAppFilterMode(Constants.AppFilterMode mode) {
+        userSettingsPreferences.edit().putInt(Constants.APP_FILTER_MODE_NAME, mode.value).apply();
+    }
+
+    public Constants.AppFilterMode getAppFilterMode() {
+        switch (userSettingsPreferences.getInt(Constants.APP_FILTER_MODE_NAME, Constants.AppFilterMode.OFF.value)) {
+            default: // off
+                return Constants.AppFilterMode.OFF;
+            case 1: // exclude
+                return Constants.AppFilterMode.EXCLUDE;
+            case 2: // include
+                return Constants.AppFilterMode.INCLUDE;
+        }
     }
 }

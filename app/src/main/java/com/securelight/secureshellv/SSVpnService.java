@@ -84,6 +84,7 @@ public class SSVpnService extends VpnService {
         public void onReceive(Context context, Intent intent) {
             if (VPN_SERVICE_STOP_BR.equals(intent.getAction())) {
                 try {
+                    System.out.println("HUH?");
                     stopVpnService();
                     Log.i(TAG, "VPN service stopped");
                 } catch (IOException e) {
@@ -215,7 +216,6 @@ public class SSVpnService extends VpnService {
     }
 
     private void startVpn(VpnSettings vpnSettings) {
-        addPackagesToExclude();
         VpnService.prepare(this);
         Log.d(TAG, "VPN service prepared");
         try {
@@ -232,11 +232,9 @@ public class SSVpnService extends VpnService {
         }
     }
 
-    private void addPackagesToExclude() {
-        packages.add(getPackageName());
-        packages.add("com.server.auditor.ssh.client");
-//        packages.add("com.android.chrome");
-        // todo: add selected packages
+    private void addFilterPackages(SharedPreferencesSingleton preferences) {
+        packages.clear();
+        packages.addAll(preferences.getFilteredPackages());
     }
 
     /**
@@ -253,10 +251,26 @@ public class SSVpnService extends VpnService {
         builder.addDnsServer(vpnSettings.getDnsHost());
         builder.addRoute("0.0.0.0", 0);
 
+        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(this);
+        addFilterPackages(preferences);
 
-        for (String p : packages) {
-            builder.addDisallowedApplication(p);
+        switch (preferences.getAppFilterMode()) {
+            case INCLUDE:
+                for (String p : packages) {
+                    System.out.println(p);
+                    builder.addAllowedApplication(p);
+                }
+                break;
+            case EXCLUDE:
+                for (String p : packages) {
+                    builder.addDisallowedApplication(p);
+                }
+            case OFF:
+                builder.addDisallowedApplication(getPackageName()); // disallow this apps
+                break;
         }
+
+
         builder.setSession(vpnSettings.getIFaceAddress());
         ParcelFileDescriptor vpnInterface = builder.establish();
         Log.d(TAG, "VPN interface configured: " + vpnInterface);
@@ -267,18 +281,20 @@ public class SSVpnService extends VpnService {
     public void onDestroy() {
         super.onDestroy();
         try {
+            System.out.println("fuck destroyed");
             stopVpnService();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            Log.e(TAG, "onDestroy", e);
         }
     }
 
     @Override
     public void onRevoke() {
         try {
+            System.out.println("FUCK revoke");
             stopVpnService();
         } catch (IOException e) {
-            throw new RuntimeException(e.getMessage());
+            Log.e(TAG, "onRevoke", e);
         }
     }
 

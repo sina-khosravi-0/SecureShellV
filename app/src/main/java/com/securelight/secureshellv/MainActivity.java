@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private final MyBroadcastReceiver exitBr = new MyBroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            System.out.println("FUCK FROM EXIT APP");
             exitApp();
         }
     };
@@ -160,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
     public void onStopClicked(View view) {
         if (ssVpnService != null && ssVpnService.isServiceActive()) {
             try {
+                System.out.println("FUCK from activity");
                 ssVpnService.stopVpnService();
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -189,6 +191,7 @@ public class MainActivity extends AppCompatActivity {
      * only for debugging.
      */
     public void onDestroyClicked(View view) {
+        System.out.println("FUCK FROM DESTROY CLICKED");
         exitApp();
     }
 
