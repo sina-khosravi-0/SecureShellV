@@ -1,6 +1,6 @@
 package com.securelight.secureshellv.ssh;
 
-import com.securelight.secureshellv.Constants;
+import com.securelight.secureshellv.statics.Constants;
 
 public class SshConfigs {
     public String hostAddress;

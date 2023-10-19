@@ -22,7 +22,7 @@ import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.securelight.secureshellv.Constants;
+import com.securelight.secureshellv.statics.Constants;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -184,7 +184,6 @@ public class DatabaseHandlerSingleton {
 
             try {
                 JSONObject userCreditInfo = response.getJSONObject("user_credit_info");
-                System.out.println(response.getString("message"));
                 userData.parseData(userCreditInfo.getDouble("remaining_gb"),
                         userCreditInfo.getString("end_credit_date"),
                         userCreditInfo.getLong("total_traffic_b"),
@@ -234,7 +233,6 @@ public class DatabaseHandlerSingleton {
         } finally {
             lock.unlock();
         }
-        System.out.println(UserData.getInstance());
         return result.get();
     }
 

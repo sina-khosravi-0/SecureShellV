@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--<animation-list xmlns:android="http://schemas.android.com/apk/res/android"-->
+<!--    android:oneshot="true">-->
+<!--    <item-->
+<!--        android:drawable="@drawable/toggle_background_1"-->
+<!--        android:duration="1" />-->
+<!--    <item-->
+<!--        android:drawable="@drawable/toggle_background_2"-->
+<!--        android:duration="1" />-->
+<!--</animation-list>-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="10"
+    android:exitFadeDuration="@integer/material_motion_duration_long_1"
+    android:dither="true">
+    <item android:drawable="@drawable/toggle_background_1" android:state_focused="true" android:state_pressed="false" />
+    <item android:drawable="@drawable/toggle_background_2" android:state_focused="true" android:state_pressed="true" />
+    <item android:drawable="@drawable/toggle_background_2" android:state_focused="false" android:state_pressed="true" />
+    <item android:drawable="@drawable/toggle_background_1" />
+</selector>

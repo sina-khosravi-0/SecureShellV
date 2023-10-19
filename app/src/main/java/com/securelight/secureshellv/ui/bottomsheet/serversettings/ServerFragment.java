@@ -1,4 +1,4 @@
-package com.securelight.secureshellv;
+package com.securelight.secureshellv.ui.bottomsheet.serversettings;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -10,12 +10,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
-import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 import java.util.Arrays;
 import java.util.List;
@@ -73,7 +73,6 @@ public class ServerFragment extends Fragment {
         });
         MaterialSwitch rapidSwitch = view.findViewById(R.id.rapid_reconnect_switch);
         rapidSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            System.out.println("FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUCK");
             if (isChecked && !preferencesSingleton.isRapidSwitched()) {
                 new MaterialAlertDialogBuilder(requireActivity())
                         .setTitle(R.string.notice)

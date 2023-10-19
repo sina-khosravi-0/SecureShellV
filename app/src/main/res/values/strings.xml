@@ -51,7 +51,7 @@
     <string name="notice">Notice</string>
     <string name="rapid_reconnect_alert_string">By enabling this option, VPN will try to reconnect more rapidly after disconnections. Leave this option disabled if you\'re not experiencing frequent disconnections.</string>
     <string name="ok">OK</string>
-    <string name="iran_connect_alert_string">By enabling this, VPN connect using an Iranian server. This is useful when you have a bad internet connection.</string>
+    <string name="iran_connect_alert_string">By enabling this, the VPN will connect using an Iranian server. This is useful when you have a bad internet connection.\n(This may cause a slight increase in traffic usage)</string>
     <string name="app_filter">App Filter:</string>
     <string name="select_apps">Select Apps</string>
     <string name="exclude">Exclude</string>
@@ -59,12 +59,18 @@
     <string name="info_about_app_filter" translatable="false">Info about app filter</string>
     <string name="selected">Selected:</string>
     <string name="off">Off</string>
-    <string name="selected_app_alert">You can select apps to either include or exclude in the VPN. \n\tIf you include apps, the VPN will only pass packets from the specified apps.\n\tif you exclude apps, the VPN will work for all apps except the selected ones.\n(e.g: Mobile banking apps)</string>
+    <string name="selected_app_alert">You can select apps to either include or exclude in the VPN.  \tIf you include apps, the VPN will only serve the specified apps. \tif you exclude apps, the VPN will serve all apps except the selected ones.\n(e.g: Mobile banking apps)</string>
     <string name="description">Description</string>
     <string name="cancel">Cancel</string>
     <string name="deselect_all">Deselect all</string>
     <string name="select_all">Select all</string>
     <string name="apply">Apply</string>
     <string name="what_is_app_filter">What is App Filter?</string>
+    <string name="search">Search</string>
+    <string name="connection_quality">Connection Quality:</string>
+    <string name="internet_quality">Internet Quality:</string>
+    <string name="n_a" translatable="false">N/A</string>
+    <string name="dash" translatable="false">-</string>
+    <string name="ip" translatable="false">ip:</string>
 
 </resources>

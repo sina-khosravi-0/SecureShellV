@@ -1,4 +1,4 @@
-package com.securelight.secureshellv;
+package com.securelight.secureshellv.ui.bottomsheet.settings.appfilter;
 
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
@@ -8,10 +8,12 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.checkbox.MaterialCheckBox;
-import com.securelight.secureshellv.databinding.FragmentItemBinding;
+import com.securelight.secureshellv.databinding.FragmentAppFilterItemBinding;
 import com.securelight.secureshellv.placeholder.AppInfoItem;
+import com.securelight.secureshellv.utility.Utilities;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * {@link RecyclerView.Adapter} that can display a {@link AppInfoItem}.
@@ -19,15 +21,16 @@ import java.util.List;
  */
 public class PackageReViewAdapter extends RecyclerView.Adapter<PackageReViewAdapter.ViewHolder> {
     private List<AppInfoItem> appInfoList;
+    private List<AppInfoItem> originalList;
 
     public PackageReViewAdapter(List<AppInfoItem> items) {
-        appInfoList = items;
+        originalList = appInfoList = items;
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new ViewHolder(FragmentItemBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false));
+        return new ViewHolder(FragmentAppFilterItemBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false));
     }
 
     @Override
@@ -39,10 +42,7 @@ public class PackageReViewAdapter extends RecyclerView.Adapter<PackageReViewAdap
     }
 
     public List<AppInfoItem> getAppInfoList() {
-        return appInfoList;
-    }
-
-    public void updateValues(AppInfoItem item, int position) {
+        return originalList;
     }
 
     @Override
@@ -50,8 +50,9 @@ public class PackageReViewAdapter extends RecyclerView.Adapter<PackageReViewAdap
         return appInfoList.size();
     }
 
-    public void setAppInfoList(List<AppInfoItem> appInfoList) {
-        this.appInfoList = appInfoList;
+    public void applySearch(String text) {
+        appInfoList = originalList.stream().filter(item -> Utilities.containsIgnoreCase(item.getName(), text))
+                .collect(Collectors.toList());
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
@@ -59,7 +60,7 @@ public class PackageReViewAdapter extends RecyclerView.Adapter<PackageReViewAdap
         public final ImageView itemImageView;
         public AppInfoItem item;
 
-        public ViewHolder(FragmentItemBinding binding) {
+        public ViewHolder(FragmentAppFilterItemBinding binding) {
             super(binding.getRoot());
             itemCheckBox = binding.packageListItemItemCheckbox;
             itemImageView = binding.packageListItemIcon;

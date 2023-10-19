@@ -24,24 +24,24 @@
         android:theme="@style/Theme.SecureShellV"
         android:usesCleartextTraffic="true"
         tools:targetApi="33">
-        <activity
-            android:name=".MainActivityTest"
-            android:exported="true"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+<!--        <activity-->
+<!--            android:name=".MainActivityTest"-->
+<!--            android:exported="true"-->
+<!--            android:screenOrientation="portrait"-->
+<!--            tools:ignore="LockedOrientationActivity">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN" />-->
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--            </intent-filter>-->
+<!--        </activity>-->
         <activity
             android:name=".ui.login.LoginActivity"
             android:exported="false"
             android:label="@string/title_activity_login" />
 
         <receiver
-            android:name=".MyBroadcastReceiver"
+            android:name=".utility.NotificationBroadcastReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -51,7 +51,7 @@
         </receiver>
 
         <service
-            android:name=".SSVpnService"
+            android:name=".vpnservice.SSVpnService"
             android:exported="true"
             android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>

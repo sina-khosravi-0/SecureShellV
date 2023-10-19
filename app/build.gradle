@@ -58,7 +58,7 @@ dependencies {
     implementation 'org.apache.mina:mina-core:2.0.10'*/
 
     implementation 'com.android.volley:volley:1.2.1'
-
+    implementation project(path: ':v2ray')
     implementation 'com.github.FWink:android-stunnel-lib:master-SNAPSHOT'
     implementation 'net.i2p.crypto:eddsa:0.3.0'
     implementation "androidx.media:media:1.6.0"

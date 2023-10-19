@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:colorBackground"
+    android:background="?attr/backgroundDrawable"
     tools:context=".MainActivityTest">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -13,19 +13,108 @@
         android:layout_height="match_parent"
         android:paddingBottom="100dp">
 
-        <TextView
-            android:id="@+id/textView2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="220dp"
-            android:text="TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST "
-            android:textColor="#FF0000"
-            android:textSize="20sp"
+        <ImageButton
+            android:id="@+id/vpn_toggle"
+            android:layout_width="220dp"
+            android:layout_height="220dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="80dp"
+            android:background="@drawable/vpn_toggle_animation"
+            android:src="@drawable/vpn_toggle_vector"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintHorizontal_bias="0.497"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:divider="@drawable/empty_divider"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingVertical="5dp"
+            android:showDividers="middle"
+            app:layout_constraintTop_toBottomOf="@+id/vpn_toggle">
+
+            <TextView
+                android:id="@+id/main_connect_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/connected"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:layoutDirection="ltr"
+
+                android:orientation="horizontal"
+                android:showDividers="middle">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ip" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="0.0.0.0" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:layoutDirection="ltr"
+
+                android:orientation="horizontal"
+                android:showDividers="middle">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/internet_quality"
+                    android:textSize="16sp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="@string/n_a"
+                    android:textSize="16sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:layoutDirection="ltr"
+                android:orientation="horizontal"
+                android:showDividers="middle">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/connection_quality"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="@string/dash"
+                    android:textSize="16sp" />
+
+            </LinearLayout>
+        </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
@@ -57,4 +146,5 @@
             android:layout_height="match_parent"
             android:background="?attr/colorSecondaryContainer" />
     </LinearLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

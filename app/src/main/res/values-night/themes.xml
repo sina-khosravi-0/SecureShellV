@@ -5,6 +5,8 @@
         <item name="colorPrimary">@color/md_theme_dark_primary</item>
         <item name="colorOnPrimary">@color/md_theme_dark_onPrimary</item>
         <item name="colorPrimaryContainer">@color/md_theme_dark_primaryContainer</item>
+        <item name="colorPrimaryContainerOpaque">@color/md_theme_dark_primaryContainer_opaque
+        </item>
         <item name="colorOnPrimaryContainer">@color/md_theme_dark_onPrimaryContainer</item>
         <item name="colorSecondary">@color/md_theme_dark_secondary</item>
         <item name="colorOnSecondary">@color/md_theme_dark_onSecondary</item>
@@ -29,6 +31,7 @@
         <item name="colorOnSurfaceInverse">@color/md_theme_dark_inverseOnSurface</item>
         <item name="colorSurfaceInverse">@color/md_theme_dark_inverseSurface</item>
         <item name="colorPrimaryInverse">@color/md_theme_dark_inversePrimary</item>
+        <item name="backgroundDrawable">@drawable/background_dark</item>
     </style>
 
     <style name="Theme.SecureShellV" parent="Base.Theme.SecureShellV" />

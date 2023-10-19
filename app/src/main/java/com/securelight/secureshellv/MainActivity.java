@@ -2,13 +2,17 @@ package com.securelight.secureshellv;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.net.VpnService;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.view.View;
 import android.widget.RadioGroup;
@@ -18,9 +22,12 @@ import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.statics.Constants;
+import com.securelight.secureshellv.statics.Values;
 import com.securelight.secureshellv.ui.login.LoginActivity;
+import com.securelight.secureshellv.utility.CustomExceptionHandler;
+import com.securelight.secureshellv.vpnservice.SSVpnService;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,26 +36,39 @@ import java.util.concurrent.Executors;
 
 
 public class MainActivity extends AppCompatActivity {
-    public static final String EXIT_APP_BR = "com.securelight.secureshellv.EXIT_APP";
-    public static final String DO_SIGN_IN_BR = "com.securelight.secureshellv.DO_SIGN_IN";
-    private static SSVpnService ssVpnService;
-
-    private static boolean appClosing = false;
-    private final MyBroadcastReceiver startBr = new MyBroadcastReceiver() {
+    public static final String EXIT_APP_ACTION = "com.securelight.secureshellv.EXIT_APP";
+    public static final String SIGN_IN_ACTION = "com.securelight.secureshellv.DO_SIGN_IN";
+    Intent vpnServiceIntent;
+    private ParcelFileDescriptor vpnInterface;
+    static final String VPN_SERVICE_ACTION = "android.net.VpnService";
+    private SSVpnService.VpnServiceBinder vpnServiceBinder;
+    private final ServiceConnection vpnServiceConnection = new ServiceConnection() {
         @Override
-        public void onReceive(Context context, Intent intent) {
-            startVpn();
+        public void onServiceConnected(ComponentName name, IBinder binder) {
+            vpnServiceBinder = (SSVpnService.VpnServiceBinder) binder;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            vpnServiceBinder = null;
         }
     };
 
-    private final MyBroadcastReceiver exitBr = new MyBroadcastReceiver() {
+    private static boolean appClosing = false;
+    private final BroadcastReceiver startBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            System.out.println("FUCK FROM EXIT APP");
+            onStartClicked(null);
+        }
+    };
+
+    private final BroadcastReceiver exitBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
             exitApp();
         }
     };
-    private final MyBroadcastReceiver signInBr = new MyBroadcastReceiver() {
+    private final BroadcastReceiver signInBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             startActivity(new Intent(getApplicationContext(), LoginActivity.class));
@@ -58,27 +78,32 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Sets the default uncaught exception handler. This handler is invoked
+        // in case any Thread dies due to an unhandled exception.
+        Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/storage/",
+                this));
+
+        System.out.println((String) null);
+
         setContentView(R.layout.activity_main);
         // initialize database handler singleton
         DatabaseHandlerSingleton.getInstance(this);
 
+        // set vpn intent
+        vpnServiceIntent = new Intent(this, SSVpnService.class).setAction(VPN_SERVICE_ACTION)
+                .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .setPackage(getPackageName());
 
-        Values.CONNECTED_STRING = getString(R.string.connected);
-        Values.DISCONNECTED_STRING = getString(R.string.disconnected);
-        Values.CONNECTING_STRING = getString(R.string.connecting);
-        Values.FULL_INTERNET_ACCESS_STRING = getString(R.string.full_internet_access);
-        Values.RESTRICTED_INTERNET_ACCESS_STRING = getString(R.string.restricted_internet_access);
-        Values.NO_INTERNET_ACCESS_STRING = getString(R.string.no_internet_access);
-        Values.NETWORK_UNAVAILABLE_STRING = getString(R.string.network_unavailable);
-        Values.INTERNET_ACCESS_STATE_STRING = getString(R.string.internet_access_state);
-        Values.CANNOT_ACCESS_SERVER_STRING = getString(R.string.cannot_access_server);
+        fetchStringValues();
 
         checkAndAddPermissions();
 
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-        lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.VPN_SERVICE_START_BR));
-        lbm.registerReceiver(exitBr, new IntentFilter(EXIT_APP_BR));
-        lbm.registerReceiver(signInBr, new IntentFilter(DO_SIGN_IN_BR));
+        lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.START_VPN_ACTION));
+        lbm.registerReceiver(exitBr, new IntentFilter(EXIT_APP_ACTION));
+        lbm.registerReceiver(signInBr, new IntentFilter(SIGN_IN_ACTION));
 
         // TODO: fuck after database
         ((RadioGroup) findViewById(R.id.protocolGroup)).setOnCheckedChangeListener((group, checkedId) -> {
@@ -91,6 +116,18 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
+    }
+
+    private void fetchStringValues() {
+        Values.CONNECTED_STRING = getString(R.string.connected);
+        Values.DISCONNECTED_STRING = getString(R.string.disconnected);
+        Values.CONNECTING_STRING = getString(R.string.connecting);
+        Values.FULL_INTERNET_ACCESS_STRING = getString(R.string.full_internet_access);
+        Values.RESTRICTED_INTERNET_ACCESS_STRING = getString(R.string.restricted_internet_access);
+        Values.NO_INTERNET_ACCESS_STRING = getString(R.string.no_internet_access);
+        Values.NETWORK_UNAVAILABLE_STRING = getString(R.string.network_unavailable);
+        Values.INTERNET_ACCESS_STATE_STRING = getString(R.string.internet_access_state);
+        Values.CANNOT_ACCESS_SERVER_STRING = getString(R.string.cannot_access_server);
     }
 
     private void checkAndAddPermissions() {
@@ -142,15 +179,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onStartClicked(View view) {
-        // ssVpnService being null means it's not started since its instance is passed when it's started
-        if (ssVpnService == null) {
-            startVpn();
-        }
-
-    }
-
-    private void startVpn() {
-        Intent intent = VpnService.prepare(MainActivity.this);
+        Intent intent = SSVpnService.prepare(MainActivity.this);
         if (intent != null) {
             startActivityForResult(intent, 0);
         } else {
@@ -158,56 +187,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onStopClicked(View view) {
-        if (ssVpnService != null && ssVpnService.isServiceActive()) {
-            try {
-                System.out.println("FUCK from activity");
-                ssVpnService.stopVpnService();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
         if (result == RESULT_OK) {
-            Intent intent = getServiceIntent();
-            startService(intent);
+            startService(vpnServiceIntent);
         }
         super.onActivityResult(request, result, data);
     }
 
-
-    private Intent getServiceIntent() {
-        return new Intent(this, SSVpnService.class).setAction(Intent.ACTION_VIEW)
-                .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .setPackage(getPackageName());
+    public void onStopClicked(View view) {
+        if (vpnServiceBinder != null) {
+            vpnServiceBinder.getService().stopVpnService();
+            stopService(vpnServiceIntent);
+        }
     }
+
 
     /**
      * REMOVE
      * only for debugging.
      */
     public void onDestroyClicked(View view) {
-        System.out.println("FUCK FROM DESTROY CLICKED");
         exitApp();
     }
 
-    // todo: implement app exit sequence
+    // TODO: implement app exit sequence
     private void exitApp() {
         appClosing = true;
-        try {
-            if (ssVpnService != null) {
-                ssVpnService.finalizeAndStop();
-            }
-        } catch (IOException ignored) {
-        }
+        vpnServiceBinder.stopService();
         finishAndRemoveTask();
-        finishActivity(0);
-        finish();
-        finishAffinity();
+//        finishActivity(0);
+//        finish();
+//        finishAffinity();
         Process.sendSignal(Process.myPid(), Process.SIGNAL_KILL);
         System.exit(0);
     }
@@ -240,26 +251,29 @@ public class MainActivity extends AppCompatActivity {
 //        };
 //        instance.addToRequestQueue(jsonArrayRequest);
 //        startActivity(new Intent(getApplicationContext(), LoginActivity.class));
-
     }
 
     public void onNoClicked(View view) {
-//        ssVpnService.no();
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        executorService.execute(DatabaseHandlerSingleton::fetchUserData);
+        vpnServiceBinder.getService().no();
+//        ExecutorService executorService = Executors.newSingleThreadExecutor();
+//        executorService.execute(DatabaseHandlerSingleton::fetchUserData);
 //        executorService.execute(DatabaseHandlerSingleton::doRefreshToken);
 //        DatabaseHandlerSingleton.doRefreshToken();
-
     }
 
     //todo: implement on low memory
     @Override
     protected void onResume() {
         super.onResume();
+        bindService(vpnServiceIntent, vpnServiceConnection, BIND_AUTO_CREATE);
     }
 
-    public static void setSsVpnService(SSVpnService ssVpnService) {
-        MainActivity.ssVpnService = ssVpnService;
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (vpnServiceBinder != null) {
+            unbindService(vpnServiceConnection);
+        }
     }
 
     public static boolean isAppClosing() {

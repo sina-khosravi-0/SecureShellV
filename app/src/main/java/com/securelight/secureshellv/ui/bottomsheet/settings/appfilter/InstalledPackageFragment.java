@@ -1,4 +1,4 @@
-package com.securelight.secureshellv;
+package com.securelight.secureshellv.ui.bottomsheet.settings.appfilter;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
@@ -6,6 +6,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,7 +21,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.placeholder.AppInfoItem;
+import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +81,7 @@ public class InstalledPackageFragment extends DialogFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View linearLayout = inflater.inflate(R.layout.fragment_item_list, container, false);
+        View linearLayout = inflater.inflate(R.layout.fragment_app_filter_list, container, false);
         RecyclerView recyclerView = linearLayout.findViewById(R.id.package_recycler_view);
 
         // Set the adapter
@@ -96,11 +101,12 @@ public class InstalledPackageFragment extends DialogFragment {
         ImageButton deselectAll = dialogView.findViewById(R.id.deselect_all_packages);
         MaterialButton applyPackages = dialogView.findViewById(R.id.apply_package_list);
         MaterialButton cancelPackages = dialogView.findViewById(R.id.cancel_package_list);
+        TextInputEditText searchBar = dialogView.findViewById(R.id.package_search_bar);
 
         PackageReViewAdapter adapter = (PackageReViewAdapter) recyclerView.getAdapter();
         assert adapter != null;
 
-        PackageManager packageManager = getContext().getApplicationContext().getPackageManager();
+        PackageManager packageManager = requireContext().getApplicationContext().getPackageManager();
         appList = packageManager.getInstalledApplications(PackageManager.GET_META_DATA |
                 PackageManager.GET_SHARED_LIBRARY_FILES);
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(getContext());
@@ -112,10 +118,11 @@ public class InstalledPackageFragment extends DialogFragment {
                 } catch (InterruptedException ignored) {
                 }
             }
-            appList.forEach(applicationInfo -> {
+            // foreach app info
+            for (ApplicationInfo applicationInfo : appList) {// foreach app info
                 if (((applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0 ||
                         applicationInfo.packageName.matches(packageRegex)) &&
-                        !applicationInfo.packageName.equals(getContext().getApplicationContext().getPackageName())) {
+                        !applicationInfo.packageName.equals(requireContext().getApplicationContext().getPackageName())) {
                     String appName;
                     try {
                         appName = Objects.requireNonNull(packageManager.getApplicationLabel(applicationInfo)).toString();
@@ -135,7 +142,7 @@ public class InstalledPackageFragment extends DialogFragment {
 
                     adapter.getAppInfoList().add(appinfoItem);
                 }
-                adapter.getAppInfoList().sort((first, second) -> {
+                adapter.getAppInfoList().sort((first, second) -> { //sort adapter app info list
                     if (!first.isChecked() && second.isChecked()) {
                         return 1;
                     }
@@ -143,19 +150,49 @@ public class InstalledPackageFragment extends DialogFragment {
                         return -1;
                     }
                     return 0;
-                });
+                }); //sort adapter app info list
+                try {
+                    getActivity().runOnUiThread(() -> {
+                        recyclerView.swapAdapter(adapter, false);
+                    });
+                } catch (NullPointerException e) {
+                    break;
+                }
+            }
+
+            try {
                 getActivity().runOnUiThread(() -> {
-                    recyclerView.swapAdapter(adapter, false);
+                    dialogView.findViewById(R.id.loading_circular).setVisibility(View.GONE);
                 });
-            });
+            } catch (NullPointerException ignored) {
+            }
+
         }).start(); // adding items thread
+
+        searchBar.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                //BS
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                adapter.applySearch(s.toString());
+                recyclerView.swapAdapter(adapter, false );
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                //BS
+            }
+        });
 
         selectAll.setOnClickListener(v -> {
             new Thread(() -> { // select thread
                 adapter.getAppInfoList().forEach(item -> {
                     item.setChecked(true);
                 });
-                getActivity().runOnUiThread(adapter::notifyDataSetChanged);
+                requireActivity().runOnUiThread(adapter::notifyDataSetChanged);
             }).start(); // select thread
         });
 
@@ -164,9 +201,11 @@ public class InstalledPackageFragment extends DialogFragment {
                 adapter.getAppInfoList().forEach(item -> {
                     item.setChecked(false);
                 });
-                getActivity().runOnUiThread(adapter::notifyDataSetChanged);
+                requireActivity().runOnUiThread(adapter::notifyDataSetChanged);
             }).start();// deselect thread
         });
+
+
         applyPackages.setOnClickListener(v -> {
             preferences.clearFilteredPackages();
             adapter.getAppInfoList().forEach(appInfoItem -> {

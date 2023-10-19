@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:fillViewport="true"
     android:padding="10dp"
-    tools:context=".AccountFragment">
+    tools:context=".ui.bottomsheet.account.AccountFragment">
 
     <FrameLayout
         android:layout_width="match_parent"

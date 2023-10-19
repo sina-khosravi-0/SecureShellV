@@ -7,7 +7,7 @@ package com.securelight.secureshellv.tun2socks;
 
 import android.util.Log;
 
-import com.securelight.secureshellv.Values;
+import com.securelight.secureshellv.statics.Values;
 
 /**
  * runTun2Socks takes a tun device file descriptor (from Android's VpnService,
@@ -22,7 +22,7 @@ import com.securelight.secureshellv.Values;
  * logTun2Socks is called from tun2socks.c when an event is to be logged.
  */
 public class Tun2SocksJni {
-    //basically the same as an interface methods
+    //basically the same as an interface method
     public static native int runTun2Socks(
             int vpnInterfaceFileDescriptor,
             int vpnInterfaceMTU,

@@ -3,24 +3,26 @@ package com.securelight.secureshellv;
 
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
+import android.annotation.SuppressLint;
 import android.content.res.ColorStateList;
-import android.content.res.Resources;
+import android.graphics.drawable.Animatable2;
+import android.graphics.drawable.AnimatedVectorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
-import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.core.os.LocaleListCompat;
 import androidx.core.widget.ImageViewCompat;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -28,9 +30,8 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivityTest extends AppCompatActivity {
     LinearLayout bottomSheetLayout;
@@ -59,57 +60,44 @@ public class MainActivityTest extends AppCompatActivity {
 ////        bottomSheetBehavior.setPeekHeight((int) (coordinatorLayout.getHeight() * 0.10));
     }
 
-    public void getAllApps() throws PackageManager.NameNotFoundException {
-        final Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-
-        // get list of all the apps installed
-        List<ResolveInfo> ril = getPackageManager().queryIntentActivities(mainIntent, 0);
-        List<String> componentList = new ArrayList<>();
-        String name = null;
-        int i = 0;
-
-        // get size of ril and create a list
-        String[] apps = new String[ril.size()];
-        for (ResolveInfo ri : ril) {
-            if (ri.activityInfo != null) {
-                String s = "among these things";
-                // get package
-                Resources res = getPackageManager().getResourcesForApplication(ri.activityInfo.applicationInfo);
-                // if activity label res is found
-                if (ri.activityInfo.labelRes != 0) {
-                    name = res.getString(ri.activityInfo.labelRes);
-                } else {
-                    name = ri.activityInfo.applicationInfo.loadLabel(
-                            getPackageManager()).toString();
-                }
-                apps[i] = name;
-                i++;
-            }
-        }
-
-//        // set all the apps name in list view
-//        listView.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, apps));
-//        // write total count of apps available.
-//        text.setText(ril.size() + " Apps are installed");
-    }
-
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        try {
-            getAllApps();
-        } catch (PackageManager.NameNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        super.onCreate(savedInstanceState);
+
+        // hide navigation bar
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+
+        // TODO: set locale based on user preference
+        Locale locale = new Locale("fa");
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.create(locale));
+
         setContentView(R.layout.activity_main_test);
         setColors();
-        findViewById(R.id.textView2).setOnClickListener(v -> {
-            if (v.getTranslationY() != 0) {
-                v.animate().translationY(0).setDuration(1000).start();
-                return;
+
+        ImageButton vpnButton = findViewById(R.id.vpn_toggle);
+        AtomicBoolean fuckage = new AtomicBoolean(true);
+
+        vpnButton.setOnClickListener(v -> {
+            if (fuckage.get()) {
+                vpnButton.setImageResource(R.drawable.vpn_loading_animated);
+                fuckage.set(false);
+                AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) vpnButton.getDrawable();
+                vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
+                    @Override
+                    public void onAnimationEnd(Drawable drawable) {
+                        vectorDrawable.start();
+                    }
+                });
+                vectorDrawable.start();
+            } else {
+                vpnButton.setImageResource(R.drawable.vpn_toggle_vector);
+                fuckage.set(true);
             }
-            v.animate().translationY(-300).setDuration(1000).start();
         });
+
         bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
@@ -121,6 +109,7 @@ public class MainActivityTest extends AppCompatActivity {
         BottomSheetTabAdapter tabAdapter = new BottomSheetTabAdapter(
                 getSupportFragmentManager(), getLifecycle(), NUMBER_OF_TABS);
         viewPager.setAdapter(tabAdapter);
+
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
@@ -132,20 +121,12 @@ public class MainActivityTest extends AppCompatActivity {
 
                     bottomSheetBehavior.setDraggable(true);
                 }
-//                if (tab.getPosition() == 0) {
-//                    ImageView imageView = tab.getCustomView().findViewById(R.id.image_view);
-//                    ((Animatable) imageView.getDrawable()).start();
-//
-//                    return;
-//                }
                 View view = tab.getCustomView();
                 TextView textView = view.findViewById(R.id.text_view);
                 ImageView imageView = view.findViewById(R.id.image_view);
                 ViewPropertyAnimator textAnimator = textView.animate();
                 float offset = (textView.getHeight() == 0 ? 20 : textView.getHeight());
                 textAnimator.translationY(-offset / 3f).setDuration(300);
-//                textAnimator.scaleX(1.05f).setDuration(300);
-//                textAnimator.scaleY(1.05f).setDuration(300);
 
                 ViewPropertyAnimator imageAnimator = imageView.animate();
                 imageAnimator.translationY(-offset / 2f).setDuration(300);
@@ -235,7 +216,6 @@ public class MainActivityTest extends AppCompatActivity {
         viewPager.setUserInputEnabled(false);
         viewPager.setOffscreenPageLimit(NUMBER_OF_TABS);
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
@@ -255,9 +235,6 @@ public class MainActivityTest extends AppCompatActivity {
 //                constraintLayout.setScaleX(interpolatedProgress + 1);
             }
         });
-
-
-        super.onCreate(savedInstanceState);
     }
 
     @Override

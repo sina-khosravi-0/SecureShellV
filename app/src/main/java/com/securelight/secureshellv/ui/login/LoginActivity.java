@@ -18,7 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.securelight.secureshellv.Constants;
+import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.databinding.ActivityLoginBinding;
 

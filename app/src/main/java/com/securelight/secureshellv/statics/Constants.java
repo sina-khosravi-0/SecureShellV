@@ -1,4 +1,4 @@
-package com.securelight.secureshellv;
+package com.securelight.secureshellv.statics;
 
 public class Constants {
 

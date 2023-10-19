@@ -6,6 +6,10 @@ import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import com.securelight.secureshellv.ui.bottomsheet.account.AccountFragment;
+import com.securelight.secureshellv.ui.bottomsheet.serversettings.ServerFragment;
+import com.securelight.secureshellv.ui.bottomsheet.settings.SettingsFragment;
+
 public class BottomSheetTabAdapter extends FragmentStateAdapter {
     private final int numberOfTabs;
 

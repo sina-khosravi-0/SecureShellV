@@ -1,10 +1,11 @@
-package com.securelight.secureshellv;
+package com.securelight.secureshellv.utility;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.ArraySet;
 
-import java.sql.Array;
+import com.securelight.secureshellv.statics.Constants;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -71,8 +72,6 @@ public class SharedPreferencesSingleton {
     public boolean isPackageFiltered(String packageName) {
         HashSet<String> packages = (HashSet<String>) userSettingsPreferences.getStringSet(Constants.APP_FILTER_PACKAGES,
                 new HashSet<>());
-        System.out.println(packageName + " " + packages.stream().anyMatch(s -> s.equals(packageName)));
-
         return packages.stream().anyMatch(s -> s.equals(packageName));
     }
 

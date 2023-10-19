@@ -1,12 +1,9 @@
-package com.securelight.secureshellv.connection;
+package com.securelight.secureshellv.vpnservice.connection;
 
 
 import android.util.Log;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 
 public class Tools {
     public static boolean checkInternetAccess() {

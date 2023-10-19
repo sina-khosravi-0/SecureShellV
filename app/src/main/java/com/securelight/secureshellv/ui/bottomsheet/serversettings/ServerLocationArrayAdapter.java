@@ -1,4 +1,4 @@
-package com.securelight.secureshellv;
+package com.securelight.secureshellv.ui.bottomsheet.serversettings;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
@@ -14,6 +14,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.content.res.AppCompatResources;
 
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
+import com.securelight.secureshellv.MainActivityTest;
+import com.securelight.secureshellv.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,12 +44,16 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
         this.codes = codes;
         this.context = context;
         this.resourceId = resource;
-
     }
 
     @Override
     public int getViewTypeCount() {
-        return getCount();
+        // TODO: sometimes the list is empty. find why
+        if (getCount() <= 1) {
+            return 1;
+        } else {
+            return getCount();
+        }
     }
 
     @Override
