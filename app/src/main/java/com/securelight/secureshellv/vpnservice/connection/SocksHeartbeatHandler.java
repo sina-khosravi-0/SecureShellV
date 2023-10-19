@@ -22,13 +22,15 @@ public class SocksHeartbeatHandler extends TimerTask {
 
     @Override
     public void run() {
+        System.out.println("counter:" + counter);
         if (sshManager.isEstablished()) {
             Proxy proxy = new Proxy(Proxy.Type.SOCKS,
                     new InetSocketAddress(VpnSettings.iFaceAddress, VpnSettings.socksPort));
 
             try (Socket socket = new Socket(proxy)) {
                 // TODO: fetch from server
-                socket.connect(new InetSocketAddress("127.0.0.1", 443),
+
+                socket.connect(new InetSocketAddress("google.com", 443),
                         1500);
                 counter = 0;
                 Log.d(TAG, "SOCKS UP");
@@ -36,6 +38,7 @@ public class SocksHeartbeatHandler extends TimerTask {
                 Log.d(TAG, "SOCKS DOWN", e);
                 if (counter >= 3) {
                     sshManager.close();
+                    counter = -1;
                 }
                 counter++;
             }
