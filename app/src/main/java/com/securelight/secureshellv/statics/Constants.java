@@ -3,6 +3,7 @@ package com.securelight.secureshellv.statics;
 public class Constants {
 
     public static final String APP_FILTER_PACKAGES = "appFilterPackages";
+    public static final String APP_LANGUAGE_NAME = "appLanguage";
     public static String API_CACHE_PREFERENCES_NAME = "apiCache";
     public static String SERVER_LOCATION_DEFAULT = "ato";
     public static String USER_SETTINGS_PREFERENCES_NAME = "userSettings";

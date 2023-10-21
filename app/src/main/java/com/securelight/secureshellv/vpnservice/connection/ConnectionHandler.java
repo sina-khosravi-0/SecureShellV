@@ -2,15 +2,21 @@ package com.securelight.secureshellv.vpnservice.connection;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.ParcelFileDescriptor;
 import android.widget.Toast;
 
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.StunnelManager;
 import com.securelight.secureshellv.ssh.SshConfigs;
 import com.securelight.secureshellv.ssh.SshManager;
 import com.securelight.secureshellv.statics.Constants;
+import com.securelight.secureshellv.tun2socks.Tun2SocksJni;
 import com.securelight.secureshellv.tun2socks.Tun2SocksManager;
+import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.VpnSettings;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import com.securelight.secureshellv.vpnservice.listeners.Tun2SocksListener;
@@ -29,11 +35,21 @@ public class ConnectionHandler extends Thread {
     private final String TAG = getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
     private final Context context;
-    private InternetAccessHandler internetAccessHandler;
+    private final InternetAccessHandler internetAccessHandler;
     private final AtomicBoolean connected;
     private final AtomicBoolean networkInterfaceAvailable;
     private final ReentrantLock lock;
     private final Condition internetAvailableCondition;
+    private final NotificationListener notificationListener;
+    private Tun2SocksManager tun2SocksManager;
+    private SshManager sshManager;
+    private StunnelManager stunnelManager;
+    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
+    private ConnectionState connectionState = ConnectionState.CONNECTING;
+    private NetworkState networkState = NetworkState.NO_ACCESS;
+    private SharedPreferences sharedPreferences;
+    private boolean running;
+    private boolean interrupted = false;
     private final Tun2SocksListener t2SListener = new Tun2SocksListener() {
         @Override
         public void onTun2SocksStopped() {
@@ -42,15 +58,6 @@ public class ConnectionHandler extends Thread {
             }
         }
     };
-    private NotificationListener notificationListener;
-    private Tun2SocksManager tun2SocksManager;
-    private SshManager sshManager;
-    private StunnelManager stunnelManager;
-    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
-    private ConnectionState connectionState = ConnectionState.CONNECTING;
-    private NetworkState networkState = NetworkState.NO_ACCESS;
-    private boolean running;
-    private boolean interrupted = false;
 
     public ConnectionHandler(ParcelFileDescriptor vpnInterface, Context context,
                              NotificationListener notificationListener) {
@@ -67,12 +74,15 @@ public class ConnectionHandler extends Thread {
             this.networkState = networkState;
             notificationListener.updateNotification(networkState, connectionState);
         });
+        sharedPreferences = context.getSharedPreferences(MainActivity.CONNECTION_INFO_PREF, Context.MODE_PRIVATE);
     }
 
     @Override
     public void run() {
         running = true;
         connectionState = ConnectionState.CONNECTING;
+        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                new Intent(SSVpnService.CONNECTING_ACTION));
         notificationListener.updateNotification(networkState, connectionState);
 
         boolean bridge = false;
@@ -113,6 +123,8 @@ public class ConnectionHandler extends Thread {
 
         while (!interrupted) {
             connectionState = ConnectionState.CONNECTED;
+            LocalBroadcastManager.getInstance(context).sendBroadcast(
+                    new Intent(SSVpnService.CONNECTED_ACTION));
             notificationListener.updateNotification(networkState, connectionState);
 
             sshManager.getSession().waitFor(Arrays.asList(ClientSession.ClientSessionEvent.CLOSED,
@@ -120,6 +132,8 @@ public class ConnectionHandler extends Thread {
 
             sshManager.setEstablished(false);
             connectionState = ConnectionState.CONNECTING;
+            LocalBroadcastManager.getInstance(context).sendBroadcast(
+                    new Intent(SSVpnService.CONNECTING_ACTION));
             notificationListener.updateNotification(networkState, connectionState);
 
             // reconnect
@@ -133,8 +147,12 @@ public class ConnectionHandler extends Thread {
             if (!interrupted) {
                 sshManager.createPortForwarding();
             }
-        }
+        } // while (!interrupted)
+
         connectionState = ConnectionState.DISCONNECTED;
+        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                new Intent(SSVpnService.DISCONNECTED_ACTION));
+        networkState = NetworkState.NONE;
         notificationListener.updateNotification(networkState, connectionState);
 
         socksTimer.cancel();
@@ -219,21 +237,12 @@ public class ConnectionHandler extends Thread {
         }
     }
 
-    private void updateNotification() {
-//        if (!MainActivity.isAppClosing()) {
-//            NotificationCompat.Builder builder = context.getNotificationBuilder();
-//            builder.setContentTitle(connectionStateString);
-//            builder.setContentText(String
-//                    .format("%s: %s", Values.INTERNET_ACCESS_STATE_STRING, networkStateString));
-//            context.getNotificationManager().notify(context.getOnGoingNotificationID(), builder.build());
-//            builder.setSilent(true);
-//        }
-    }
-
     public void yes() {
         SharedPreferences preferences = context.getSharedPreferences("tun2socksDEATH", Activity.MODE_PRIVATE);
         Toast.makeText(context, preferences.getString("died", "N/A"), Toast.LENGTH_SHORT).show();
     }
+
+
 
     public Tun2SocksManager getTun2SocksManager() {
         return tun2SocksManager;
@@ -290,5 +299,13 @@ public class ConnectionHandler extends Thread {
 
     public void setConnectionMethod(Constants.Protocol connectionMethod) {
         this.connectionMethod = connectionMethod;
+    }
+
+    public ConnectionState getConnectionState() {
+        return connectionState;
+    }
+
+    public NetworkState getNetworkState() {
+        return networkState;
     }
 }

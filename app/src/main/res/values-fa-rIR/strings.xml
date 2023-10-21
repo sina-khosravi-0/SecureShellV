@@ -64,6 +64,9 @@
     <string name="apply">تایید</string>
     <string name="what_is_app_filter">فیلتر برنامه ها چیست؟</string>
     <string name="search">جستجو</string>
-    <string name="connection_quality">کیفیت اتصال:</string>
+    <string name="connection_quality">کیفیت وی پی ان:</string>
     <string name="internet_quality">کیفیت اینترنت:</string>
+    <string name="vpn_toggle_accessibility">دکمه وی پی ان</string>
+    <string name="application_language">زبان برنامه:</string>
+    <string name="restart_app">ریستارت برنامه</string>
 </resources>

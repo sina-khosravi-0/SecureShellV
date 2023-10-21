@@ -34,6 +34,7 @@ public class InternetAccessHandler extends TimerTask {
     public void run() {
         NetworkState tempType = checkAndGetAccessType();
         switch (tempType) {
+            case RESTRICTED:
             case WORLD_WIDE:
                 lock.lock();
                 try {
@@ -46,7 +47,6 @@ public class InternetAccessHandler extends TimerTask {
                     accessChangeListener.onNetworkStateChanged(networkState);
                 }
                 break;
-            case RESTRICTED:
             case NO_ACCESS:
             case UNAVAILABLE:
                 if (networkState != tempType) {

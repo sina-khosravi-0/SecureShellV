@@ -71,8 +71,9 @@ public class ServerFragment extends Fragment {
                     null, null, null);
             preferencesSingleton.setServer(arrayAdapter.getCode(position));
         });
-        MaterialSwitch rapidSwitch = view.findViewById(R.id.rapid_reconnect_switch);
-        rapidSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+
+        MaterialSwitch rapidReconnectSwitch = view.findViewById(R.id.rapid_reconnect_switch);
+        rapidReconnectSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked && !preferencesSingleton.isRapidSwitched()) {
                 new MaterialAlertDialogBuilder(requireActivity())
                         .setTitle(R.string.notice)

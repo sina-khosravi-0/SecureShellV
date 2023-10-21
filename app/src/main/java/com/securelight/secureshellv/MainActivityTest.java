@@ -74,16 +74,16 @@ public class MainActivityTest extends AppCompatActivity {
         Locale locale = new Locale("fa");
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.create(locale));
 
-        setContentView(R.layout.activity_main_test);
+        setContentView(R.layout.activity_main);
         setColors();
 
-        ImageButton vpnButton = findViewById(R.id.vpn_toggle);
-        AtomicBoolean fuckage = new AtomicBoolean(true);
+        ImageButton vpnButton = findViewById(R.id.vpn_toggle_img);
+        AtomicBoolean off = new AtomicBoolean(true);
 
         vpnButton.setOnClickListener(v -> {
-            if (fuckage.get()) {
+            if (off.get()) {
                 vpnButton.setImageResource(R.drawable.vpn_loading_animated);
-                fuckage.set(false);
+                off.set(false);
                 AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) vpnButton.getDrawable();
                 vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
                     @Override
@@ -94,7 +94,7 @@ public class MainActivityTest extends AppCompatActivity {
                 vectorDrawable.start();
             } else {
                 vpnButton.setImageResource(R.drawable.vpn_toggle_vector);
-                fuckage.set(true);
+                off.set(true);
             }
         });
 

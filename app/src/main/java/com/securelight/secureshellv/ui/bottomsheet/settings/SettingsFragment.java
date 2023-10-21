@@ -1,5 +1,6 @@
 package com.securelight.secureshellv.ui.bottomsheet.settings;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,34 +46,47 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(getActivity());
-        ImageButton infoButton = view.findViewById(R.id.app_filter_info);
-        RadioGroup radioGroup = view.findViewById(R.id.app_filter_mode_radio_group);
+        ImageButton appFilterInfoButton = view.findViewById(R.id.app_filter_info);
+        RadioGroup appFilterRadioGroup = view.findViewById(R.id.app_filter_mode_radio_group);
+        MaterialButton selectAppsButton = view.findViewById(R.id.select_apps_button);
+
+        RadioGroup appLanguageRadioGroup = view.findViewById(R.id.app_language_radio_group);
+        MaterialButton appRestartButton = view.findViewById(R.id.restart_app_button);
+
         switch (preferences.getAppFilterMode()) {
             case OFF:
-                radioGroup.check(R.id.off_app_filter_radio);
+                appFilterRadioGroup.check(R.id.off_app_filter_radio);
                 break;
             case EXCLUDE:
-                radioGroup.check(R.id.exclude_app_filter_radio);
+                appFilterRadioGroup.check(R.id.exclude_app_filter_radio);
                 break;
             case INCLUDE:
-                radioGroup.check(R.id.include_app_filter_radio);
+                appFilterRadioGroup.check(R.id.include_app_filter_radio);
                 break;
         }
 
-        infoButton.setOnClickListener(v -> {
+        switch(preferences.getAppLanguage()) {
+            case "en" :
+                appLanguageRadioGroup.check(R.id.english_radio);
+                break;
+            case "fa" :
+                appLanguageRadioGroup.check(R.id.persian_radio);
+                break;
+        }
+
+        appFilterInfoButton.setOnClickListener(v -> {
             new MaterialAlertDialogBuilder(getActivity())
                     .setTitle(R.string.what_is_app_filter).setMessage(R.string.selected_app_alert)
                     .setNeutralButton(R.string.ok, null)
                     .show();
         });
-        MaterialButton selectAppsButton = view.findViewById(R.id.select_apps_button);
         selectAppsButton.setOnClickListener(v -> {
             FragmentManager fm = getActivity().getSupportFragmentManager();
             InstalledPackageFragment installedPackageDialogue = InstalledPackageFragment.newInstance();
             installedPackageDialogue.show(fm, "fragment_alert");
         });
 
-        radioGroup.setOnCheckedChangeListener(((group, checkedId) -> {
+        appFilterRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
             RadioButton radioButton = group.findViewById(checkedId);
             switch (group.indexOfChild(radioButton)) {
                 case 0: // off
@@ -84,7 +98,23 @@ public class SettingsFragment extends Fragment {
                 case 2: // include
                     preferences.setAppFilterMode(Constants.AppFilterMode.INCLUDE);
             }
-        }));
+        });
 
+        appLanguageRadioGroup.setOnCheckedChangeListener(((group, checkedId) -> {
+            RadioButton radioButton = group.findViewById(checkedId);
+            switch(group.indexOfChild(radioButton)) {
+                case 0:
+                    preferences.setAppLanguage("en");
+                    break;
+                case 1:
+                    preferences.setAppLanguage("fa");
+                    break;
+            }
+        }));
+        appRestartButton.setOnClickListener(v -> {
+            Intent intent = getActivity().getIntent();
+            getActivity().finish();
+            startActivity(intent);
+        });
     }
 }

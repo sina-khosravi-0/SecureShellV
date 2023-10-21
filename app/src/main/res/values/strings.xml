@@ -67,10 +67,14 @@
     <string name="apply">Apply</string>
     <string name="what_is_app_filter">What is App Filter?</string>
     <string name="search">Search</string>
-    <string name="connection_quality">Connection Quality:</string>
+    <string name="connection_quality">VPN Quality:</string>
     <string name="internet_quality">Internet Quality:</string>
     <string name="n_a" translatable="false">N/A</string>
     <string name="dash" translatable="false">-</string>
     <string name="ip" translatable="false">ip:</string>
-
+    <string name="vpn_toggle_accessibility">Vpn toggle</string>
+    <string name="application_language">Application Language:</string>
+    <string name="english" translatable="false">English</string>
+    <string name="persian" translatable="false">فارسی</string>
+    <string name="restart_app">Restart App</string>
 </resources>

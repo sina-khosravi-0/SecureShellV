@@ -38,14 +38,19 @@ import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SSVpnService extends VpnService {
     public static final String VPN_SERVICE_STOP_BR = "com.securelight.secureshellv.STOP";
     public static final String START_VPN_ACTION = "com.securelight.secureshellv.START";
-    static final String vpnServiceAction = "android.net.VpnService";
+    public static final String CONNECTED_ACTION = "com.securelight.secureshellv.CONNECTED";
+    public static final String CONNECTING_ACTION = "com.securelight.secureshellv.CONNECTING";
+    public static final String DISCONNECTED_ACTION = "com.securelight.secureshellv.DISCONNECTED";
     private final String TAG = this.getClass().getSimpleName();
+    static final String vpnServiceAction = "android.net.VpnService";
     private final String notificationChannelID = "onGoing_001";
     private final Set<String> packages = new HashSet<>();
     private final int onGoingNotificationID = 1;
@@ -61,7 +66,7 @@ public class SSVpnService extends VpnService {
     private PendingIntent stopPendingIntent;
     private PendingIntent quitPendingIntent;
     private Constants.Protocol connectionMethod = Constants.Protocol.TLS_SSH;
-    private NotificationListener notificationListener = new NotificationListener() {
+    private final NotificationListener notificationListener = new NotificationListener() {
         @Override
         public void updateNotification(NetworkState networkState, ConnectionState connectionState) {
             if (!MainActivity.isAppClosing()) {
@@ -84,6 +89,20 @@ public class SSVpnService extends VpnService {
 
         public void stopService() {
             finalizeAndStop();
+        }
+
+        public ConnectionState getConnectionState() {
+            try {
+                return connectionHandler.getConnectionState();
+            } catch (NullPointerException e) {
+                return ConnectionState.DISCONNECTED;
+            }
+
+        }
+
+        public NetworkState getNetworkState() {
+            return Objects.requireNonNullElse(connectionHandler.getNetworkState(),
+                    NetworkState.NONE);
         }
     }
 
@@ -228,7 +247,7 @@ public class SSVpnService extends VpnService {
                         builder.addDisallowedApplication(p);
                     }
                 case OFF:
-                    builder.addDisallowedApplication(getPackageName()); // disallow this apps
+                    builder.addDisallowedApplication(getPackageName()); // disallow self
                     break;
             }
         } catch (PackageManager.NameNotFoundException e) {
@@ -259,7 +278,6 @@ public class SSVpnService extends VpnService {
         notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         notificationBuilder.setShowWhen(false);
         notificationBuilder.setOngoing(true);
-//        notificationBuilder.setOnlyAlertOnce(true);
         notificationBuilder.setCategory(NotificationCompat.CATEGORY_EVENT);
 
         notifStartAction = new NotificationCompat.Action(R.drawable.start_vpn_notification, "Start", startPendingIntent);

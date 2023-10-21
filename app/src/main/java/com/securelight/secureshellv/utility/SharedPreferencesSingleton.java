@@ -2,11 +2,13 @@ package com.securelight.secureshellv.utility;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.util.ArraySet;
 
 import com.securelight.secureshellv.statics.Constants;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 public class SharedPreferencesSingleton {
@@ -88,5 +90,13 @@ public class SharedPreferencesSingleton {
             case 2: // include
                 return Constants.AppFilterMode.INCLUDE;
         }
+    }
+
+    public void setAppLanguage(String language) {
+        userSettingsPreferences.edit().putString(Constants.APP_LANGUAGE_NAME, language).apply();
+    }
+    public String getAppLanguage() {
+        return userSettingsPreferences.getString(Constants.APP_LANGUAGE_NAME,
+                Resources.getSystem().getConfiguration().getLocales().get(1).getLanguage());
     }
 }

@@ -1,6 +1,8 @@
 package com.securelight.secureshellv;
 
 import android.Manifest;
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -10,27 +12,54 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.Animatable2;
+import android.graphics.drawable.AnimatedVectorDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.TrafficStats;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.ParcelFileDescriptor;
 import android.os.Process;
+import android.util.TypedValue;
 import android.view.View;
-import android.widget.RadioGroup;
+import android.view.ViewPropertyAnimator;
+import android.view.animation.Animation;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Transformation;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.app.ActivityCompat;
+import androidx.core.os.LocaleListCompat;
+import androidx.core.widget.ImageViewCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Values;
+import com.securelight.secureshellv.tun2socks.Tun2SocksJni;
 import com.securelight.secureshellv.ui.login.LoginActivity;
 import com.securelight.secureshellv.utility.CustomExceptionHandler;
+import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
+import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -38,14 +67,43 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity {
     public static final String EXIT_APP_ACTION = "com.securelight.secureshellv.EXIT_APP";
     public static final String SIGN_IN_ACTION = "com.securelight.secureshellv.DO_SIGN_IN";
-    Intent vpnServiceIntent;
-    private ParcelFileDescriptor vpnInterface;
-    static final String VPN_SERVICE_ACTION = "android.net.VpnService";
+    public static final String VPN_SERVICE_ACTION = "android.net.VpnService";
+    public static final String CONNECTION_INFO_PREF = "CONNECTION_INFO";
+    private Intent vpnServiceIntent;
+    private LinearLayout bottomSheetLayout;
+    private BottomSheetBehavior<View> bottomSheetBehavior;
+    private FrameLayout buttonFrame;
+    private ImageView buttonImage;
+    private TextView buttonText;
+    private TextView mainConnectText;
+    private CircularProgressIndicator trafficProgressIndicator;
+
+    public static int colorPrimary;
+    public static int colorOnPrimary;
+    public static int colorSecondary;
+    public static int colorOnSecondary;
+    public static int colorSecondaryContainer;
+    public static int colorOnSecondaryContainer;
+    public static int colorTertiary;
+    public static int colorOnTertiary;
+    public static int colorTertiaryContainer;
+    public static int colorOnTertiaryContainer;
     private SSVpnService.VpnServiceBinder vpnServiceBinder;
     private final ServiceConnection vpnServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
             vpnServiceBinder = (SSVpnService.VpnServiceBinder) binder;
+            switch (vpnServiceBinder.getConnectionState()) {
+                case CONNECTED:
+                    performConnectedAction();
+                    break;
+                case CONNECTING:
+                    performConnectingAction();
+                    break;
+                case DISCONNECTED:
+                    performDisconnectedAction();
+                    break;
+            }
         }
 
         @Override
@@ -58,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
     private final BroadcastReceiver startBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            onStartClicked(null);
+            startVpnService();
         }
     };
 
@@ -66,6 +124,26 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             exitApp();
+        }
+    };
+    private final BroadcastReceiver connectedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            performConnectedAction();
+        }
+    };
+
+    private final BroadcastReceiver connectingBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            performConnectingAction();
+        }
+    };
+
+    private final BroadcastReceiver disconnectedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            performDisconnectedAction();
         }
     };
     private final BroadcastReceiver signInBr = new BroadcastReceiver() {
@@ -78,15 +156,22 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        checkAndAddPermissions();
+        fetchStringValues();
 
         // Sets the default uncaught exception handler. This handler is invoked
         // in case any Thread dies due to an unhandled exception.
         Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/storage/",
                 this));
 
-        System.out.println((String) null);
+        Locale locale = new Locale(SharedPreferencesSingleton
+                .getInstance(this)
+                .getAppLanguage());
+
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.create(locale));
 
         setContentView(R.layout.activity_main);
+        setColors();
         // initialize database handler singleton
         DatabaseHandlerSingleton.getInstance(this);
 
@@ -96,25 +181,180 @@ public class MainActivity extends AppCompatActivity {
                         Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setPackage(getPackageName());
 
-        fetchStringValues();
-
-        checkAndAddPermissions();
+        initUIComponents();
 
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.START_VPN_ACTION));
         lbm.registerReceiver(exitBr, new IntentFilter(EXIT_APP_ACTION));
+        lbm.registerReceiver(connectedBr, new IntentFilter(SSVpnService.CONNECTED_ACTION));
+        lbm.registerReceiver(connectingBr, new IntentFilter(SSVpnService.CONNECTING_ACTION));
+        lbm.registerReceiver(disconnectedBr, new IntentFilter(SSVpnService.DISCONNECTED_ACTION));
         lbm.registerReceiver(signInBr, new IntentFilter(SIGN_IN_ACTION));
 
-        // TODO: fuck after database
-        ((RadioGroup) findViewById(R.id.protocolGroup)).setOnCheckedChangeListener((group, checkedId) -> {
-            if (checkedId == R.id.directSshProtocol) {
-                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("direct__"));
-            } else if (checkedId == R.id.tLSSshProtocol) {
-                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("tls__"));
-            } else if (checkedId == R.id.dualSshProtocol) {
-                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("dual__"));
+//        // TODO: fuck after database
+//        ((RadioGroup) findViewById(R.id.protocolGroup)).setOnCheckedChangeListener((group, checkedId) -> {
+//            if (checkedId == R.id.directSshProtocol) {
+//                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("direct__"));
+//            } else if (checkedId == R.id.tLSSshProtocol) {
+//                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("tls__"));
+//            } else if (checkedId == R.id.dualSshProtocol) {
+//                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("dual__"));
+//            }
+//        });
+    }
+
+    private void initUIComponents() {
+        buttonFrame = findViewById(R.id.vpn_toggle_frame);
+        buttonImage = buttonFrame.findViewById(R.id.vpn_toggle_img);
+        buttonText = buttonFrame.findViewById(R.id.vpn_toggle_txt);
+        buttonText.setText("32.56GB");
+        trafficProgressIndicator = buttonFrame.findViewById(R.id.traffic_progress);
+        mainConnectText = findViewById(R.id.main_connect_status);
+        buttonFrame.setOnClickListener(v -> {
+
+            if (vpnServiceBinder.getConnectionState().equals(ConnectionState.DISCONNECTED)) {
+                startVpnService();
+            } else {
+                stopVpnService();
+            }
+        });
+
+        bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        CoordinatorLayout rootLayout = (CoordinatorLayout) bottomSheetLayout.getParent();
+
+        int NUMBER_OF_TABS = 5;
+        TabLayout tabLayout = findViewById(R.id.bottom_sheet_menu_tab_layout);
+        ViewPager2 viewPager = findViewById(R.id.bottom_sheet_view_pager);
+        BottomSheetTabAdapter tabAdapter = new BottomSheetTabAdapter(
+                getSupportFragmentManager(), getLifecycle(), NUMBER_OF_TABS);
+        viewPager.setAdapter(tabAdapter);
+
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                if (tab.getPosition() == 2) {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                    bottomSheetBehavior.setDraggable(false);
+                } else {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+
+                    bottomSheetBehavior.setDraggable(true);
+                }
+                View view = tab.getCustomView();
+                TextView textView = view.findViewById(R.id.text_view);
+                ImageView imageView = view.findViewById(R.id.image_view);
+                ViewPropertyAnimator textAnimator = textView.animate();
+                float offset = (textView.getHeight() == 0 ? 20 : textView.getHeight());
+                textAnimator.translationY(-offset / 3f).setDuration(300);
+
+                ViewPropertyAnimator imageAnimator = imageView.animate();
+                imageAnimator.translationY(-offset / 2f).setDuration(300);
+                imageAnimator.scaleX(1.5f).setDuration(300);
+                imageAnimator.scaleY(1.5f).setDuration(300);
+
+                Integer colorFrom = colorOnSecondaryContainer;
+                Integer colorTo = colorPrimary;
+
+                ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
+                colorAnimation.addUpdateListener(animator ->
+                {
+//                            textView.setTextColor((Integer) animator.getAnimatedValue());
+                    imageView.setColorFilter((Integer) animator.getAnimatedValue());
+                });
+                colorAnimation.start();
+
             }
 
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+                View view = tab.getCustomView();
+                TextView textView = view.findViewById(R.id.text_view);
+                ImageView imageView = view.findViewById(R.id.image_view);
+
+                ViewPropertyAnimator textAnimator = textView.animate();
+                textAnimator.translationY(0);
+                textAnimator.scaleX(1).setDuration(300);
+                textAnimator.scaleY(1).setDuration(300);
+
+                ViewPropertyAnimator imageAnimator = imageView.animate();
+                imageAnimator.translationY(0).setDuration(300);
+                imageAnimator.scaleX(1).setDuration(300);
+                imageAnimator.scaleY(1).setDuration(300);
+
+                Integer colorFrom = colorPrimary;
+                Integer colorTo = colorOnSecondaryContainer;
+                ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
+                colorAnimation.addUpdateListener(animator ->
+                        imageView.setColorFilter((Integer) animator.getAnimatedValue()));
+                colorAnimation.start();
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+            }
+        });
+        new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
+            ConstraintLayout view = (ConstraintLayout) getLayoutInflater().inflate(R.layout.bottom_sheet_tab, null);
+            ImageView imageView = view.findViewById(R.id.image_view);
+            TextView textView = view.findViewById(R.id.text_view);
+            textView.setTextColor(colorOnSecondaryContainer);
+            ImageViewCompat.setImageTintList(imageView, ColorStateList.valueOf(colorOnSecondaryContainer));
+
+            switch (position) {
+                case 0:
+                    imageView.setImageResource(R.drawable.person_icon);
+                    textView.setText(R.string.bottom_sheet_account);
+                    tab.setCustomView(view);
+                    break;
+                case 1:
+                    imageView.setImageResource(R.drawable.server_icon);
+                    textView.setText(R.string.bottom_sheet_server);
+                    tab.setCustomView(view);
+                    break;
+                case 2:
+                    imageView.setImageResource(R.drawable.ic_home_black_24dp);
+                    textView.setText(R.string.bottom_sheet_home);
+                    tab.setCustomView(view);
+
+                    break;
+                case 3:
+                    imageView.setImageResource(R.drawable.settings_icon);
+                    textView.setText(R.string.bottom_sheet_settings);
+                    tab.setCustomView(view);
+                    break;
+                case 4:
+                    imageView.setImageResource(R.drawable.more_icon);
+                    textView.setText(R.string.bottom_sheet_more);
+                    tab.setCustomView(view);
+                    break;
+                default:
+                    break;
+            }
+        }).attach();
+        tabLayout.getTabAt(2).select();
+        viewPager.setUserInputEnabled(false);
+        viewPager.setOffscreenPageLimit(NUMBER_OF_TABS);
+        bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    tabLayout.getTabAt(2).select();
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+//                float progress = Math.abs(slideOffset); // Get the absolute slide offset value
+//
+//                // Calculate the interpolated progress for the animation
+//                float interpolatedProgress = Math.min(0.5f, progress);
+//                System.out.println(slideOffset);
+//                // Apply the interpolated progress to the views
+//                constraintLayout.setScaleX(interpolatedProgress + 1);
+            }
         });
     }
 
@@ -178,7 +418,7 @@ public class MainActivity extends AppCompatActivity {
 //        }).start();
     }
 
-    public void onStartClicked(View view) {
+    public void startVpnService() {
         Intent intent = SSVpnService.prepare(MainActivity.this);
         if (intent != null) {
             startActivityForResult(intent, 0);
@@ -187,21 +427,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    static long bytes = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileRxBytes();
+
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
         if (result == RESULT_OK) {
             startService(vpnServiceIntent);
         }
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                runOnUiThread(() -> {
+                    buttonText.setText(String.format("%.3f\n%.3f", getBytes() / (1000000000d),
+                            (TrafficStats.getMobileRxBytes() + TrafficStats.getMobileRxBytes() - bytes) / 1000000000d));
+                });
+                System.out.println(getBytes());
+            }
+        }).start();
         super.onActivityResult(request, result, data);
     }
 
-    public void onStopClicked(View view) {
+    public long getBytes() {
+        return Tun2SocksJni.getRxBytes() + Tun2SocksJni.getTxBytes() + Tun2SocksJni.getUDPBytes();
+    }
+
+    public void resetBytes() {
+        Tun2SocksJni.resetBytes();
+    }
+
+    public void stopVpnService() {
         if (vpnServiceBinder != null) {
             vpnServiceBinder.getService().stopVpnService();
             stopService(vpnServiceIntent);
         }
     }
-
 
     /**
      * REMOVE
@@ -274,6 +537,97 @@ public class MainActivity extends AppCompatActivity {
         if (vpnServiceBinder != null) {
             unbindService(vpnServiceConnection);
         }
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    private void performConnectedAction() {
+        buttonImage.setVisibility(View.GONE);
+        buttonText.setVisibility(View.VISIBLE);
+        mainConnectText.setText(R.string.connected);
+        Animation animation = new Animation() {
+            @Override
+            protected void applyTransformation(float interpolatedTime, Transformation t) {
+                super.applyTransformation(interpolatedTime, t);
+                float value = 0 + 78 * interpolatedTime;
+                Float traffic = /*Float.parseFloat((String) buttonText.getText())*/0 + 38.53f * interpolatedTime;
+                buttonText.setText(String.format(Locale.getDefault(), "%.2f", traffic) + "GB");
+                trafficProgressIndicator.setProgress((int) value);
+            }
+
+        };
+        animation.setDuration(1000);
+        animation.setInterpolator(new DecelerateInterpolator());
+
+        trafficProgressIndicator.startAnimation(animation);
+    }
+
+    private void performConnectingAction() {
+        buttonImage.setImageResource(R.drawable.vpn_loading_animated);
+        buttonImage.setVisibility(View.VISIBLE);
+        buttonText.setVisibility(View.GONE);
+        mainConnectText.setText(R.string.connecting);
+
+        AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
+        vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
+            @Override
+            public void onAnimationEnd(Drawable drawable) {
+                vectorDrawable.start();
+            }
+        });
+        vectorDrawable.start();
+    }
+
+
+    private void performDisconnectedAction() {
+        buttonImage.setImageResource(R.drawable.vpn_toggle_vector);
+        buttonImage.setVisibility(View.VISIBLE);
+        buttonText.setVisibility(View.GONE);
+        mainConnectText.setText(R.string.disconnected);
+
+        Animation animation = new Animation() {
+            @Override
+            protected void applyTransformation(float interpolatedTime, Transformation t) {
+                super.applyTransformation(interpolatedTime, t);
+                float value = 78 - 78 * interpolatedTime;
+                Float traffic = 38.53f - 38.53f * interpolatedTime;
+                buttonText.setText(String.format(Locale.getDefault(), "%.2f", traffic) + "GB");
+                trafficProgressIndicator.setProgress((int) value);
+            }
+
+        };
+        animation.setDuration(1000);
+        animation.setInterpolator(new DecelerateInterpolator());
+        trafficProgressIndicator.startAnimation(animation);
+    }
+
+    private void setColors() {
+        TypedValue typedValue = new TypedValue();
+
+        this.getTheme().resolveAttribute(R.attr.colorPrimary, typedValue, true);
+        colorPrimary = typedValue.data;
+        this.getTheme().resolveAttribute(R.attr.colorOnPrimary, typedValue, true);
+        colorOnPrimary = typedValue.data;
+        this.getTheme().resolveAttribute(R.attr.colorSecondaryContainer, typedValue, true);
+        colorSecondaryContainer = typedValue.data;
+        this.getTheme().resolveAttribute(R.attr.colorOnSecondaryContainer, typedValue, true);
+        colorOnSecondaryContainer = typedValue.data;
+        this.getTheme().resolveAttribute(R.attr.colorTertiary, typedValue, true);
+        colorTertiary = typedValue.data;
+        this.getTheme().resolveAttribute(R.attr.colorOnTertiary, typedValue, true);
+        colorOnTertiary = typedValue.data;
+        this.getTheme().resolveAttribute(R.attr.colorTertiaryContainer, typedValue, true);
+        colorTertiaryContainer = typedValue.data;
+        this.getTheme().resolveAttribute(R.attr.colorOnTertiaryContainer, typedValue, true);
+        colorOnTertiaryContainer = typedValue.data;
     }
 
     public static boolean isAppClosing() {
