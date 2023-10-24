@@ -3,6 +3,7 @@ package com.securelight.secureshellv;
 import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -160,10 +161,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final BroadcastReceiver updateUserDataUIBr = new BroadcastReceiver() {
+        @SuppressLint("SetTextI18n")
         @Override
         public void onReceive(Context context, Intent intent) {
             UserData userData = UserData.getInstance();
-            buttonText.setText(String.valueOf(userData.getRemainingTrafficGB()));
+            buttonText.setText(userData.getRemainingTrafficGB() + "\nGB");
 
             if (userData.getDaysLeft() <= 10 && userData.getDaysLeft() > 3) {
                 daysLeftText.setTextColor(colorWarning);

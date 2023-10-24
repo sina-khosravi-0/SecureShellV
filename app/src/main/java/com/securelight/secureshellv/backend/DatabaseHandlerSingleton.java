@@ -53,7 +53,7 @@ public class DatabaseHandlerSingleton {
     private static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
     private static final String OUT_OF_TRAFFIC_CODE_STRING = "insufficient_traffic";
     ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private String endPoint = "http://192.168.128.71:8000/";
+    private String endPoint = "http:/api.weary.tech/";
 
     private DatabaseHandlerSingleton(@NonNull Context context) {
         // getApplicationContext() is key, it keeps you from leaking the
@@ -280,8 +280,7 @@ public class DatabaseHandlerSingleton {
         } catch (JSONException ignored) {
         }
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.PUT, url, object,
-                // reset traffic after response so we don't send a value twice
-                response -> Tun2SocksJni.resetBytes(), error -> Tun2SocksJni.resetBytes()) {
+                null, null) {
             @Override
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();

@@ -20,6 +20,10 @@ public class SendTrafficTimeTask extends TimerTask {
     }
 
     public long calcBytes() {
-        return Tun2SocksJni.getRxBytes() + Tun2SocksJni.getTxBytes() + Tun2SocksJni.getUDPBytes();
+        try {
+            return Tun2SocksJni.getRxBytes() + Tun2SocksJni.getTxBytes() + Tun2SocksJni.getUDPBytes();
+        } finally {
+            Tun2SocksJni.resetBytes();
+        }
     }
 }
