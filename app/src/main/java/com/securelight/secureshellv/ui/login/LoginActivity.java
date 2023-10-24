@@ -121,7 +121,7 @@ public class LoginActivity extends AppCompatActivity {
             loadingProgressBar.setVisibility(View.VISIBLE);
             executorService.execute(() -> {
                 loginViewModel.login(usernameEditText.getText().toString(),
-                        passwordEditText.getText().toString(), preferences);
+                        passwordEditText.getText().toString(), this.getApplicationContext());
             });
 
         }

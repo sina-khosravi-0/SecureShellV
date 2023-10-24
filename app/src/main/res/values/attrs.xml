@@ -27,5 +27,8 @@
     <attr name="colorSurfaceInverse" format="color" />
     <attr name="colorPrimaryInverse" format="color" />
     <attr name="backgroundDrawable" format="reference" />
-    <attr name="loadingGradient" format="reference"/>
+    <attr name="loadingGradient" format="reference" />
+    <attr name="ok" type="color" />
+    <attr name="warning" type="color" />
+    <attr name="alert" type="color" />
 </resources>

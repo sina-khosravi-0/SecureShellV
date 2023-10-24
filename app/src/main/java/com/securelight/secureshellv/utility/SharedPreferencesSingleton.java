@@ -8,18 +8,19 @@ import android.util.ArraySet;
 import com.securelight.secureshellv.statics.Constants;
 
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 public class SharedPreferencesSingleton {
 
     private static SharedPreferencesSingleton instance;
     private final Context context;
-    private SharedPreferences userSettingsPreferences;
+    private final SharedPreferences userSettingsPreferences;
+    private final SharedPreferences apiCachePreferences;
 
     private SharedPreferencesSingleton(Context context) {
         this.context = context.getApplicationContext();
         userSettingsPreferences = context.getSharedPreferences(Constants.USER_SETTINGS_PREFERENCES_NAME, Context.MODE_PRIVATE);
+        apiCachePreferences = context.getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Context.MODE_PRIVATE);
     }
 
     public static synchronized SharedPreferencesSingleton getInstance(Context context) {
@@ -59,7 +60,7 @@ public class SharedPreferencesSingleton {
 
     public void addToPackageFilter(String packageName) {
         Set<String> packages = userSettingsPreferences.getStringSet(Constants.APP_FILTER_PACKAGES,
-                        new HashSet<>());
+                new HashSet<>());
         Set<String> packagesCopy = new ArraySet<>();
         packagesCopy.addAll(packages);
         packagesCopy.add(packageName);
@@ -95,8 +96,25 @@ public class SharedPreferencesSingleton {
     public void setAppLanguage(String language) {
         userSettingsPreferences.edit().putString(Constants.APP_LANGUAGE_NAME, language).apply();
     }
+
     public String getAppLanguage() {
         return userSettingsPreferences.getString(Constants.APP_LANGUAGE_NAME,
-                Resources.getSystem().getConfiguration().getLocales().get(1).getLanguage());
+                Resources.getSystem().getConfiguration().getLocales().get(0).getLanguage());
+    }
+
+    public void saveAccessToken(String access) {
+        apiCachePreferences.edit().putString(Constants.ACCESS_TOKEN_PREF_NAME, access).apply();
+    }
+
+    public void saveRefreshToken(String refresh) {
+        apiCachePreferences.edit().putString(Constants.REFRESH_TOKEN_PREF_NAME, refresh).apply();
+    }
+
+    public String getAccessToken() {
+        return apiCachePreferences.getString(Constants.ACCESS_TOKEN_PREF_NAME, "");
+    }
+
+    public String getRefreshToken() {
+        return apiCachePreferences.getString(Constants.REFRESH_TOKEN_PREF_NAME, "");
     }
 }

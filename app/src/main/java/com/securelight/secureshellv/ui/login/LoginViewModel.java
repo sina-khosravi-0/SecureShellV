@@ -1,26 +1,24 @@
 package com.securelight.secureshellv.ui.login;
 
-import android.content.SharedPreferences;
+import android.content.Context;
 import android.util.Patterns;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.android.volley.Response;
 import com.securelight.secureshellv.R;
-import com.securelight.secureshellv.data.LoginRepository;
-import com.securelight.secureshellv.data.Result;
-import com.securelight.secureshellv.data.model.LoggedInUser;
+import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class LoginViewModel extends ViewModel {
 
-    private MutableLiveData<LoginFormState> loginFormState = new MutableLiveData<>();
-    private MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
-    private LoginRepository loginRepository;
-
-    LoginViewModel(LoginRepository loginRepository) {
-        this.loginRepository = loginRepository;
-    }
+    private final MutableLiveData<LoginFormState> loginFormState = new MutableLiveData<>();
+    private final MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
 
     LiveData<LoginFormState> getLoginFormState() {
         return loginFormState;
@@ -30,18 +28,30 @@ public class LoginViewModel extends ViewModel {
         return loginResult;
     }
 
-    public void login(String username, String password, SharedPreferences apiPreferences) {
-        // launched in a separate asynchronous job
-        Result<LoggedInUser> result = loginRepository.login(username, password);
+    public void login(String username, String password, Context context) {
+        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
 
-        if (result instanceof Result.Success) {
-            LoggedInUser data = ((Result.Success<LoggedInUser>) result).getData();
-            loginResult.postValue(new LoginResult(new LoggedInUserView(data.getDisplayName())));
+        Response.Listener<JSONObject> responseListener = response -> {
+            try {
+                preferences.saveAccessToken(response.getString("access"));
+                preferences.saveRefreshToken(response.getString("refresh"));
+                loginResult.postValue(new LoginResult(new LoggedInUserView(username)));
+            } catch (JSONException e) {
+                throw new RuntimeException("Unexpected error while fetching tokens", e);
+            }
+        };
+        Response.ErrorListener errorListener = error -> loginResult.postValue(new LoginResult(R.string.login_failed));
+        DatabaseHandlerSingleton.getInstance(context).signIn(username, password, responseListener, errorListener);
 
-        } else {
+//        Result<LoggedInUser> result = loginRepository.login(username, password, context);
 
-            loginResult.postValue(new LoginResult(R.string.login_failed));
-        }
+//        if (result instanceof Result.Success) {
+////            LoggedInUser data = ((Result.Success<LoggedInUser>) result).getData();
+//            loginResult.postValue(new LoginResult(new LoggedInUserView(data.getDisplayName())));
+//
+//        } else {
+//            loginResult.postValue(new LoginResult(R.string.login_failed));
+//        }
     }
 
     public boolean loginDataChanged(String username, String password, boolean isSubmitRequest) {

@@ -1,13 +1,13 @@
 package com.securelight.secureshellv.backend;
 
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.graphics.Bitmap;
 
 import androidx.annotation.NonNull;
 import androidx.collection.LruCache;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
@@ -22,7 +22,9 @@ import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.securelight.secureshellv.statics.Constants;
+import com.securelight.secureshellv.MainActivity;
+import com.securelight.secureshellv.tun2socks.Tun2SocksJni;
+import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,8 +35,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class DatabaseHandlerSingleton {
     enum TokenResult {
@@ -53,6 +53,7 @@ public class DatabaseHandlerSingleton {
     private static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
     private static final String OUT_OF_TRAFFIC_CODE_STRING = "insufficient_traffic";
     ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private String endPoint = "http://192.168.128.71:8000/";
 
     private DatabaseHandlerSingleton(@NonNull Context context) {
         // getApplicationContext() is key, it keeps you from leaking the
@@ -97,97 +98,98 @@ public class DatabaseHandlerSingleton {
         return imageLoader;
     }
 
-    public static FetchDbResult fetchTokens(String username, String password) {
-        ReentrantLock lock = new ReentrantLock();
-        Condition condition = lock.newCondition();
-        SharedPreferences preferences = ctx.getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
-
-        String url = "http://192.168.19.71:8000/api/token/";
-        JSONObject object;
-        object = new JSONObject();
+    public FetchDbResult signIn(String username, String password, Response.Listener<JSONObject> responseListener,
+                                Response.ErrorListener errorListener) {
+        String url = this.endPoint + "api/token/";
+        JSONObject object = new JSONObject();
         try {
             object.put("username", username);
             object.put("password", password);
         } catch (JSONException ignored) {
         }
+
         AtomicReference<FetchDbResult> result = new AtomicReference<>();
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, response -> {
-            try {
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putString("access", response.getString("access"));
-                editor.putString("refresh", response.getString("refresh"));
-                editor.apply();
-                result.set(FetchDbResult.SUCCESS);
-            } catch (JSONException e) {
-                throw new RuntimeException("Unexpected error while fetching tokens", e);
-            }
-            try {
-                lock.lock();
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
-        }, error -> {
-            result.set(parseFetchError(error));
-            try {
-                lock.lock();
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
-        });
+        JsonObjectRequest jsonObjectRequest =
+                new JsonObjectRequest(Request.Method.POST,
+                        url,
+                        object,
+                        responseListener,
+                        errorListener);
 
         instance.addToRequestQueue(jsonObjectRequest);
-        try {
-            lock.lock();
-            // wait until a response is made
-            condition.await();
-            throw new InterruptedException();
-        } catch (InterruptedException ignored) {
-        } finally {
-            lock.unlock();
-        }
         return result.get();
     }
 
-    public static FetchDbResult fetchUserData() {
-        ReentrantLock lock = new ReentrantLock();
-        Condition condition = lock.newCondition();
+    public FetchDbResult fetchUserData() {
+        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(ctx);
+        String accessToken = preferences.getAccessToken();
+        String refreshToken = preferences.getRefreshToken();
+        String url = endPoint + "api/users/user/";
 
-        SharedPreferences preferences = ctx.getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
-        String accessToken = preferences.getString("access", "");
-        String refreshToken = preferences.getString("refresh", "");
+        Response.Listener<JSONObject> accessResponseListener = verifyResponse -> {
+            AtomicReference<FetchDbResult> result = new AtomicReference<>();
+            makeUserDataRequest(url, result, accessToken);
+        };
 
-        switch (verifyToken(accessToken)) {
-            case TOKEN_INVALID:
-            case NO_AUTH:
-                if (verifyToken(refreshToken) == TokenResult.TOKEN_VALID) {
-                    doRefreshToken();
-                } else {
-                    // Both tokens are invalid. Send broadcast to start sign in again
-//                LocalBroadcastManager.getInstance(ctx).sendBroadcast(new Intent(MainActivity.DO_SIGN_IN_BR));
-                    return FetchDbResult.AUTH_FAIL;
+        Response.Listener<JSONObject> refreshedResponseListener = verifyResponse -> {
+            AtomicReference<FetchDbResult> result = new AtomicReference<>();
+            try {
+                if (verifyResponse.has("access")) {
+                    preferences.saveAccessToken(verifyResponse.getString("access"));
                 }
-        }
+                if (verifyResponse.has("refresh")) {
+                    preferences.saveRefreshToken(verifyResponse.getString("refresh"));
+                }
+            } catch (JSONException ignored) {
+            }
+            String accessTokenFinal = preferences.getAccessToken();
+            makeUserDataRequest(url, result, accessTokenFinal);
+        };
 
-        AtomicReference<FetchDbResult> result = new AtomicReference<>();
-        String accessTokenFinal = preferences.getString("access", "");
-        String url = "http://192.168.19.71:8000/api/users/user/";
+        Response.Listener<JSONObject> refreshResponseListener = response -> {
+            try {
+                // success only if code == 200
+                if (response.getString("code").equals("200")) {
+                    // refresh tokens if refresh token is valid
+                    doRefreshToken(refreshedResponseListener, null);
+                }
+            } catch (JSONException ignored) {
+            }
+        };
+
+        Response.ErrorListener refreshErrorListener = error -> {
+            if (error instanceof AuthFailureError) {
+                // Both tokens are invalid. Send broadcast to sign in again
+                LocalBroadcastManager.getInstance(ctx).sendBroadcast(new Intent(MainActivity.SIGN_IN_ACTION));
+            } else if (error instanceof TimeoutError) {
+
+            }
+        };
+
+        Response.ErrorListener accessErrorListener = error -> {
+            if (error instanceof AuthFailureError) {
+                // verify refresh token if access token is invalid
+                verifyToken(refreshToken, refreshResponseListener, refreshErrorListener);
+            } else if (error instanceof TimeoutError) {
+
+            }
+        };
+
+        // verify access token
+        verifyToken(accessToken, accessResponseListener, accessErrorListener);
+        // todo remove return
+        return FetchDbResult.SUCCESS;
+    }
+
+    private void makeUserDataRequest(String url, AtomicReference<FetchDbResult> result, String accessTokenFinal) {
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, response -> {
             UserData userData = UserData.getInstance();
-            userData = UserData.getInstance();
-            userData = UserData.getInstance();
-            userData = UserData.getInstance();
-            userData = UserData.getInstance();
-            userData = UserData.getInstance();
-
-
             try {
                 JSONObject userCreditInfo = response.getJSONObject("user_credit_info");
                 userData.parseData(userCreditInfo.getDouble("remaining_gb"),
                         userCreditInfo.getString("end_credit_date"),
                         userCreditInfo.getLong("total_traffic_b"),
-                        userCreditInfo.getLong("total_traffic_b"),
+                        userCreditInfo.getLong("used_traffic_b"),
                         userCreditInfo.getBoolean("unlimited_credit_time"),
                         userCreditInfo.getBoolean("unlimited_traffic"),
                         userCreditInfo.getBoolean("has_paid"),
@@ -198,24 +200,12 @@ public class DatabaseHandlerSingleton {
                         response.getString("message_date"),
                         response.getBoolean("message_pending"),
                         response.getInt("user"));
+                LocalBroadcastManager.getInstance(ctx).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
             } catch (JSONException e) {
                 throw new RuntimeException("error parsing userdata", e);
             }
-
-            try {
-                lock.lock();
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
         }, error -> {
             result.set(parseFetchError(error));
-            try {
-                lock.lock();
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
         }) {
             @Override
             public Map<String, String> getHeaders() {
@@ -225,151 +215,85 @@ public class DatabaseHandlerSingleton {
             }
         };
         instance.addToRequestQueue(jsonObjectRequest);
-        try {
-            lock.lock();
-            // wait until a response is made
-            condition.await();
-        } catch (InterruptedException ignored) {
-        } finally {
-            lock.unlock();
-        }
-        return result.get();
     }
 
-    public static TokenResult verifyToken(String token) {
+    public TokenResult verifyToken(String token, Response.Listener<JSONObject> responseListener,
+                                   Response.ErrorListener errorListener) {
         if (token.isEmpty()) {
             return TokenResult.NO_AUTH;
         }
-        ReentrantLock lock = new ReentrantLock();
-        Condition condition = lock.newCondition();
         AtomicReference<TokenResult> result = new AtomicReference<>();
 
-
-        String url = "http://192.168.19.71:8000/api/token/verify/";
+        String url = endPoint + "api/token/verify/";
         JSONObject object;
         object = new JSONObject();
         try {
             object.put("token", token);
         } catch (JSONException ignored) {
         }
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, response -> {
-            try {
-                // success only if code == 200
-                if (response.getString("code").equals("200")) {
-                    result.set(TokenResult.TOKEN_VALID);
-                }
-            } catch (JSONException ignored) {
-            }
 
-            try {
-                lock.lock();
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
-        }, error -> {
-            if (error instanceof AuthFailureError) {
-                result.set(TokenResult.TOKEN_INVALID);
-            } else if (error instanceof TimeoutError) {
-                result.set(TokenResult.TIMEOUT);
-            }
-            // TODO: handle more errors?
-            try {
-                lock.lock();
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
-        }) {
+        JsonObjectRequest jsonObjectRequest =
+                new JsonObjectRequest(Request.Method.POST,
+                        url,
+                        object,
+                        responseListener,
+                        errorListener) {
+                    @Override
+                    protected Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
+                        try {
+                            String jsonString = new String(response.data, HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
+                            JSONObject jsonResponse = new JSONObject(jsonString);
+                            jsonResponse.put("code", response.statusCode);
+                            return Response.success(jsonResponse, HttpHeaderParser.parseCacheHeaders(response));
+                        } catch (UnsupportedEncodingException | JSONException e) {
+                            return Response.error(new ParseError(e));
+                        }
+                    }
+                };
+
+        instance.addToRequestQueue(jsonObjectRequest);
+        return result.get();
+    }
+
+    public void doRefreshToken(Response.Listener<JSONObject> responseListener,
+                               Response.ErrorListener errorListener) {
+        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(ctx);
+        String url = endPoint + "api/token/refresh/";
+
+        JSONObject object = new JSONObject();
+        try {
+            object.put("refresh", preferences.getRefreshToken());
+        } catch (JSONException ignored) {
+        }
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, responseListener, errorListener);
+
+        instance.addToRequestQueue(jsonObjectRequest);
+    }
+
+    public void sendTrafficIncrement(long trafficBytes) {
+        String accessToken = SharedPreferencesSingleton.getInstance(ctx).getAccessToken();
+        String url = endPoint + "api/users/increment_traffic/";
+
+        JSONObject object = new JSONObject();
+        try {
+            object.put("used_traffic_b", trafficBytes);
+        } catch (JSONException ignored) {
+        }
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.PUT, url, object,
+                // reset traffic after response so we don't send a value twice
+                response -> Tun2SocksJni.resetBytes(), error -> Tun2SocksJni.resetBytes()) {
             @Override
-            protected Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
-
-                try {
-                    String jsonString = new String(response.data, HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
-                    JSONObject jsonResponse = new JSONObject(jsonString);
-                    jsonResponse.put("code", response.statusCode);
-                    return Response.success(jsonResponse, HttpHeaderParser.parseCacheHeaders(response));
-                } catch (UnsupportedEncodingException | JSONException e) {
-                    return Response.error(new ParseError(e));
-                }
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
             }
         };
 
-
         instance.addToRequestQueue(jsonObjectRequest);
-
-
-        try {
-            lock.lock();
-            // wait until a response is made
-            condition.await();
-            throw new InterruptedException();
-        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-        } finally {
-            lock.unlock();
-        }
-
-        return result.get();
     }
 
-    public static TokenResult doRefreshToken() {
-        ReentrantLock lock = new ReentrantLock();
-        Condition condition = lock.newCondition();
-        SharedPreferences preferences = ctx.getApplicationContext().getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
-
-        String url = "http://192.168.19.71:8000/api/token/refresh/";
-        JSONObject object;
-        object = new JSONObject();
-        try {
-            object.put("refresh", preferences.getString("refresh", ""));
-        } catch (JSONException ignored) {
-        }
-        AtomicReference<TokenResult> result = new AtomicReference<>();
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, response -> {
-            try {
-                SharedPreferences.Editor editor = preferences.edit();
-                if (response.has("access")) {
-                    editor.putString("access", response.getString("access"));
-                }
-                if (response.has("refresh")) {
-                    editor.putString("refresh", response.getString("refresh"));
-                }
-                editor.apply();
-                result.set(TokenResult.TOKEN_VALID);
-            } catch (JSONException ignored) {
-            }
-            try {
-                lock.lock();
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
-        }, error -> {
-            result.set(parseTokenError(error));
-            try {
-                lock.lock();
-                condition.signalAll();
-            } finally {
-                lock.unlock();
-            }
-        });
-
-        instance.addToRequestQueue(jsonObjectRequest);
-
-        try {
-            lock.lock();
-            // wait until a response is made
-            condition.await();
-        } catch (InterruptedException ignored) {
-//            throw new RuntimeException(e);
-        } finally {
-            lock.unlock();
-        }
-        return result.get();
-    }
-
-    private static TokenResult parseTokenError(VolleyError error) {
+    private TokenResult parseTokenError(VolleyError error) {
         if (error instanceof NoConnectionError) {
             return TokenResult.NO_CONNECTION;
         }
@@ -379,7 +303,7 @@ public class DatabaseHandlerSingleton {
         return TokenResult.TIMEOUT;
     }
 
-    private static FetchDbResult parseFetchError(VolleyError error) {
+    private FetchDbResult parseFetchError(VolleyError error) {
         if (error instanceof NoConnectionError) {
             return FetchDbResult.NO_CONNECTION;
         }

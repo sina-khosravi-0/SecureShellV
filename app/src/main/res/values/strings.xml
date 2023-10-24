@@ -77,4 +77,8 @@
     <string name="english" translatable="false">English</string>
     <string name="persian" translatable="false">فارسی</string>
     <string name="restart_app">Restart App</string>
+    <plurals name="days_left">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
 </resources>

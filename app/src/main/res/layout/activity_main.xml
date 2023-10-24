@@ -59,7 +59,6 @@
                 android:layout_gravity="center"
                 android:fadingEdge="vertical"
                 android:rotation="180"
-                app:indicatorColor="?attr/colorPrimary"
                 app:indicatorSize="205dp"
                 app:trackCornerRadius="100dp"
                 app:trackThickness="15dp"
@@ -84,6 +83,25 @@
                 android:text="@string/connected"
                 android:textSize="20sp"
                 android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:layoutDirection="ltr"
+                android:orientation="horizontal"
+                android:showDividers="middle">
+
+                <TextView
+                    android:id="@+id/days_left"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/warning"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    tools:text="32 days left" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -151,12 +169,6 @@
                     android:layout_height="wrap_content"
                     android:textSize="16sp"
                     tools:text="@string/dash" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
 
             </LinearLayout>
         </LinearLayout>

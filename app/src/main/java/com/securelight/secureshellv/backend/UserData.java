@@ -4,8 +4,12 @@ import android.media.Image;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 public class UserData {
     private static UserData userData;
@@ -13,8 +17,8 @@ public class UserData {
     private final List<String> serverAddresses = new ArrayList<>();
     private double remainingTrafficGB;
     private LocalDateTime endCreditDate;
-    private long totalTrafficB;
-    private long usedTrafficB;
+    private double totalTrafficGB;
+    private double usedTrafficGB;
     private boolean unlimitedCreditTime;
     private boolean unlimitedTraffic;
     private boolean hasPaid;
@@ -63,32 +67,15 @@ public class UserData {
         if (userData == null) {
             return;
         }
-        this.remainingTrafficGB = remainingGb;
-
-//        Calendar calendar = Calendar.getInstance();
-//        try {
-//            // yy-mm-ddThh:mm:ss -> date=yy,mm,dd time=hh,mm,ss
-//            String[] dateTime = endCreditDate.split("T");
-//            String[] date = dateTime[0].split("-");
-//            String[] time = dateTime[1].split(":");
-//
-//            calendar.set(Integer.parseInt(date[0]),
-//                    Integer.parseInt(date[1]),
-//                    Integer.parseInt(date[2]),
-//                    Integer.parseInt(time[0]),
-//                    Integer.parseInt(time[1]),
-//                    Integer.parseInt(time[2]));
-//        } catch (NumberFormatException e) {
-//            calendar.set(0, 0, 0, 0, 0, 0);
-//        }
+        this.remainingTrafficGB = Math.round(remainingGb * 100) / 100.;
 
         try {
             this.endCreditDate = LocalDateTime.parse(endCreditDate);
         } catch (DateTimeParseException e) {
             this.endCreditDate = LocalDateTime.parse("0001-01-01T00:00:00");
         }
-        this.totalTrafficB = totalTrafficB;
-        this.usedTrafficB = usedTrafficB;
+        this.totalTrafficGB = Math.round((totalTrafficB / 1000000000.) * 100) / 100.;
+        this.usedTrafficGB = Math.round((usedTrafficB / 1000000000.) * 100) / 100.;
         this.unlimitedCreditTime = unlimitedCreditTime;
         this.unlimitedTraffic = unlimitedTraffic;
         this.hasPaid = hasPaid;
@@ -124,13 +111,16 @@ public class UserData {
     public LocalDateTime getEndCreditDate() {
         return endCreditDate;
     }
-
-    public long getTotalTrafficB() {
-        return totalTrafficB;
+    public long getDaysLeft() {
+        return LocalDateTime.now().until(endCreditDate, ChronoUnit.DAYS);
     }
 
-    public long getUsedTrafficB() {
-        return usedTrafficB;
+    public double getTotalTrafficGB() {
+        return totalTrafficGB;
+    }
+
+    public double getUsedTrafficGB() {
+        return usedTrafficGB;
     }
 
     public boolean isUnlimitedCreditTime() {
@@ -176,8 +166,8 @@ public class UserData {
                 ", serverAddresses=" + serverAddresses +
                 ", remainingGb=" + remainingTrafficGB +
                 ", endCreditDate=" + endCreditDate +
-                ", totalTrafficB=" + totalTrafficB +
-                ", usedTrafficB=" + usedTrafficB +
+                ", totalTrafficB=" + totalTrafficGB +
+                ", usedTrafficB=" + usedTrafficGB +
                 ", unlimitedCreditTime=" + unlimitedCreditTime +
                 ", unlimitedTraffic=" + unlimitedTraffic +
                 ", hasPaid=" + hasPaid +

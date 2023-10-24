@@ -47,6 +47,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.backend.UserData;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Values;
 import com.securelight.secureshellv.tun2socks.Tun2SocksJni;
@@ -69,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String SIGN_IN_ACTION = "com.securelight.secureshellv.DO_SIGN_IN";
     public static final String VPN_SERVICE_ACTION = "android.net.VpnService";
     public static final String CONNECTION_INFO_PREF = "CONNECTION_INFO";
+    public static final String UPDATE_USER_DATA_INTENT = "UPDATE_USER_DATA";
     private Intent vpnServiceIntent;
     private LinearLayout bottomSheetLayout;
     private BottomSheetBehavior<View> bottomSheetBehavior;
@@ -76,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView buttonImage;
     private TextView buttonText;
     private TextView mainConnectText;
+    private TextView daysLeftText;
     private CircularProgressIndicator trafficProgressIndicator;
 
     public static int colorPrimary;
@@ -88,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
     public static int colorOnTertiary;
     public static int colorTertiaryContainer;
     public static int colorOnTertiaryContainer;
+    public static int colorOk;
+    public static int colorWarning;
+    public static int colorAlert;
     private SSVpnService.VpnServiceBinder vpnServiceBinder;
     private final ServiceConnection vpnServiceConnection = new ServiceConnection() {
         @Override
@@ -153,6 +159,24 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private final BroadcastReceiver updateUserDataUIBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            UserData userData = UserData.getInstance();
+            buttonText.setText(String.valueOf(userData.getRemainingTrafficGB()));
+
+            if (userData.getDaysLeft() <= 10 && userData.getDaysLeft() > 3) {
+                daysLeftText.setTextColor(colorWarning);
+            } else if (userData.getDaysLeft() <= 3) {
+                daysLeftText.setTextColor(colorAlert);
+            } else {
+                daysLeftText.setTextColor(colorOk);
+            }
+            daysLeftText.setText(getResources().getQuantityString(R.plurals.days_left,
+                    (int) userData.getDaysLeft(), (int) userData.getDaysLeft()));
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -181,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
                         Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setPackage(getPackageName());
 
+        updateUserData();
         initUIComponents();
 
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
@@ -190,6 +215,7 @@ public class MainActivity extends AppCompatActivity {
         lbm.registerReceiver(connectingBr, new IntentFilter(SSVpnService.CONNECTING_ACTION));
         lbm.registerReceiver(disconnectedBr, new IntentFilter(SSVpnService.DISCONNECTED_ACTION));
         lbm.registerReceiver(signInBr, new IntentFilter(SIGN_IN_ACTION));
+        lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(UPDATE_USER_DATA_INTENT));
 
 //        // TODO: fuck after database
 //        ((RadioGroup) findViewById(R.id.protocolGroup)).setOnCheckedChangeListener((group, checkedId) -> {
@@ -207,11 +233,11 @@ public class MainActivity extends AppCompatActivity {
         buttonFrame = findViewById(R.id.vpn_toggle_frame);
         buttonImage = buttonFrame.findViewById(R.id.vpn_toggle_img);
         buttonText = buttonFrame.findViewById(R.id.vpn_toggle_txt);
-        buttonText.setText("32.56GB");
         trafficProgressIndicator = buttonFrame.findViewById(R.id.traffic_progress);
         mainConnectText = findViewById(R.id.main_connect_status);
+        daysLeftText = findViewById(R.id.days_left);
         buttonFrame.setOnClickListener(v -> {
-
+            updateUserData();
             if (vpnServiceBinder.getConnectionState().equals(ConnectionState.DISCONNECTED)) {
                 startVpnService();
             } else {
@@ -238,8 +264,10 @@ public class MainActivity extends AppCompatActivity {
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                     bottomSheetBehavior.setDraggable(false);
                 } else {
+                    if (tab.getPosition() == 0) {
+                        updateUserData();
+                    }
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-
                     bottomSheetBehavior.setDraggable(true);
                 }
                 View view = tab.getCustomView();
@@ -258,9 +286,7 @@ public class MainActivity extends AppCompatActivity {
                 Integer colorTo = colorPrimary;
 
                 ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
-                colorAnimation.addUpdateListener(animator ->
-                {
-//                            textView.setTextColor((Integer) animator.getAnimatedValue());
+                colorAnimation.addUpdateListener(animator -> {
                     imageView.setColorFilter((Integer) animator.getAnimatedValue());
                 });
                 colorAnimation.start();
@@ -399,9 +425,10 @@ public class MainActivity extends AppCompatActivity {
         String accessToken = preferences.getString("access", "");
         String refreshToken = preferences.getString("refresh", "");
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        executorService.execute(() -> {
-            System.out.println(DatabaseHandlerSingleton.verifyToken(accessToken));
-        });
+//        executorService.execute(() -> {
+//            System.out.println(DatabaseHandlerSingleton.getInstance(this).
+//                    verifyToken(accessToken));
+//        });
 //        System.out.println(DatabaseHandlerSingleton.verifyToken(refreshToken));
 
 //        Toast myToast = Toast.makeText(this, "connected", Toast.LENGTH_SHORT);
@@ -434,29 +461,21 @@ public class MainActivity extends AppCompatActivity {
         if (result == RESULT_OK) {
             startService(vpnServiceIntent);
         }
-        new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                runOnUiThread(() -> {
-                    buttonText.setText(String.format("%.3f\n%.3f", getBytes() / (1000000000d),
-                            (TrafficStats.getMobileRxBytes() + TrafficStats.getMobileRxBytes() - bytes) / 1000000000d));
-                });
-                System.out.println(getBytes());
-            }
-        }).start();
+//        new Thread(() -> {
+//            while (true) {
+//                try {
+//                    Thread.sleep(500);
+//                } catch (InterruptedException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                runOnUiThread(() -> {
+//                    buttonText.setText(String.format("%.3f\n%.3f", getBytes() / (1000000000d),
+//                            (TrafficStats.getMobileRxBytes() + TrafficStats.getMobileRxBytes() - bytes) / 1000000000d));
+//                });
+//                System.out.println(getBytes());
+//            }
+//        }).start();
         super.onActivityResult(request, result, data);
-    }
-
-    public long getBytes() {
-        return Tun2SocksJni.getRxBytes() + Tun2SocksJni.getTxBytes() + Tun2SocksJni.getUDPBytes();
-    }
-
-    public void resetBytes() {
-        Tun2SocksJni.resetBytes();
     }
 
     public void stopVpnService() {
@@ -529,6 +548,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         bindService(vpnServiceIntent, vpnServiceConnection, BIND_AUTO_CREATE);
+        updateUserData();
     }
 
     @Override
@@ -557,9 +577,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
                 super.applyTransformation(interpolatedTime, t);
-                float value = 0 + 78 * interpolatedTime;
-                Float traffic = /*Float.parseFloat((String) buttonText.getText())*/0 + 38.53f * interpolatedTime;
-                buttonText.setText(String.format(Locale.getDefault(), "%.2f", traffic) + "GB");
+                UserData userData = UserData.getInstance();
+                double value = userData.getRemainingTrafficGB() / userData.getTotalTrafficGB() *
+                        interpolatedTime * 100;
+                double traffic = 0 + userData.getRemainingTrafficGB() * interpolatedTime;
+                buttonText.setText(String.format("%.2f", traffic) + "\nGB");
                 trafficProgressIndicator.setProgress((int) value);
             }
 
@@ -597,10 +619,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
                 super.applyTransformation(interpolatedTime, t);
-                float value = 78 - 78 * interpolatedTime;
-                Float traffic = 38.53f - 38.53f * interpolatedTime;
-                buttonText.setText(String.format(Locale.getDefault(), "%.2f", traffic) + "GB");
+                UserData userData = UserData.getInstance();
+                double value = (userData.getRemainingTrafficGB() / userData.getTotalTrafficGB() -
+                        userData.getRemainingTrafficGB() / userData.getTotalTrafficGB() *
+                                interpolatedTime) * 100;
+
+                double traffic = userData.getRemainingTrafficGB() -
+                        userData.getRemainingTrafficGB() * interpolatedTime;
+                buttonText.setText(String.format("%.2f", traffic) + "\nGB");
                 trafficProgressIndicator.setProgress((int) value);
+
             }
 
         };
@@ -609,25 +637,38 @@ public class MainActivity extends AppCompatActivity {
         trafficProgressIndicator.startAnimation(animation);
     }
 
+    private void updateUserData() {
+        new Thread(() -> {
+            DatabaseHandlerSingleton.getInstance(this).fetchUserData();
+        }).start();
+
+    }
+
     private void setColors() {
         TypedValue typedValue = new TypedValue();
 
-        this.getTheme().resolveAttribute(R.attr.colorPrimary, typedValue, true);
+        getTheme().resolveAttribute(R.attr.colorPrimary, typedValue, true);
         colorPrimary = typedValue.data;
-        this.getTheme().resolveAttribute(R.attr.colorOnPrimary, typedValue, true);
+        getTheme().resolveAttribute(R.attr.colorOnPrimary, typedValue, true);
         colorOnPrimary = typedValue.data;
-        this.getTheme().resolveAttribute(R.attr.colorSecondaryContainer, typedValue, true);
+        getTheme().resolveAttribute(R.attr.colorSecondaryContainer, typedValue, true);
         colorSecondaryContainer = typedValue.data;
-        this.getTheme().resolveAttribute(R.attr.colorOnSecondaryContainer, typedValue, true);
+        getTheme().resolveAttribute(R.attr.colorOnSecondaryContainer, typedValue, true);
         colorOnSecondaryContainer = typedValue.data;
-        this.getTheme().resolveAttribute(R.attr.colorTertiary, typedValue, true);
+        getTheme().resolveAttribute(R.attr.colorTertiary, typedValue, true);
         colorTertiary = typedValue.data;
-        this.getTheme().resolveAttribute(R.attr.colorOnTertiary, typedValue, true);
+        getTheme().resolveAttribute(R.attr.colorOnTertiary, typedValue, true);
         colorOnTertiary = typedValue.data;
-        this.getTheme().resolveAttribute(R.attr.colorTertiaryContainer, typedValue, true);
+        getTheme().resolveAttribute(R.attr.colorTertiaryContainer, typedValue, true);
         colorTertiaryContainer = typedValue.data;
-        this.getTheme().resolveAttribute(R.attr.colorOnTertiaryContainer, typedValue, true);
+        getTheme().resolveAttribute(R.attr.colorOnTertiaryContainer, typedValue, true);
         colorOnTertiaryContainer = typedValue.data;
+        getTheme().resolveAttribute(R.attr.ok, typedValue, true);
+        colorOk = typedValue.data;
+        getTheme().resolveAttribute(R.attr.warning, typedValue, true);
+        colorWarning = typedValue.data;
+        getTheme().resolveAttribute(R.attr.alert, typedValue, true);
+        colorAlert = typedValue.data;
     }
 
     public static boolean isAppClosing() {

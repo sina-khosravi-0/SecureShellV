@@ -29,7 +29,7 @@
                 android:showDividers="middle">
 
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/username_text_field"
+                    android:id="@+id/account_username_text_field"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -78,10 +78,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:baselineAligned="false"
-                    android:divider="@drawable/empty_divider"
                     android:layoutDirection="ltr"
-                    android:orientation="horizontal"
-                    android:showDividers="middle">
+                    android:orientation="horizontal">
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/remaining_tr_text_field"
@@ -89,7 +87,8 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:hint="@string/remaining"
-                        app:suffixText="GB">
+                        app:suffixText="GB"
+                        app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:layout_width="match_parent"
@@ -105,7 +104,8 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:hint="@string/used"
-                        app:suffixText="GB">
+                        app:suffixText="GB"
+                        app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:layout_width="match_parent"
@@ -121,7 +121,8 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:hint="@string/total"
-                        app:suffixText="GB">
+                        app:suffixText="GB"
+                        app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:layout_width="match_parent"
@@ -202,6 +203,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:focusable="true"
+            android:visibility="gone"
             tools:visibility="gone" />
     </FrameLayout>
 </ScrollView>

@@ -32,6 +32,9 @@
         <item name="colorSurfaceInverse">@color/md_theme_light_inverseSurface</item>
         <item name="colorPrimaryInverse">@color/md_theme_light_inversePrimary</item>
         <item name="backgroundDrawable">@drawable/background_light</item>
+        <item name="ok">@color/md_theme_light_ok</item>
+        <item name="warning">@color/md_theme_light_warning</item>
+        <item name="alert">@color/md_theme_light_alert</item>
     </style>
 
     <style name="Theme.SecureShellV" parent="Base.Theme.SecureShellV" />

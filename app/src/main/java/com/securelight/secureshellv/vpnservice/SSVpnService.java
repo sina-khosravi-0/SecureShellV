@@ -144,6 +144,27 @@ public class SSVpnService extends VpnService {
         }
     };
 
+    private final BroadcastReceiver connectedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+        }
+    };
+
+    private final BroadcastReceiver connectingBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+        }
+    };
+
+    private final BroadcastReceiver disconnectedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+        }
+    };
+
     //TODO: remove after implementing database handling
     private final BroadcastReceiver directBr = new BroadcastReceiver() {
         @Override
@@ -172,6 +193,9 @@ public class SSVpnService extends VpnService {
     public void onCreate() {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(stopBr, new IntentFilter(VPN_SERVICE_STOP_BR));
+        lbm.registerReceiver(connectedBr, new IntentFilter(CONNECTED_ACTION));
+        lbm.registerReceiver(connectingBr, new IntentFilter(CONNECTING_ACTION));
+        lbm.registerReceiver(disconnectedBr, new IntentFilter(DISCONNECTED_ACTION));
         lbm.registerReceiver(directBr, new IntentFilter("direct__"));
         lbm.registerReceiver(tlsBr, new IntentFilter("tls__"));
         lbm.registerReceiver(dualBr, new IntentFilter("dual__"));
