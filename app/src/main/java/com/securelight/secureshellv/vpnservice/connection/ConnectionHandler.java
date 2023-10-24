@@ -11,6 +11,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.StunnelManager;
+import com.securelight.secureshellv.backend.SendTrafficTimeTask;
 import com.securelight.secureshellv.ssh.SshConfigs;
 import com.securelight.secureshellv.ssh.SshManager;
 import com.securelight.secureshellv.statics.Constants;
@@ -32,6 +33,9 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ConnectionHandler extends Thread {
+    private static final int sendTrafficPeriod = 5000;
+    private static final int socksHeartbeatPeriod = 3000;
+    private static final int internetAccessPeriod = 1000;
     private final String TAG = getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
     private final Context context;
@@ -41,7 +45,11 @@ public class ConnectionHandler extends Thread {
     private final ReentrantLock lock;
     private final Condition internetAvailableCondition;
     private final NotificationListener notificationListener;
+    private final Timer internetTimer;
+    private final Timer socksTimer;
+    private Timer sendTrafficTimer;
     private Tun2SocksManager tun2SocksManager;
+    private SendTrafficTimeTask sendTrafficHandler;
     private SshManager sshManager;
     private StunnelManager stunnelManager;
     private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
@@ -69,6 +77,10 @@ public class ConnectionHandler extends Thread {
         connected = new AtomicBoolean();
         networkInterfaceAvailable = new AtomicBoolean();
         internetAvailableCondition = lock.newCondition();
+        internetTimer = new Timer();
+        socksTimer = new Timer();
+        sendTrafficTimer = new Timer();
+        sendTrafficHandler = new SendTrafficTimeTask(context);
         internetAccessHandler = new InternetAccessHandler(lock, internetAvailableCondition);
         internetAccessHandler.setAccessChangeListener(networkState -> {
             this.networkState = networkState;
@@ -99,12 +111,11 @@ public class ConnectionHandler extends Thread {
                 break;
         }
 
+
         tun2SocksManager = new Tun2SocksManager(vpnInterface, t2SListener);
 
-        Timer internetTimer = new Timer();
-        Timer socksTimer = new Timer();
-
-        internetTimer.schedule(internetAccessHandler, 0, 1000);
+        // start internet access timer
+        internetTimer.schedule(internetAccessHandler, 0, internetAccessPeriod);
 
         while (!sshManager.isEstablished() && !interrupted) {
             if (bridge) {
@@ -115,11 +126,13 @@ public class ConnectionHandler extends Thread {
         }
         if (!interrupted) {
             sshManager.createPortForwarding();
+            sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, sendTrafficPeriod);
         }
         tun2SocksManager.start();
 
         SocksHeartbeatHandler socksHeartbeatHandler = new SocksHeartbeatHandler(sshManager);
-        socksTimer.schedule(socksHeartbeatHandler, 0, 3000);
+        // start socks heartbeat timer
+        socksTimer.schedule(socksHeartbeatHandler, 0, socksHeartbeatPeriod);
 
         while (!interrupted) {
             connectionState = ConnectionState.CONNECTED;
@@ -130,6 +143,9 @@ public class ConnectionHandler extends Thread {
             sshManager.getSession().waitFor(Arrays.asList(ClientSession.ClientSessionEvent.CLOSED,
                     ClientSession.ClientSessionEvent.TIMEOUT), 0);
 
+            sendTrafficTimer.cancel();
+            sendTrafficTimer = new Timer();
+            sendTrafficHandler = new SendTrafficTimeTask(context);
             sshManager.setEstablished(false);
             connectionState = ConnectionState.CONNECTING;
             LocalBroadcastManager.getInstance(context).sendBroadcast(
@@ -146,6 +162,7 @@ public class ConnectionHandler extends Thread {
             }
             if (!interrupted) {
                 sshManager.createPortForwarding();
+                sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, sendTrafficPeriod);
             }
         } // while (!interrupted)
 
@@ -155,6 +172,7 @@ public class ConnectionHandler extends Thread {
         networkState = NetworkState.NONE;
         notificationListener.updateNotification(networkState, connectionState);
 
+        sendTrafficTimer.cancel();
         socksTimer.cancel();
         internetTimer.cancel();
         try {
