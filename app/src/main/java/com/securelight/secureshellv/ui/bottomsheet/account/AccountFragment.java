@@ -35,16 +35,14 @@ public class AccountFragment extends Fragment {
             UserData userData = UserData.getInstance();
             try {
                 username.getEditText().setText(String.valueOf(userData.getUserName()));
-                DateConverter dateConverter = new DateConverter();
-                endCreditDate.getEditText().setText(String.valueOf(dateConverter.gregorianToJalali(
-                        userData.getEndCreditDate().getYear(),
-                        userData.getEndCreditDate().getMonthValue(),
-                        userData.getEndCreditDate().getDayOfMonth())));
+
+                endCreditDate.getEditText().setText(String.valueOf(userData.getJalaliEndCreditDate()));
                 remainingTr.getEditText().setText(String.valueOf(userData.getRemainingTrafficGB()));
                 usedTr.getEditText().setText(String.valueOf(userData.getUsedTrafficGB()));
                 totalTr.getEditText().setText(String.valueOf(userData.getTotalTrafficGB()));
                 connectedIps.getEditText().setText(String.valueOf(userData.getConnectedIps()));
                 serverMessage.getEditText().setText(String.valueOf(userData.getMessage()));
+                serverMessage.setHelperText(String.valueOf(userData.getMessageDateTimeString()));
             } catch (Exception e) {
                 e.printStackTrace();
             }

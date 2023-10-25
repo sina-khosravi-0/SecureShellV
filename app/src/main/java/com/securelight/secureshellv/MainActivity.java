@@ -24,6 +24,7 @@ import android.os.Process;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Transformation;
@@ -51,7 +52,6 @@ import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.UserData;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Values;
-import com.securelight.secureshellv.tun2socks.Tun2SocksJni;
 import com.securelight.secureshellv.ui.login.LoginActivity;
 import com.securelight.secureshellv.utility.CustomExceptionHandler;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String VPN_SERVICE_ACTION = "android.net.VpnService";
     public static final String CONNECTION_INFO_PREF = "CONNECTION_INFO";
     public static final String UPDATE_USER_DATA_INTENT = "UPDATE_USER_DATA";
+    public static boolean started = false;
     private Intent vpnServiceIntent;
     private LinearLayout bottomSheetLayout;
     private BottomSheetBehavior<View> bottomSheetBehavior;
@@ -151,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             performDisconnectedAction();
+            started = true;
         }
     };
     private final BroadcastReceiver signInBr = new BroadcastReceiver() {
@@ -166,10 +168,13 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             UserData userData = UserData.getInstance();
             buttonText.setText(userData.getRemainingTrafficGB() + "\nGB");
+            if (trafficProgressIndicator.getProgress() != 0) {
+                trafficProgressIndicator.setProgress(userData.getRemainingPercent(), true);
+            }
 
-            if (userData.getDaysLeft() <= 10 && userData.getDaysLeft() > 3) {
+            if (userData.getDaysLeft() <= 3  && userData.getDaysLeft() > 1) {
                 daysLeftText.setTextColor(colorWarning);
-            } else if (userData.getDaysLeft() <= 3) {
+            } else if (userData.getDaysLeft() <= 1) {
                 daysLeftText.setTextColor(colorAlert);
             } else {
                 daysLeftText.setTextColor(colorOk);
@@ -575,6 +580,7 @@ public class MainActivity extends AppCompatActivity {
         buttonImage.setVisibility(View.GONE);
         buttonText.setVisibility(View.VISIBLE);
         mainConnectText.setText(R.string.connected);
+        trafficProgressIndicator.setIndeterminate(false);
         Animation animation = new Animation() {
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
@@ -589,7 +595,7 @@ public class MainActivity extends AppCompatActivity {
 
         };
         animation.setDuration(1000);
-        animation.setInterpolator(new DecelerateInterpolator());
+        animation.setInterpolator(new AccelerateDecelerateInterpolator());
 
         trafficProgressIndicator.startAnimation(animation);
     }
@@ -599,6 +605,7 @@ public class MainActivity extends AppCompatActivity {
         buttonImage.setVisibility(View.VISIBLE);
         buttonText.setVisibility(View.GONE);
         mainConnectText.setText(R.string.connecting);
+        trafficProgressIndicator.setIndeterminate(true);
 
         AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
         vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
@@ -616,6 +623,7 @@ public class MainActivity extends AppCompatActivity {
         buttonImage.setVisibility(View.VISIBLE);
         buttonText.setVisibility(View.GONE);
         mainConnectText.setText(R.string.disconnected);
+        trafficProgressIndicator.setIndeterminate(false);
 
         Animation animation = new Animation() {
             @Override
@@ -636,7 +644,9 @@ public class MainActivity extends AppCompatActivity {
         };
         animation.setDuration(1000);
         animation.setInterpolator(new DecelerateInterpolator());
-        trafficProgressIndicator.startAnimation(animation);
+        if (started) {
+            trafficProgressIndicator.startAnimation(animation);
+        }
     }
 
     private void updateUserData() {

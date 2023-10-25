@@ -1,15 +1,16 @@
 package com.securelight.secureshellv.backend;
 
+import android.annotation.SuppressLint;
 import android.media.Image;
+
+import com.github.eloyzone.jalalicalendar.DateConverter;
+import com.github.eloyzone.jalalicalendar.JalaliDate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 public class UserData {
     private static UserData userData;
@@ -108,9 +109,22 @@ public class UserData {
         return remainingTrafficGB;
     }
 
+    public int getRemainingPercent() {
+        return (int) ((remainingTrafficGB / totalTrafficGB) * 100);
+    }
+
     public LocalDateTime getEndCreditDate() {
         return endCreditDate;
     }
+
+    public String getJalaliEndCreditDate() {
+        DateConverter dateConverter = new DateConverter();
+        return dateConverter.gregorianToJalali(
+                userData.getEndCreditDate().getYear(),
+                userData.getEndCreditDate().getMonthValue(),
+                userData.getEndCreditDate().getDayOfMonth()).toString();
+    }
+
     public long getDaysLeft() {
         return LocalDateTime.now().until(endCreditDate, ChronoUnit.DAYS);
     }
@@ -149,6 +163,16 @@ public class UserData {
 
     public LocalDateTime getMessageDate() {
         return messageDate;
+    }
+
+    @SuppressLint("DefaultLocale")
+    public String getMessageDateTimeString() {
+        DateConverter dateConverter = new DateConverter();
+        JalaliDate date = dateConverter.gregorianToJalali(
+                messageDate.getYear(), messageDate.getMonth(), messageDate.getDayOfMonth());
+
+        return String.format("%d/%d/%d %d:%d", date.getYear(), date.getMonthPersian().getValue(), date.getDay(),
+                messageDate.getHour(), messageDate.getHour());
     }
 
     public boolean isMessagePending() {

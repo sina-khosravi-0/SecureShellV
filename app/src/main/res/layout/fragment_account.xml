@@ -39,6 +39,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:focusable="false"
+                        android:inputType="textNoSuggestions"
                         android:maxLines="1"
                         android:textAlignment="center" />
 
@@ -194,7 +195,8 @@
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine|textNoSuggestions" />
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
 
@@ -203,7 +205,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:focusable="true"
-            android:visibility="gone"
             tools:visibility="gone" />
     </FrameLayout>
 </ScrollView>

@@ -23,7 +23,6 @@ import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.securelight.secureshellv.MainActivity;
-import com.securelight.secureshellv.tun2socks.Tun2SocksJni;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 import org.json.JSONException;
@@ -32,8 +31,6 @@ import org.json.JSONObject;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DatabaseHandlerSingleton {
@@ -52,8 +49,8 @@ public class DatabaseHandlerSingleton {
     private static final String TOKEN_INVALID_CODE_STRING = "token_not_valid";
     private static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
     private static final String OUT_OF_TRAFFIC_CODE_STRING = "insufficient_traffic";
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private String endPoint = "http:/api.weary.tech/";
+//    private String endPoint = "http://192.168.128.71:8000/";
+    private String endPoint = "https://api.weary.tech/";
 
     private DatabaseHandlerSingleton(@NonNull Context context) {
         // getApplicationContext() is key, it keeps you from leaking the
@@ -98,8 +95,8 @@ public class DatabaseHandlerSingleton {
         return imageLoader;
     }
 
-    public FetchDbResult signIn(String username, String password, Response.Listener<JSONObject> responseListener,
-                                Response.ErrorListener errorListener) {
+    public void signIn(String username, String password, Response.Listener<JSONObject> responseListener,
+                       Response.ErrorListener errorListener) {
         String url = this.endPoint + "api/token/";
         JSONObject object = new JSONObject();
         try {
@@ -117,41 +114,41 @@ public class DatabaseHandlerSingleton {
                         errorListener);
 
         instance.addToRequestQueue(jsonObjectRequest);
-        return result.get();
+        result.get();
     }
 
-    public FetchDbResult fetchUserData() {
+    public void fetchUserData() {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(ctx);
         String accessToken = preferences.getAccessToken();
         String refreshToken = preferences.getRefreshToken();
-        String url = endPoint + "api/users/user/";
+        String url = endPoint + "api/account/user/";
 
-        Response.Listener<JSONObject> accessResponseListener = verifyResponse -> {
-            AtomicReference<FetchDbResult> result = new AtomicReference<>();
-            makeUserDataRequest(url, result, accessToken);
+        Response.Listener<JSONObject> accessVerifyResponseListener = verifyResponse -> {
+
+            makeUserDataRequest(url, accessToken);
         };
 
-        Response.Listener<JSONObject> refreshedResponseListener = verifyResponse -> {
-            AtomicReference<FetchDbResult> result = new AtomicReference<>();
+
+        Response.Listener<JSONObject> refreshTokenResponseListener = refreshResponse -> {
             try {
-                if (verifyResponse.has("access")) {
-                    preferences.saveAccessToken(verifyResponse.getString("access"));
+                if (refreshResponse.has("access")) {
+                    preferences.saveAccessToken(refreshResponse.getString("access"));
                 }
-                if (verifyResponse.has("refresh")) {
-                    preferences.saveRefreshToken(verifyResponse.getString("refresh"));
+                if (refreshResponse.has("refresh")) {
+                    preferences.saveRefreshToken(refreshResponse.getString("refresh"));
                 }
             } catch (JSONException ignored) {
             }
             String accessTokenFinal = preferences.getAccessToken();
-            makeUserDataRequest(url, result, accessTokenFinal);
+            makeUserDataRequest(url, accessTokenFinal);
         };
 
-        Response.Listener<JSONObject> refreshResponseListener = response -> {
+        Response.Listener<JSONObject> refreshVerifyResponseListener = verifyResponse -> {
             try {
                 // success only if code == 200
-                if (response.getString("code").equals("200")) {
+                if (verifyResponse.getString("code").equals("200")) {
                     // refresh tokens if refresh token is valid
-                    doRefreshToken(refreshedResponseListener, null);
+                    doRefreshToken(refreshTokenResponseListener, null);
                 }
             } catch (JSONException ignored) {
             }
@@ -160,7 +157,7 @@ public class DatabaseHandlerSingleton {
         Response.ErrorListener refreshErrorListener = error -> {
             if (error instanceof AuthFailureError) {
                 // Both tokens are invalid. Send broadcast to sign in again
-                LocalBroadcastManager.getInstance(ctx).sendBroadcast(new Intent(MainActivity.SIGN_IN_ACTION));
+                sendSignInBroadcast();
             } else if (error instanceof TimeoutError) {
 
             }
@@ -169,19 +166,18 @@ public class DatabaseHandlerSingleton {
         Response.ErrorListener accessErrorListener = error -> {
             if (error instanceof AuthFailureError) {
                 // verify refresh token if access token is invalid
-                verifyToken(refreshToken, refreshResponseListener, refreshErrorListener);
+                verifyToken(refreshToken, refreshVerifyResponseListener, refreshErrorListener);
             } else if (error instanceof TimeoutError) {
 
             }
         };
 
         // verify access token
-        verifyToken(accessToken, accessResponseListener, accessErrorListener);
+        verifyToken(accessToken, accessVerifyResponseListener, accessErrorListener);
         // todo remove return
-        return FetchDbResult.SUCCESS;
     }
 
-    private void makeUserDataRequest(String url, AtomicReference<FetchDbResult> result, String accessTokenFinal) {
+    private void makeUserDataRequest(String url, String accessTokenFinal) {
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, response -> {
             UserData userData = UserData.getInstance();
             try {
@@ -205,7 +201,9 @@ public class DatabaseHandlerSingleton {
                 throw new RuntimeException("error parsing userdata", e);
             }
         }, error -> {
-            result.set(parseFetchError(error));
+            if (error instanceof AuthFailureError) {
+                sendSignInBroadcast();
+            }
         }) {
             @Override
             public Map<String, String> getHeaders() {
@@ -217,10 +215,10 @@ public class DatabaseHandlerSingleton {
         instance.addToRequestQueue(jsonObjectRequest);
     }
 
-    public TokenResult verifyToken(String token, Response.Listener<JSONObject> responseListener,
-                                   Response.ErrorListener errorListener) {
+    public void verifyToken(String token, Response.Listener<JSONObject> responseListener,
+                            Response.ErrorListener errorListener) {
         if (token.isEmpty()) {
-            return TokenResult.NO_AUTH;
+            sendSignInBroadcast();
         }
         AtomicReference<TokenResult> result = new AtomicReference<>();
 
@@ -252,7 +250,7 @@ public class DatabaseHandlerSingleton {
                 };
 
         instance.addToRequestQueue(jsonObjectRequest);
-        return result.get();
+        result.get();
     }
 
     public void doRefreshToken(Response.Listener<JSONObject> responseListener,
@@ -272,7 +270,7 @@ public class DatabaseHandlerSingleton {
 
     public void sendTrafficIncrement(long trafficBytes) {
         String accessToken = SharedPreferencesSingleton.getInstance(ctx).getAccessToken();
-        String url = endPoint + "api/users/increment_traffic/";
+        String url = endPoint + "api/account/increment_traffic/";
 
         JSONObject object = new JSONObject();
         try {
@@ -290,6 +288,10 @@ public class DatabaseHandlerSingleton {
         };
 
         instance.addToRequestQueue(jsonObjectRequest);
+    }
+
+    private void sendSignInBroadcast() {
+        LocalBroadcastManager.getInstance(ctx).sendBroadcast(new Intent(MainActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
     }
 
     private TokenResult parseTokenError(VolleyError error) {
