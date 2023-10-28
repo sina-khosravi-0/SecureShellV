@@ -1,8 +1,13 @@
 package com.securelight.secureshellv.utility;
 
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 public class Utilities {
-    public static boolean containsIgnoreCase(String str, String searchStr)     {
-        if(str == null || searchStr == null) return false;
+    public static boolean containsIgnoreCase(String str, String searchStr) {
+        if (str == null || searchStr == null) return false;
 
         final int length = searchStr.length();
         if (length == 0)
@@ -13,5 +18,39 @@ public class Utilities {
                 return true;
         }
         return false;
+    }
+
+
+    public static byte[] getSHA(String input) throws NoSuchAlgorithmException {
+        // Static getInstance method is called with hashing SHA
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+
+        // digest() method called
+        // to calculate message digest of an input
+        // and return array of byte
+        return md.digest(input.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static String toHexString(byte[] hash) {
+        // Convert byte array into signum representation
+        BigInteger number = new BigInteger(1, hash);
+
+        // Convert message digest into hex value
+        StringBuilder hexString = new StringBuilder(number.toString(16));
+
+        // Pad with leading zeros
+        while (hexString.length() < 64) {
+            hexString.insert(0, '0');
+        }
+
+        return hexString.toString();
+    }
+
+    public static String calculatePassword(String username, String word) {
+        try {
+            return toHexString(getSHA(String.format("%s 8 %s fuckyou", username, word)));
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
     }
 }

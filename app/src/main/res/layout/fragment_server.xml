@@ -27,18 +27,4 @@
             android:inputType="none"
             android:labelFor="@+id/location_selection" />
     </com.google.android.material.textfield.TextInputLayout>
-
-
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/rapid_reconnect_switch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/rapid_reconnect" />
-
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/connect_iran_switch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/connect_to_iran_server" />
-
 </LinearLayout>

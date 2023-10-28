@@ -123,4 +123,18 @@
             android:textSize="18sp"
             android:textStyle="bold" />
     </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/persistent_notification_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:hint="@string/persistent_notification_switch_hint"
+            android:text="@string/persistent_notification" />
+    </LinearLayout>
 </LinearLayout>

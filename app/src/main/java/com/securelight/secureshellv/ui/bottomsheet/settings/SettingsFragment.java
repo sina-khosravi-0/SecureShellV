@@ -16,6 +16,7 @@ import androidx.fragment.app.FragmentManager;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.ui.bottomsheet.settings.appfilter.InstalledPackageFragment;
@@ -52,6 +53,8 @@ public class SettingsFragment extends Fragment {
 
         RadioGroup appLanguageRadioGroup = view.findViewById(R.id.app_language_radio_group);
         MaterialButton appRestartButton = view.findViewById(R.id.restart_app_button);
+
+        MaterialSwitch persistentSwitch = view.findViewById(R.id.persistent_notification_switch);
 
         switch (preferences.getAppFilterMode()) {
             case OFF:
@@ -116,5 +119,12 @@ public class SettingsFragment extends Fragment {
             getActivity().finish();
             startActivity(intent);
         });
+
+        persistentSwitch.setOnCheckedChangeListener(((buttonView, isChecked) -> {
+            new MaterialAlertDialogBuilder(requireActivity())
+                    .setTitle(R.string.notice)
+                    .setMessage(R.string.persistent_notification_switch_hint)
+                    .setNeutralButton(R.string.ok, null).show();
+        }));
     }
 }

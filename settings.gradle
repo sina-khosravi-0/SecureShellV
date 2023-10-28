@@ -19,4 +19,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "SecureShellV"
 include ':app'
-include ':v2ray'

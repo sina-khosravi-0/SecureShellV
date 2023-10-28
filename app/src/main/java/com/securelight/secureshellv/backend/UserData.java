@@ -1,5 +1,7 @@
 package com.securelight.secureshellv.backend;
 
+import static com.securelight.secureshellv.utility.Utilities.calculatePassword;
+
 import android.annotation.SuppressLint;
 import android.media.Image;
 
@@ -15,6 +17,7 @@ import java.util.List;
 public class UserData {
     private static UserData userData;
     private String userName;
+    private char[] password = null;
     private final List<String> serverAddresses = new ArrayList<>();
     private double remainingTrafficGB;
     private LocalDateTime endCreditDate;
@@ -29,18 +32,25 @@ public class UserData {
     private String message;
     private LocalDateTime messageDate;
     private boolean messagePending;
-    private int userId;
-
 
     private UserData() {
-        userName = "sina";
-        serverAddresses.add("64.226.64.126");
     }
 
-    public static char[] getSshPassword() {
-        //todo: fetch password from database
-        char[] sshPassword = {'S', 'i', 'n', 'a', '@', '1', '3', '1', '1', '2', '0', '4', '0'};
-        return sshPassword;
+    public char[] getSshPassword() {
+        String[] result = DatabaseHandlerSingleton.getInstance(null).retrievePassword();
+        String word = result[0];
+        password = calculatePassword(userName, word).toCharArray();
+
+        //todo: remove
+        serverAddresses.clear();
+
+        serverAddresses.add(result[1]);
+        return password;
+    }
+
+    public void resetPass() {
+        password = null;
+        serverAddresses.clear();
     }
 
     public static synchronized UserData getInstance() {
@@ -63,7 +73,7 @@ public class UserData {
                           String message,
                           String messageDate,
                           boolean messagePending,
-                          int userId) {
+                          String userName) {
 
         if (userData == null) {
             return;
@@ -90,11 +100,7 @@ public class UserData {
             this.messageDate = LocalDateTime.parse("0001-01-01T00:00:00");
         }
         this.messagePending = messagePending;
-        this.userId = userId;
-    }
-
-    public String getUserName() {
-        return userName;
+        this.userName = userName;
     }
 
     public List<String> getServerAddresses() {
@@ -179,8 +185,8 @@ public class UserData {
         return messagePending;
     }
 
-    public int getUserId() {
-        return userId;
+    public String getUserName() {
+        return userName;
     }
 
     @Override
@@ -200,9 +206,8 @@ public class UserData {
                 ", paymentReceipt=" + paymentReceipt +
                 ", message='" + message + '\'' +
                 ", messagePending=" + messagePending +
-                ", userId=" + userId +
+                ", userId=" + userName +
                 '}';
     }
-
 
 }

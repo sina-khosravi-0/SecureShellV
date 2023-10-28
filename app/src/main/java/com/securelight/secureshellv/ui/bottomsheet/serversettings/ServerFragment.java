@@ -47,9 +47,6 @@ public class ServerFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         SharedPreferencesSingleton preferencesSingleton = SharedPreferencesSingleton.getInstance(getActivity());
-
-        ((MaterialSwitch) view.findViewById(R.id.rapid_reconnect_switch)).setChecked(preferencesSingleton.isRapidSwitched());
-        ((MaterialSwitch) view.findViewById(R.id.connect_iran_switch)).setChecked(preferencesSingleton.isIranSwitched());
         TextInputLayout textInputLayout = view.findViewById(R.id.server_location_text_input);
         // TODO: get servers list
         List<String> items =
@@ -70,33 +67,6 @@ public class ServerFragment extends Fragment {
                     ((TextView) textView).getCompoundDrawablesRelative()[2],
                     null, null, null);
             preferencesSingleton.setServer(arrayAdapter.getCode(position));
-        });
-
-        MaterialSwitch rapidReconnectSwitch = view.findViewById(R.id.rapid_reconnect_switch);
-        rapidReconnectSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked && !preferencesSingleton.isRapidSwitched()) {
-                new MaterialAlertDialogBuilder(requireActivity())
-                        .setTitle(R.string.notice)
-                        .setMessage(R.string.rapid_reconnect_alert_string)
-                        .setNeutralButton(R.string.ok, null).show();
-                preferencesSingleton.setRapidSwitched(true);
-            } else if (preferencesSingleton.isRapidSwitched()) {
-                preferencesSingleton.setRapidSwitched(false);
-            }
-        });
-
-        MaterialSwitch iranSwitch = view.findViewById(R.id.connect_iran_switch);
-        iranSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked && !preferencesSingleton.isIranSwitched()) {
-                new MaterialAlertDialogBuilder(requireActivity())
-                        .setTitle(R.string.notice)
-                        .setMessage(R.string.iran_connect_alert_string)
-                        .setNeutralButton(R.string.ok, null)
-                        .show();
-                preferencesSingleton.setIranSwitched(true);
-            } else if (preferencesSingleton.isIranSwitched()) {
-                preferencesSingleton.setIranSwitched(false);
-            }
         });
     }
 }

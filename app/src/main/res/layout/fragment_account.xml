@@ -146,12 +146,14 @@
                 android:showDividers="middle">
 
                 <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/unlimited_time"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="@string/unlimited_time" />
 
                 <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/unlimited_traffic"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:autoSizeMaxTextSize="20dp"

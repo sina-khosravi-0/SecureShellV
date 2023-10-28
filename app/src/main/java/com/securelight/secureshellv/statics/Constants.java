@@ -34,4 +34,8 @@ public class Constants {
             this.value = value;
         }
     }
+    public static final int sendTrafficPeriod = 5000;
+    public static final int apiHeartbeatPeriod = 5000;
+    public static final int socksHeartbeatPeriod = 3000;
+    public static final int internetAccessPeriod = 1000;
 }

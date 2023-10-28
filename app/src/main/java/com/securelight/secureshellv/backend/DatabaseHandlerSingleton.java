@@ -4,6 +4,7 @@ package com.securelight.secureshellv.backend;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.collection.LruCache;
@@ -21,6 +22,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.toolbox.Volley;
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
@@ -31,6 +33,9 @@ import org.json.JSONObject;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DatabaseHandlerSingleton {
@@ -45,17 +50,17 @@ public class DatabaseHandlerSingleton {
     private static DatabaseHandlerSingleton instance;
     private RequestQueue requestQueue;
     private final ImageLoader imageLoader;
-    private static Context ctx;
+    private static Context context;
     private static final String TOKEN_INVALID_CODE_STRING = "token_not_valid";
     private static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
     private static final String OUT_OF_TRAFFIC_CODE_STRING = "insufficient_traffic";
-//    private String endPoint = "http://192.168.128.71:8000/";
-    private String endPoint = "https://api.weary.tech/";
+        private String endPoint = "http://192.168.128.71:8000/";
+//    private String endPoint = "https://api.weary.tech/";
 
     private DatabaseHandlerSingleton(@NonNull Context context) {
         // getApplicationContext() is key, it keeps you from leaking the
         // Activity or BroadcastReceiver if someone passes one in.
-        ctx = context.getApplicationContext();
+        DatabaseHandlerSingleton.context = context.getApplicationContext();
         requestQueue = getRequestQueue();
 
         imageLoader = new ImageLoader(requestQueue, new ImageLoader.ImageCache() {
@@ -82,7 +87,7 @@ public class DatabaseHandlerSingleton {
 
     public RequestQueue getRequestQueue() {
         if (requestQueue == null) {
-            requestQueue = Volley.newRequestQueue(ctx);
+            requestQueue = Volley.newRequestQueue(context);
         }
         return requestQueue;
     }
@@ -118,13 +123,12 @@ public class DatabaseHandlerSingleton {
     }
 
     public void fetchUserData() {
-        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(ctx);
+        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
         String accessToken = preferences.getAccessToken();
         String refreshToken = preferences.getRefreshToken();
         String url = endPoint + "api/account/user/";
 
         Response.Listener<JSONObject> accessVerifyResponseListener = verifyResponse -> {
-
             makeUserDataRequest(url, accessToken);
         };
 
@@ -157,7 +161,7 @@ public class DatabaseHandlerSingleton {
         Response.ErrorListener refreshErrorListener = error -> {
             if (error instanceof AuthFailureError) {
                 // Both tokens are invalid. Send broadcast to sign in again
-                sendSignInBroadcast();
+                broadcastSignIn();
             } else if (error instanceof TimeoutError) {
 
             }
@@ -195,14 +199,14 @@ public class DatabaseHandlerSingleton {
                         response.getString("message"),
                         response.getString("message_date"),
                         response.getBoolean("message_pending"),
-                        response.getInt("user"));
-                LocalBroadcastManager.getInstance(ctx).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
+                        response.getJSONObject("user").getString("username"));
+                LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
             } catch (JSONException e) {
                 throw new RuntimeException("error parsing userdata", e);
             }
         }, error -> {
             if (error instanceof AuthFailureError) {
-                sendSignInBroadcast();
+                broadcastSignIn();
             }
         }) {
             @Override
@@ -218,7 +222,7 @@ public class DatabaseHandlerSingleton {
     public void verifyToken(String token, Response.Listener<JSONObject> responseListener,
                             Response.ErrorListener errorListener) {
         if (token.isEmpty()) {
-            sendSignInBroadcast();
+            broadcastSignIn();
         }
         AtomicReference<TokenResult> result = new AtomicReference<>();
 
@@ -255,7 +259,7 @@ public class DatabaseHandlerSingleton {
 
     public void doRefreshToken(Response.Listener<JSONObject> responseListener,
                                Response.ErrorListener errorListener) {
-        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(ctx);
+        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
         String url = endPoint + "api/token/refresh/";
 
         JSONObject object = new JSONObject();
@@ -269,7 +273,7 @@ public class DatabaseHandlerSingleton {
     }
 
     public void sendTrafficIncrement(long trafficBytes) {
-        String accessToken = SharedPreferencesSingleton.getInstance(ctx).getAccessToken();
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = endPoint + "api/account/increment_traffic/";
 
         JSONObject object = new JSONObject();
@@ -290,8 +294,49 @@ public class DatabaseHandlerSingleton {
         instance.addToRequestQueue(jsonObjectRequest);
     }
 
-    private void sendSignInBroadcast() {
-        LocalBroadcastManager.getInstance(ctx).sendBroadcast(new Intent(MainActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+    public String[] retrievePassword() {
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
+
+        // todo: make the url id dynamic
+        String url = endPoint + "api/pass/1";
+
+        RequestFuture<JSONObject> future = RequestFuture.newFuture();
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, future, future) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
+            }
+        };
+        instance.addToRequestQueue(request);
+
+        try {
+            JSONObject object = future.get(10, TimeUnit.SECONDS); // this line will block
+            return new String[]{object.getString("password"), object.getString("ip")};
+        } catch (InterruptedException | ExecutionException | TimeoutException | JSONException e) {
+            Log.d("DatabaseHandler", e.getMessage(), e);
+            return new String[]{"", ""};
+        }
+    }
+
+    public void sendHeartbeat() {
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
+        String url = endPoint + "api/heartbeat/";
+        System.out.println("heartbeat");
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
+            }
+        };
+        instance.addToRequestQueue(request);
+    }
+
+    private void broadcastSignIn() {
+        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
     }
 
     private TokenResult parseTokenError(VolleyError error) {

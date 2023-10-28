@@ -1,5 +1,9 @@
 package com.securelight.secureshellv.vpnservice.connection;
 
+import static com.securelight.secureshellv.statics.Constants.internetAccessPeriod;
+import static com.securelight.secureshellv.statics.Constants.sendTrafficPeriod;
+import static com.securelight.secureshellv.statics.Constants.socksHeartbeatPeriod;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -11,11 +15,12 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.StunnelManager;
+import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.SendTrafficTimeTask;
+import com.securelight.secureshellv.backend.UserData;
 import com.securelight.secureshellv.ssh.SshConfigs;
 import com.securelight.secureshellv.ssh.SshManager;
 import com.securelight.secureshellv.statics.Constants;
-import com.securelight.secureshellv.tun2socks.Tun2SocksJni;
 import com.securelight.secureshellv.tun2socks.Tun2SocksManager;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.VpnSettings;
@@ -33,9 +38,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ConnectionHandler extends Thread {
-    private static final int sendTrafficPeriod = 5000;
-    private static final int socksHeartbeatPeriod = 3000;
-    private static final int internetAccessPeriod = 1000;
+
     private final String TAG = getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
     private final Context context;
@@ -48,8 +51,10 @@ public class ConnectionHandler extends Thread {
     private final Timer internetTimer;
     private final Timer socksTimer;
     private Timer sendTrafficTimer;
+    private Timer apiHeartbeatTimer;
     private Tun2SocksManager tun2SocksManager;
     private SendTrafficTimeTask sendTrafficHandler;
+    private APIHeartbeatHandler apiHeartbeatHandler;
     private SshManager sshManager;
     private StunnelManager stunnelManager;
     private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
@@ -121,7 +126,7 @@ public class ConnectionHandler extends Thread {
             if (bridge) {
                 sshManager.connectWithBridge();
             } else {
-                sshManager.connect();
+                sshManager.connect(String.valueOf(UserData.getInstance().getSshPassword()));
             }
         }
         if (!interrupted) {
@@ -157,7 +162,7 @@ public class ConnectionHandler extends Thread {
                 if (bridge) {
                     sshManager.connectWithBridge();
                 } else {
-                    sshManager.connect();
+                    sshManager.connect(String.valueOf(UserData.getInstance().getSshPassword()));
                 }
             }
             if (!interrupted) {
@@ -186,7 +191,7 @@ public class ConnectionHandler extends Thread {
         sshManager = new SshManager(lock,
                 internetAvailableCondition,
                 // todo: fetch from server
-                new SshConfigs("64.226.64.126",
+                new SshConfigs(null,
                         22,
                         VpnSettings.iFaceAddress,
                         VpnSettings.socksPort,

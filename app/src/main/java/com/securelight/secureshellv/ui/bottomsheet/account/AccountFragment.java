@@ -14,20 +14,22 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.github.eloyzone.jalalicalendar.DateConverter;
+import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputLayout;
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.backend.UserData;
 
 public class AccountFragment extends Fragment {
-    TextInputLayout username;
-    TextInputLayout endCreditDate;
-    TextInputLayout remainingTr;
-    TextInputLayout usedTr;
-    TextInputLayout totalTr;
-    TextInputLayout connectedIps;
-    TextInputLayout serverMessage;
+    private TextInputLayout username;
+    private TextInputLayout endCreditDate;
+    private TextInputLayout remainingTr;
+    private TextInputLayout usedTr;
+    private TextInputLayout totalTr;
+    private MaterialCheckBox unlimitedTime;
+    private MaterialCheckBox unlimitedTraffic;
+    private TextInputLayout connectedIps;
+    private TextInputLayout serverMessage;
 
     private final BroadcastReceiver updateUserDataBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -40,6 +42,8 @@ public class AccountFragment extends Fragment {
                 remainingTr.getEditText().setText(String.valueOf(userData.getRemainingTrafficGB()));
                 usedTr.getEditText().setText(String.valueOf(userData.getUsedTrafficGB()));
                 totalTr.getEditText().setText(String.valueOf(userData.getTotalTrafficGB()));
+                unlimitedTime.setChecked(userData.isUnlimitedCreditTime());
+                unlimitedTraffic.setChecked(userData.isUnlimitedTraffic());
                 connectedIps.getEditText().setText(String.valueOf(userData.getConnectedIps()));
                 serverMessage.getEditText().setText(String.valueOf(userData.getMessage()));
                 serverMessage.setHelperText(String.valueOf(userData.getMessageDateTimeString()));
@@ -75,6 +79,8 @@ public class AccountFragment extends Fragment {
         remainingTr = view.findViewById(R.id.remaining_tr_text_field);
         usedTr = view.findViewById(R.id.used_tr_text_field);
         totalTr = view.findViewById(R.id.total_tr_text_field);
+        unlimitedTime = view.findViewById(R.id.unlimited_time);
+        unlimitedTraffic = view.findViewById(R.id.unlimited_traffic);
         connectedIps = view.findViewById(R.id.connected_ips_text_field);
         serverMessage = view.findViewById(R.id.server_message_text_field);
     }

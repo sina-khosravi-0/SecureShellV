@@ -9,6 +9,7 @@ import com.securelight.secureshellv.statics.Constants;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.forward.PortForwardingTracker;
+import org.apache.sshd.common.SshException;
 import org.apache.sshd.common.future.CancelOption;
 import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.session.SessionHeartbeatController;
@@ -52,7 +53,7 @@ public class SshManager {
         CoreModuleProperties.IDLE_TIMEOUT.set(sshClient, Duration.ofMillis(5000));
     }
 
-    public void connect() {
+    public void connect(String password) {
         established = false;
         try {
             // wait for InternetAccessHandler or stop() to notify.
@@ -66,19 +67,23 @@ public class SshManager {
                 lock.unlock();
             }
 
-            session = sshClient.connect(UserData.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
-                    .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
-                    .getClientSession();
+            session = sshClient.connect(UserData.getInstance().getUserName(),
+                            UserData.getInstance().getServerAddresses().get(0), configs.hostPort)
+                    .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT).getClientSession();
             session.addSessionListener(getSessionListener());
             session.addPortForwardingEventListener(new PFEventListener());
             session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
                     TimeUnit.SECONDS, 3);
-            session.addPasswordIdentity(String.valueOf(UserData.getSshPassword()));
-            session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
+            session.addPasswordIdentity(password);
+            session.auth().verify(6000, CancelOption.CANCEL_ON_TIMEOUT);
             established = true;
-        } catch (IOException e) {
+        } catch (SshException e) {
+            if (e.getMessage().contains("No more authentication methods available")) {
+                UserData.getInstance().resetPass();
+            }
+        } catch (IOException | IllegalArgumentException e) {
             Log.d(TAG, e.getMessage());
-            Log.e(TAG, "connection failed.");
+            Log.e(TAG, "connection failed.", e);
         }
     }
 
@@ -104,7 +109,7 @@ public class SshManager {
             bridgeSession.addPortForwardingEventListener(new PFEventListener());
             bridgeSession.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
                     , TimeUnit.SECONDS, 3);
-            bridgeSession.addPasswordIdentity(String.valueOf(UserData.getSshPassword()));
+            bridgeSession.addPasswordIdentity(String.valueOf(UserData.getInstance().getSshPassword()));
             bridgeSession.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
             // create local port forwarding
@@ -120,7 +125,7 @@ public class SshManager {
             session.addPortForwardingEventListener(new PFEventListener());
             session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
                     TimeUnit.SECONDS, 3);
-            session.addPasswordIdentity(String.valueOf(UserData.getSshPassword()));
+            session.addPasswordIdentity(String.valueOf(UserData.getInstance().getSshPassword()));
             session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
             established = true;

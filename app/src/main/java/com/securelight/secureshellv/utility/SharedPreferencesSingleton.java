@@ -38,22 +38,6 @@ public class SharedPreferencesSingleton {
         return userSettingsPreferences.getString(Constants.SERVER_LOCATION_PREFERENCES_NAME, Constants.SERVER_LOCATION_DEFAULT);
     }
 
-    public void setRapidSwitched(boolean value) {
-        userSettingsPreferences.edit().putBoolean(Constants.RAPID_SWITCH_PREFERENCES_NAME, value).apply();
-    }
-
-    public boolean isRapidSwitched() {
-        return userSettingsPreferences.getBoolean(Constants.RAPID_SWITCH_PREFERENCES_NAME, false);
-    }
-
-    public void setIranSwitched(boolean value) {
-        userSettingsPreferences.edit().putBoolean(Constants.IRAN_SWITCH_PREFERENCES_NAME, value).apply();
-    }
-
-    public boolean isIranSwitched() {
-        return userSettingsPreferences.getBoolean(Constants.IRAN_SWITCH_PREFERENCES_NAME, false);
-    }
-
     public void clearFilteredPackages() {
         userSettingsPreferences.edit().remove(Constants.APP_FILTER_PACKAGES).apply();
     }

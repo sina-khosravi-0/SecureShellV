@@ -1,5 +1,9 @@
 package com.securelight.secureshellv;
 
+import static com.securelight.secureshellv.utility.Utilities.getSHA;
+import static com.securelight.secureshellv.utility.Utilities.toHexString;
+import static java.sql.DriverManager.println;
+
 import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
@@ -20,6 +24,7 @@ import android.graphics.drawable.Drawable;
 import android.net.TrafficStats;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.Process;
 import android.util.TypedValue;
 import android.view.View;
@@ -58,8 +63,13 @@ import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -151,8 +161,8 @@ public class MainActivity extends AppCompatActivity {
     private final BroadcastReceiver disconnectedBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            performDisconnectedAction();
             started = true;
+            performDisconnectedAction();
         }
     };
     private final BroadcastReceiver signInBr = new BroadcastReceiver() {
@@ -168,11 +178,11 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             UserData userData = UserData.getInstance();
             buttonText.setText(userData.getRemainingTrafficGB() + "\nGB");
-            if (trafficProgressIndicator.getProgress() != 0) {
+            if (vpnServiceBinder != null && vpnServiceBinder.getService().isServiceActive()) {
                 trafficProgressIndicator.setProgress(userData.getRemainingPercent(), true);
             }
 
-            if (userData.getDaysLeft() <= 3  && userData.getDaysLeft() > 1) {
+            if (userData.getDaysLeft() <= 3 && userData.getDaysLeft() > 1) {
                 daysLeftText.setTextColor(colorWarning);
             } else if (userData.getDaysLeft() <= 1) {
                 daysLeftText.setTextColor(colorAlert);
@@ -367,6 +377,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }).attach();
         tabLayout.getTabAt(2).select();
+
         viewPager.setUserInputEnabled(false);
         viewPager.setOffscreenPageLimit(NUMBER_OF_TABS);
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {

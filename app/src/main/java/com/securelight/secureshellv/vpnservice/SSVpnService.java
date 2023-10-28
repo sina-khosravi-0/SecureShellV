@@ -1,6 +1,7 @@
 package com.securelight.secureshellv.vpnservice;
 
 import static androidx.core.app.NotificationCompat.EXTRA_NOTIFICATION_ID;
+import static com.securelight.secureshellv.statics.Constants.apiHeartbeatPeriod;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -31,6 +32,7 @@ import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Values;
 import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
+import com.securelight.secureshellv.vpnservice.connection.APIHeartbeatHandler;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionHandler;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
@@ -39,8 +41,8 @@ import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
+import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SSVpnService extends VpnService {
@@ -65,7 +67,8 @@ public class SSVpnService extends VpnService {
     private PendingIntent startPendingIntent;
     private PendingIntent stopPendingIntent;
     private PendingIntent quitPendingIntent;
-    private Constants.Protocol connectionMethod = Constants.Protocol.TLS_SSH;
+    private Timer apiHeartbeatTimer;
+    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
     private final NotificationListener notificationListener = new NotificationListener() {
         @Override
         public void updateNotification(NetworkState networkState, ConnectionState connectionState) {
@@ -238,6 +241,8 @@ public class SSVpnService extends VpnService {
                 .putExtra("vpn_interface", vpnInterface));
 
         //start connection thread
+        apiHeartbeatTimer = new Timer();
+        apiHeartbeatTimer.schedule(new APIHeartbeatHandler(this), 0, apiHeartbeatPeriod);
         connectionHandler = new ConnectionHandler(vpnInterface, this, notificationListener);
         connectionHandler.setConnectionMethod(connectionMethod);
         connectionHandler.start();
@@ -381,6 +386,7 @@ public class SSVpnService extends VpnService {
 
     public void stopVpnService() {
         try {
+            apiHeartbeatTimer.cancel();
             serviceActive.set(false);
             connectionHandler.interrupt();
             connectionHandler.join();
