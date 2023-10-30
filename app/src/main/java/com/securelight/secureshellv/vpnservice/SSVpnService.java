@@ -20,6 +20,7 @@ import android.net.VpnService;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -46,7 +47,7 @@ import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SSVpnService extends VpnService {
-    public static final String VPN_SERVICE_STOP_BR = "com.securelight.secureshellv.STOP";
+    public static final String STOP_VPN_SERVICE_ACTION = "com.securelight.secureshellv.STOP";
     public static final String START_VPN_ACTION = "com.securelight.secureshellv.START";
     public static final String CONNECTED_ACTION = "com.securelight.secureshellv.CONNECTED";
     public static final String CONNECTING_ACTION = "com.securelight.secureshellv.CONNECTING";
@@ -57,6 +58,7 @@ public class SSVpnService extends VpnService {
     private final Set<String> packages = new HashSet<>();
     private final int onGoingNotificationID = 1;
     private final AtomicBoolean serviceActive = new AtomicBoolean();
+    private long startedAt;
     private NotificationCompat.Builder notificationBuilder;
     private NotificationManager notificationManager;
     private ConnectionHandler connectionHandler;
@@ -69,17 +71,14 @@ public class SSVpnService extends VpnService {
     private PendingIntent quitPendingIntent;
     private Timer apiHeartbeatTimer;
     private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
-    private final NotificationListener notificationListener = new NotificationListener() {
-        @Override
-        public void updateNotification(NetworkState networkState, ConnectionState connectionState) {
-            if (!MainActivity.isAppClosing()) {
-                NotificationCompat.Builder builder = getNotificationBuilder();
-                builder.setContentTitle(connectionState.value);
-                builder.setContentText(String
-                        .format("%s: %s", Values.INTERNET_ACCESS_STATE_STRING, networkState.value));
-                getNotificationManager().notify(getOnGoingNotificationID(), builder.build());
-                builder.setSilent(true);
-            }
+    private final NotificationListener notificationListener = (networkState, connectionState) -> {
+        if (!MainActivity.isAppClosing()) {
+            NotificationCompat.Builder builder = getNotificationBuilder();
+            builder.setContentTitle(connectionState.value);
+            builder.setContentText(String
+                    .format("%s: %s", Values.INTERNET_ACCESS_STATE_STRING, networkState.value));
+            getNotificationManager().notify(getOnGoingNotificationID(), builder.build());
+            builder.setSilent(true);
         }
     };
     private final IBinder binder = new VpnServiceBinder();
@@ -140,7 +139,7 @@ public class SSVpnService extends VpnService {
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (VPN_SERVICE_STOP_BR.equals(intent.getAction())) {
+            if (STOP_VPN_SERVICE_ACTION.equals(intent.getAction())) {
                 stopVpnService();
                 Log.i(TAG, "VPN service stopped");
             }
@@ -195,7 +194,7 @@ public class SSVpnService extends VpnService {
     @Override
     public void onCreate() {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-        lbm.registerReceiver(stopBr, new IntentFilter(VPN_SERVICE_STOP_BR));
+        lbm.registerReceiver(stopBr, new IntentFilter(STOP_VPN_SERVICE_ACTION));
         lbm.registerReceiver(connectedBr, new IntentFilter(CONNECTED_ACTION));
         lbm.registerReceiver(connectingBr, new IntentFilter(CONNECTING_ACTION));
         lbm.registerReceiver(disconnectedBr, new IntentFilter(DISCONNECTED_ACTION));
@@ -212,6 +211,11 @@ public class SSVpnService extends VpnService {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!serviceActive.get()) {
+            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+            PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    "SecureShellV::MyWakelockTag");
+            wakeLock.acquire(20*60*1000L /*10 minutes*/);
+            startedAt = System.currentTimeMillis();
             serviceActive.set(true);
 
             setupNotification();
@@ -347,7 +351,7 @@ public class SSVpnService extends VpnService {
                 this, 0, startIntent, PendingIntent.FLAG_IMMUTABLE);
 
         Intent stopIntent = new Intent(this, NotificationBroadcastReceiver.class);
-        stopIntent.setAction(VPN_SERVICE_STOP_BR);
+        stopIntent.setAction(STOP_VPN_SERVICE_ACTION);
         stopIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         stopPendingIntent = PendingIntent.getBroadcast(
                 this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE);
@@ -385,20 +389,18 @@ public class SSVpnService extends VpnService {
     }
 
     public void stopVpnService() {
-        try {
-            apiHeartbeatTimer.cancel();
-            serviceActive.set(false);
-            connectionHandler.interrupt();
-            connectionHandler.join();
-            notificationBuilder.clearActions().addAction(notifStartAction);
-            notificationBuilder.addAction(notifQuitAction);
-            notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
+        if (System.currentTimeMillis() - startedAt > 2000) {
             try {
-                vpnInterface.close();
-            } catch (IOException ignored) {
+                apiHeartbeatTimer.cancel();
+                serviceActive.set(false);
+                connectionHandler.interrupt();
+                connectionHandler.join();
+                notificationBuilder.clearActions().addAction(notifStartAction);
+                notificationBuilder.addAction(notifQuitAction);
+                notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
+            } catch (NullPointerException | InterruptedException e) {
+                Log.e(TAG, "Fuck Null");
             }
-        } catch (NullPointerException | InterruptedException e) {
-            Log.e(TAG, "Fuck Null");
         }
     }
 

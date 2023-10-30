@@ -115,7 +115,7 @@ public class ConnectionHandler extends Thread {
                 bridge = true;
                 break;
         }
-
+        String password = String.valueOf(UserData.getInstance().getSshPassword());
 
         tun2SocksManager = new Tun2SocksManager(vpnInterface, t2SListener);
 
@@ -126,7 +126,7 @@ public class ConnectionHandler extends Thread {
             if (bridge) {
                 sshManager.connectWithBridge();
             } else {
-                sshManager.connect(String.valueOf(UserData.getInstance().getSshPassword()));
+                sshManager.connect(password);
             }
         }
         if (!interrupted) {

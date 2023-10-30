@@ -5,6 +5,8 @@ import android.os.ParcelFileDescriptor;
 import com.securelight.secureshellv.vpnservice.VpnSettings;
 import com.securelight.secureshellv.vpnservice.listeners.Tun2SocksListener;
 
+import java.io.IOException;
+
 
 public class Tun2SocksManager {
 
@@ -24,7 +26,7 @@ public class Tun2SocksManager {
             Tun2SocksJni.runTun2Socks(vpnInterface.getFd(), 1500, VpnSettings.iFaceAddress,
                     VpnSettings.iFaceSubnet, VpnSettings.iFaceAddress + ":" + VpnSettings.socksPort,
                     "127.0.0.1" + ":" + 7300,
-                    1, -1);
+                    0, -1);
             isRunning = false;
             t2SListener.onTun2SocksStopped();
         }).start();
@@ -32,7 +34,13 @@ public class Tun2SocksManager {
 
     public void stop() {
         if (isRunning) {
-            new Thread(Tun2SocksJni::terminateTun2Socks).start();
+            new Thread(() -> {
+                Tun2SocksJni.terminateTun2Socks();
+                try {
+                    vpnInterface.close();
+                } catch (IOException e) {
+                }
+            }).start();
         }
         isRunning = false;
     }

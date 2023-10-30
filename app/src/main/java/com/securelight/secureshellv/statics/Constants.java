@@ -1,18 +1,17 @@
 package com.securelight.secureshellv.statics;
 
 public class Constants {
-
+//    private String endPoint = "http://192.168.128.71:8000/";
+    public static final String endPoint = "https://api.weary.tech/";
     public static final String APP_FILTER_PACKAGES = "appFilterPackages";
     public static final String APP_LANGUAGE_NAME = "appLanguage";
     public static final String ACCESS_TOKEN_PREF_NAME = "verify";
     public static final String REFRESH_TOKEN_PREF_NAME = "refresh";
+    public static final String APP_FILTER_MODE_NAME = "appFilterMode";
     public static String API_CACHE_PREFERENCES_NAME = "apiCache";
     public static String SERVER_LOCATION_DEFAULT = "ato";
     public static String USER_SETTINGS_PREFERENCES_NAME = "userSettings";
     public static String SERVER_LOCATION_PREFERENCES_NAME = "serverLocation";
-    public static String RAPID_SWITCH_PREFERENCES_NAME = "rapidSwitch";
-    public static String IRAN_SWITCH_PREFERENCES_NAME = "iranSwitch";
-    public static final String APP_FILTER_MODE_NAME = "appFilterMode";
 
     public enum Protocol {
         DIRECT_SSH("direct"), TLS_SSH("tls"), DUAL_SSH("dual-hop");
@@ -34,6 +33,15 @@ public class Constants {
             this.value = value;
         }
     }
+
+    public enum InternetQuality {
+        EXCELLENT,
+        GOOD,
+        MEDIUM,
+        BAD,
+        HORRIBLE
+    }
+
     public static final int sendTrafficPeriod = 5000;
     public static final int apiHeartbeatPeriod = 5000;
     public static final int socksHeartbeatPeriod = 3000;

@@ -1,10 +1,12 @@
 package com.securelight.secureshellv.backend;
 
 
+import static com.securelight.secureshellv.statics.Constants.endPoint;
+
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.util.Log;
+import android.provider.Telephony;
 
 import androidx.annotation.NonNull;
 import androidx.collection.LruCache;
@@ -25,7 +27,9 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.toolbox.Volley;
 import com.securelight.secureshellv.MainActivity;
+import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
+import com.securelight.secureshellv.vpnservice.SSVpnService;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -54,8 +58,6 @@ public class DatabaseHandlerSingleton {
     private static final String TOKEN_INVALID_CODE_STRING = "token_not_valid";
     private static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
     private static final String OUT_OF_TRAFFIC_CODE_STRING = "insufficient_traffic";
-        private String endPoint = "http://192.168.128.71:8000/";
-//    private String endPoint = "https://api.weary.tech/";
 
     private DatabaseHandlerSingleton(@NonNull Context context) {
         // getApplicationContext() is key, it keeps you from leaking the
@@ -102,7 +104,7 @@ public class DatabaseHandlerSingleton {
 
     public void signIn(String username, String password, Response.Listener<JSONObject> responseListener,
                        Response.ErrorListener errorListener) {
-        String url = this.endPoint + "api/token/";
+        String url = endPoint + "api/token/";
         JSONObject object = new JSONObject();
         try {
             object.put("username", username);
@@ -296,7 +298,6 @@ public class DatabaseHandlerSingleton {
 
     public String[] retrievePassword() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-
         // todo: make the url id dynamic
         String url = endPoint + "api/pass/1";
 
@@ -310,20 +311,37 @@ public class DatabaseHandlerSingleton {
             }
         };
         instance.addToRequestQueue(request);
-
         try {
-            JSONObject object = future.get(10, TimeUnit.SECONDS); // this line will block
+            JSONObject object = future.get(10, TimeUnit.SECONDS);
             return new String[]{object.getString("password"), object.getString("ip")};
-        } catch (InterruptedException | ExecutionException | TimeoutException | JSONException e) {
-            Log.d("DatabaseHandler", e.getMessage(), e);
+        } catch (InterruptedException | TimeoutException | JSONException e) {
             return new String[]{"", ""};
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof AuthFailureError) {
+                NetworkResponse networkResponse = ((AuthFailureError) (e.getCause())).networkResponse;
+                if (networkResponse.statusCode == 403) {
+                    if (new String(networkResponse.data).contains("insufficient_traffic")) {
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                                new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION));
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                                new Intent(Intents.INSUFFICIENT_TRAFFIC_INTENT));
+                    }
+                    if (new String(networkResponse.data).contains("credit_expired")) {
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                                new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION));
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                                new Intent(Intents.CREDIT_EXPIRED_INTENT));
+                    }
+                }
+
+            }
         }
+        return new String[]{"", ""};
     }
 
     public void sendHeartbeat() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = endPoint + "api/heartbeat/";
-        System.out.println("heartbeat");
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
             @Override
             public Map<String, String> getHeaders() {

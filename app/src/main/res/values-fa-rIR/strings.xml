@@ -72,4 +72,8 @@
     </plurals>
     <string name="persistent_notification">نوتیفیکشن پایدار</string>
     <string name="persistent_notification_switch_hint">با فعال کردن این گزینه، بعد از خاموش کردن VPN، نوتیفیکشن آن باقی میماند.</string>
+    <string name="you_traffic_has_run_out">حجم ترافیک شما به اتمام رسیده است.</string>
+    <string name="insufficient_traffic">اتمام ترافیک</string>
+    <string name="credit_expired">اتمام اشتراک</string>
+    <string name="credit_time_has_run_out">مهلت اشتراک به اتمام رسیده است.</string>
 </resources>

@@ -151,17 +151,11 @@ public class InstalledPackageFragment extends DialogFragment {
                     }
                     return 0;
                 }); //sort adapter app info list
-                try {
-                    getActivity().runOnUiThread(() -> {
-                        recyclerView.swapAdapter(adapter, false);
-                    });
-                } catch (NullPointerException e) {
-                    break;
-                }
-            }
 
+            }
             try {
                 getActivity().runOnUiThread(() -> {
+                    recyclerView.swapAdapter(adapter, false);
                     dialogView.findViewById(R.id.loading_circular).setVisibility(View.GONE);
                 });
             } catch (NullPointerException ignored) {

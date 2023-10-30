@@ -1,9 +1,5 @@
 package com.securelight.secureshellv;
 
-import static com.securelight.secureshellv.utility.Utilities.getSHA;
-import static com.securelight.secureshellv.utility.Utilities.toHexString;
-import static java.sql.DriverManager.println;
-
 import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
@@ -24,7 +20,6 @@ import android.graphics.drawable.Drawable;
 import android.net.TrafficStats;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Message;
 import android.os.Process;
 import android.util.TypedValue;
 import android.view.View;
@@ -50,12 +45,14 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.UserData;
 import com.securelight.secureshellv.statics.Constants;
+import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
 import com.securelight.secureshellv.ui.login.LoginActivity;
 import com.securelight.secureshellv.utility.CustomExceptionHandler;
@@ -63,13 +60,8 @@ import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -194,6 +186,27 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private final BroadcastReceiver insufficientTrafficBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle(R.string.insufficient_traffic)
+                    .setMessage(R.string.you_traffic_has_run_out)
+                    .setNeutralButton(R.string.ok, null).show();
+        }
+    };
+    private final BroadcastReceiver creditExpiredBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle(R.string.credit_expired)
+                    .setMessage(R.string.credit_time_has_run_out)
+                    .setNeutralButton(R.string.ok, null).show();
+        }
+    };
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -233,17 +246,9 @@ public class MainActivity extends AppCompatActivity {
         lbm.registerReceiver(disconnectedBr, new IntentFilter(SSVpnService.DISCONNECTED_ACTION));
         lbm.registerReceiver(signInBr, new IntentFilter(SIGN_IN_ACTION));
         lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(UPDATE_USER_DATA_INTENT));
+        lbm.registerReceiver(insufficientTrafficBr, new IntentFilter(Intents.INSUFFICIENT_TRAFFIC_INTENT));
+        lbm.registerReceiver(creditExpiredBr, new IntentFilter(Intents.CREDIT_EXPIRED_INTENT));
 
-//        // TODO: fuck after database
-//        ((RadioGroup) findViewById(R.id.protocolGroup)).setOnCheckedChangeListener((group, checkedId) -> {
-//            if (checkedId == R.id.directSshProtocol) {
-//                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("direct__"));
-//            } else if (checkedId == R.id.tLSSshProtocol) {
-//                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("tls__"));
-//            } else if (checkedId == R.id.dualSshProtocol) {
-//                LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("dual__"));
-//            }
-//        });
     }
 
     private void initUIComponents() {
@@ -287,6 +292,7 @@ public class MainActivity extends AppCompatActivity {
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                     bottomSheetBehavior.setDraggable(true);
                 }
+
                 View view = tab.getCustomView();
                 TextView textView = view.findViewById(R.id.text_view);
                 ImageView imageView = view.findViewById(R.id.image_view);
