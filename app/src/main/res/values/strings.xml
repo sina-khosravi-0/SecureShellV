@@ -46,7 +46,7 @@
     <string name="location">Location</string>
     <string name="no_location_selected">No Location Selected</string>
     <string name="rapid_reconnect">Rapid Reconnect</string>
-    <string name="auto">Automatic</string>
+    <string name="auto">Auto</string>
     <string name="connect_to_iran_server">Connect To Iran Server</string>
     <string name="notice">Notice</string>
     <string name="ok">OK</string>

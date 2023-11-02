@@ -185,9 +185,9 @@ public class DatabaseHandlerSingleton {
 
     private void makeUserDataRequest(String url, String accessTokenFinal) {
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, response -> {
-            UserDataManager userDataManager = UserDataManager.getInstance();
+            DataManager dataManager = DataManager.getInstance();
             try {
-                userDataManager.parseData(response);
+                dataManager.parseData(response);
                 LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
             } catch (JSONException e) {
                 throw new RuntimeException("error parsing userdata", e);
@@ -340,9 +340,9 @@ public class DatabaseHandlerSingleton {
         instance.addToRequestQueue(request);
     }
 
-    public void fetchServerList() {
+    public JSONArray fetchServerList(String location) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/servers/";
+        String url = endPoint + "api/servers/" + location;
 
         RequestFuture<JSONArray> future = RequestFuture.newFuture();
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
@@ -355,14 +355,10 @@ public class DatabaseHandlerSingleton {
         };
         instance.addToRequestQueue(request);
         try {
-            JSONArray response = future.get(10, TimeUnit.SECONDS);
-            UserDataManager userDataManager = UserDataManager.getInstance();
-            userDataManager.fillTargetServers(response);
-            userDataManager.getTargetServers().forEach(System.out::println);
-            System.out.println(userDataManager.getAvailableServerLocations());
+            return future.get(10, TimeUnit.SECONDS);
 //            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
-        } catch (InterruptedException | ExecutionException | TimeoutException |
-                 JSONException ignored) {
+        } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+            throw new RuntimeException("Error in fetching server list");
         }
     }
 

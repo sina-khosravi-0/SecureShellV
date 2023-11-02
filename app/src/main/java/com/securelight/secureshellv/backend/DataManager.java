@@ -7,6 +7,7 @@ import android.media.Image;
 
 import com.github.eloyzone.jalalicalendar.DateConverter;
 import com.github.eloyzone.jalalicalendar.JalaliDate;
+import com.securelight.secureshellv.utility.NetTools;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,11 +20,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class UserDataManager {
-    private static UserDataManager userDataManager;
+public class DataManager {
+    private static DataManager dataManager;
     private String userName;
-    private final List<TargetServer> targetServers = new ArrayList<>();
+    private List<TargetServer> targetServers = new ArrayList<>();
+    private TargetServer bestServer;
     private double remainingTrafficGB;
     private LocalDateTime endCreditDate;
     private double totalTrafficGB;
@@ -38,28 +44,29 @@ public class UserDataManager {
     private LocalDateTime messageDate;
     private boolean messagePending;
 
-    private UserDataManager() {
+    private boolean isFetching = false;
+
+    private DataManager() {
     }
 
-    public char[] getSshPassword() {
-        String result = DatabaseHandlerSingleton.getInstance(null).retrievePassword(1);
-        return calculatePassword(userName, result).toCharArray();
+    /**
+     * Requests password of the best server from the backend
+     * */
+    public String getSshPassword() {
+        String result = DatabaseHandlerSingleton.getInstance(null).retrievePassword(bestServer.getId());
+        return calculatePassword(userName, result);
     }
 
-    public void resetPass() {
-        targetServers.clear();
-    }
-
-    public static synchronized UserDataManager getInstance() {
-        if (userDataManager == null) {
-            userDataManager = new UserDataManager();
+    public static synchronized DataManager getInstance() {
+        if (dataManager == null) {
+            dataManager = new DataManager();
         }
-        return userDataManager;
+        return dataManager;
     }
 
     public void parseData(JSONObject data) throws JSONException {
 
-        if (userDataManager == null) {
+        if (dataManager == null) {
             return;
         }
         JSONObject userCreditInfo = data.getJSONObject("user_credit_info");
@@ -111,15 +118,86 @@ public class UserDataManager {
         }
     }
 
-    public List<TargetServer> getTargetServers() {
+    private ReentrantLock lock = new ReentrantLock();
+    private Condition condition = lock.newCondition();
+
+    public List<TargetServer> getTargetServers(String location) {
+        if (isFetching) {
+            while (isFetching) {
+                try {
+                    lock.lock();
+                    condition.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    lock.unlock();
+                }
+            }
+            return targetServers;
+        }
+
+        isFetching = true;
+        try {
+            JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServerList(location);
+            fillTargetServers(response);
+        } catch (JSONException e) {
+            throw new RuntimeException("error parsing target servers");
+        } finally {
+            isFetching = false;
+            lock.lock();
+            condition.signalAll();
+            lock.unlock();
+        }
         return targetServers;
     }
+
+    /**
+     * Returns available server locations without duplicates.
+     * */
     public List<String> getAvailableServerLocations() {
         Map<String, String> locations = new HashMap<>();
         targetServers.forEach(targetServer -> {
             locations.put(targetServer.getLocationCode(), "");
         });
         return new ArrayList<>(locations.keySet());
+    }
+
+
+    public void calculateBestServer(String location) {
+        List<TargetServer> targetServers = DataManager.getInstance().getTargetServers(location);
+        List<Thread> threadList = new ArrayList<>();
+        Map<TargetServer, Integer> serverPings = new HashMap<>();
+        targetServers.forEach(targetServer -> {
+            Thread thread = new Thread(() -> {
+                serverPings.put(targetServer, NetTools.getServerPing(targetServer));
+            });
+            thread.start();
+            threadList.add(thread);
+        });
+        for (Thread thread : threadList) {
+            try {
+                thread.join();
+            } catch (InterruptedException ignored) {
+            }
+        }
+        AtomicReference<TargetServer> bestServer = new AtomicReference<>();
+        AtomicInteger bestPing = new AtomicInteger(Integer.MAX_VALUE);
+        serverPings.forEach((targetServer, ping) -> {
+            if (bestPing.get() > ping) {
+                bestServer.set(targetServer);
+                bestPing.set(ping);
+            }
+        });
+        this.bestServer = bestServer.get();
+    }
+
+    public void calculateBestServer() {
+        calculateBestServer("");
+    }
+
+
+    public TargetServer getBestServer() {
+        return bestServer;
     }
 
     public int getAllowedIps() {
@@ -141,9 +219,9 @@ public class UserDataManager {
     public String getJalaliEndCreditDate() {
         DateConverter dateConverter = new DateConverter();
         return dateConverter.gregorianToJalali(
-                userDataManager.getEndCreditDate().getYear(),
-                userDataManager.getEndCreditDate().getMonthValue(),
-                userDataManager.getEndCreditDate().getDayOfMonth()).toString();
+                dataManager.getEndCreditDate().getYear(),
+                dataManager.getEndCreditDate().getMonthValue(),
+                dataManager.getEndCreditDate().getDayOfMonth()).toString();
     }
 
     public long getDaysLeft() {
@@ -224,5 +302,4 @@ public class UserDataManager {
                 ", userId=" + userName +
                 '}';
     }
-
 }

@@ -3,6 +3,7 @@ package com.securelight.secureshellv.utility;
 
 import android.util.Log;
 
+import com.securelight.secureshellv.backend.TargetServer;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.vpnservice.VpnSettings;
 
@@ -11,7 +12,7 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
 
-public class Tools {
+public class NetTools {
     public static boolean checkInternetAccess() {
         Runtime runtime = Runtime.getRuntime();
         try {
@@ -111,5 +112,35 @@ public class Tools {
             return Constants.InternetQuality.BAD;
         }
         return Constants.InternetQuality.HORRIBLE;
+    }
+
+    public static int getServerPing(TargetServer server) {
+        long averageMilli = 0;
+        int iterations = 5;
+
+        Socket[] sockets = new Socket[iterations];
+        for (int i = 0; i < iterations; i++) {
+            sockets[i] = new Socket();
+        }
+
+        try {
+            for (int i = 0; i < iterations; i++) {
+                long prev = System.currentTimeMillis();
+                sockets[i].connect(new InetSocketAddress(server.getIp(), server.getPort()),
+                        3000);
+                averageMilli += System.currentTimeMillis() - prev;
+                Thread.sleep(300);
+            }
+            averageMilli /= iterations;
+        } catch (IOException | InterruptedException ignored) {
+        }
+
+        for (int i = 0; i < iterations; i++) {
+            try {
+                sockets[i].close();
+            } catch (IOException ignored) {
+            }
+        }
+        return (int) averageMilli;
     }
 }

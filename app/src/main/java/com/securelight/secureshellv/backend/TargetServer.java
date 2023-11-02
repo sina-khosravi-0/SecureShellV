@@ -34,7 +34,7 @@ public class TargetServer {
     private String locationCode;
     private String type;
     private int port;
-    private int local_ip;
+    private String local_ip;
     private int local_port;
 
     public void parseData(JSONObject data) throws JSONException {
@@ -49,7 +49,7 @@ public class TargetServer {
         type = data.getString("type");
         port = data.getInt("port");
         if (!type.equals("D")) {
-            local_ip = data.getInt("local_ip");
+            local_ip = data.getString("local_ip");
             local_port = data.getInt("local_port");
         }
     }
@@ -78,7 +78,7 @@ public class TargetServer {
         return port;
     }
 
-    public int getLocal_ip() {
+    public String getLocal_ip() {
         return local_ip;
     }
 

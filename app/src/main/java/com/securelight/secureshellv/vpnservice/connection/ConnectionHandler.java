@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.ParcelFileDescriptor;
-import android.provider.ContactsContract;
 import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -18,7 +17,7 @@ import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.StunnelManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.SendTrafficTimeTask;
-import com.securelight.secureshellv.backend.UserDataManager;
+import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.ssh.SshConfigs;
 import com.securelight.secureshellv.ssh.SshManager;
 import com.securelight.secureshellv.statics.Constants;
@@ -103,7 +102,7 @@ public class ConnectionHandler extends Thread {
         LocalBroadcastManager.getInstance(context).sendBroadcast(
                 new Intent(SSVpnService.CONNECTING_ACTION));
         notificationListener.updateNotification(networkState, connectionState);
-        DatabaseHandlerSingleton.getInstance(context).fetchServerList();
+        DataManager.getInstance().calculateBestServer();
 
 
         boolean bridge = false;
@@ -129,7 +128,7 @@ public class ConnectionHandler extends Thread {
             if (bridge) {
                 sshManager.connectWithBridge();
             } else {
-                sshManager.connect(String.valueOf(UserDataManager.getInstance().getSshPassword()));
+                sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword()));
             }
         }
         if (!interrupted) {
@@ -165,7 +164,7 @@ public class ConnectionHandler extends Thread {
                 if (bridge) {
                     sshManager.connectWithBridge();
                 } else {
-                    sshManager.connect(String.valueOf(UserDataManager.getInstance().getSshPassword()));
+                    sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword()));
                 }
             }
             if (!interrupted) {
@@ -193,9 +192,8 @@ public class ConnectionHandler extends Thread {
     private void setupDirectSsh() {
         sshManager = new SshManager(lock,
                 internetAvailableCondition,
-                // todo: fetch from server
-                new SshConfigs(null,
-                        22,
+                new SshConfigs(DataManager.getInstance().getBestServer().getIp(),
+                        DataManager.getInstance().getBestServer().getPort(),
                         VpnSettings.iFaceAddress,
                         VpnSettings.socksPort,
                         Constants.Protocol.DIRECT_SSH));
@@ -209,8 +207,10 @@ public class ConnectionHandler extends Thread {
             throw new RuntimeException("no free port");
         }
         stunnelManager = new StunnelManager(context.getApplicationContext());
-        // todo: fetch from server
-        stunnelManager.open("one.weary.tech", 80, port);
+        stunnelManager.open(DataManager.getInstance().getBestServer().getIp(),
+                DataManager.getInstance().getBestServer().getPort(),
+                port);
+
         sshManager = new SshManager(lock,
                 internetAvailableCondition,
                 new SshConfigs("127.0.0.1",
@@ -229,13 +229,12 @@ public class ConnectionHandler extends Thread {
         }
         sshManager = new SshManager(lock,
                 internetAvailableCondition,
-                // todo: fetch from server
                 new SshConfigs("127.0.0.1",
                         port,
                         VpnSettings.iFaceAddress,
                         VpnSettings.socksPort,
-                        "one.weary.tech",
-                        22,
+                        DataManager.getInstance().getBestServer().getIp(),
+                        DataManager.getInstance().getBestServer().getPort(),
                         Constants.Protocol.DUAL_SSH));
     }
 

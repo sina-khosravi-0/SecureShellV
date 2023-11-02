@@ -3,7 +3,7 @@ package com.securelight.secureshellv.ssh;
 import android.os.Build;
 import android.util.Log;
 
-import com.securelight.secureshellv.backend.UserDataManager;
+import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.statics.Constants;
 
 import org.apache.sshd.client.SshClient;
@@ -68,8 +68,9 @@ public class SshManager {
             }
 
             if (sshClient.isStarted()){
-                session = sshClient.connect(UserDataManager.getInstance().getUserName(),
-                                UserDataManager.getInstance().getTargetServers().get(0).getIp(), configs.hostPort)
+                session = sshClient.connect(DataManager.getInstance().getUserName(),
+                                DataManager.getInstance().getBestServer().getIp(),
+                                configs.hostPort)
                         .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT).getClientSession();
                 session.addSessionListener(getSessionListener());
                 session.addPortForwardingEventListener(new PFEventListener());
@@ -79,10 +80,7 @@ public class SshManager {
                 session.auth().verify(6000, CancelOption.CANCEL_ON_TIMEOUT);
                 established = true;
             }
-        } catch (SshException e) {
-            if (e.getMessage().contains("No more authentication methods available")) {
-                UserDataManager.getInstance().resetPass();
-            }
+        } catch (SshException ignored) {
         } catch (IOException | IllegalArgumentException e) {
             Log.d(TAG, e.getMessage());
             Log.e(TAG, "connection failed.", e);
@@ -104,36 +102,35 @@ public class SshManager {
             }
 
             // opening session for iran server
-            bridgeSession = sshClient.connect(UserDataManager.getInstance().getUserName(), configs.bridgeHostAddress, configs.bridgeHostPort)
+            bridgeSession = sshClient.connect(DataManager.getInstance().getUserName(), configs.bridgeHostAddress, configs.bridgeHostPort)
                     .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
                     .getClientSession();
             bridgeSession.addSessionListener(getSessionListener());
             bridgeSession.addPortForwardingEventListener(new PFEventListener());
             bridgeSession.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
                     , TimeUnit.SECONDS, 3);
-            bridgeSession.addPasswordIdentity(String.valueOf(UserDataManager.getInstance().getSshPassword()));
+            bridgeSession.addPasswordIdentity(DataManager.getInstance().getSshPassword());
             bridgeSession.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
             // create local port forwarding
             portForwardingTrackers.add(bridgeSession.createLocalPortForwardingTracker(
                     new SshdSocketAddress(configs.hostAddress, configs.hostPort),
-                    // todo: fetch the port dynamically from server
-                    new SshdSocketAddress("127.0.0.1", 2000)));
+                    new SshdSocketAddress(DataManager.getInstance().getBestServer().getLocal_ip(),
+                            DataManager.getInstance().getBestServer().getLocal_port())));
 
-            session = sshClient.connect(UserDataManager.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
+            session = sshClient.connect(DataManager.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
                     .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
                     .getClientSession();
             session.addSessionListener(getSessionListener());
             session.addPortForwardingEventListener(new PFEventListener());
             session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
                     TimeUnit.SECONDS, 3);
-            session.addPasswordIdentity(String.valueOf(UserDataManager.getInstance().getSshPassword()));
+            session.addPasswordIdentity(DataManager.getInstance().getSshPassword());
             session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
             established = true;
         } catch (IOException e) {
-            Log.d(TAG, "error", e);
-            Log.e(TAG, "connection failed.");
+            Log.d(TAG, "connection failed.", e);
         }
     }
 
