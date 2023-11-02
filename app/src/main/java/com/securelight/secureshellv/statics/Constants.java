@@ -8,6 +8,9 @@ public class Constants {
     public static final String ACCESS_TOKEN_PREF_NAME = "verify";
     public static final String REFRESH_TOKEN_PREF_NAME = "refresh";
     public static final String APP_FILTER_MODE_NAME = "appFilterMode";
+    public static final String TOKEN_INVALID_CODE_STRING = "token_not_valid";
+    public static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
+    public static final String OUT_OF_TRAFFIC_CODE_STRING = "insufficient_traffic";
     public static String API_CACHE_PREFERENCES_NAME = "apiCache";
     public static String SERVER_LOCATION_DEFAULT = "ato";
     public static String USER_SETTINGS_PREFERENCES_NAME = "userSettings";

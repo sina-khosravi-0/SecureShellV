@@ -8,17 +8,22 @@ import android.media.Image;
 import com.github.eloyzone.jalalicalendar.DateConverter;
 import com.github.eloyzone.jalalicalendar.JalaliDate;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class UserData {
-    private static UserData userData;
+public class UserDataManager {
+    private static UserDataManager userDataManager;
     private String userName;
-    private char[] password = null;
-    private final List<String> serverAddresses = new ArrayList<>();
+    private final List<TargetServer> targetServers = new ArrayList<>();
     private double remainingTrafficGB;
     private LocalDateTime endCreditDate;
     private double totalTrafficGB;
@@ -33,51 +38,45 @@ public class UserData {
     private LocalDateTime messageDate;
     private boolean messagePending;
 
-    private UserData() {
+    private UserDataManager() {
     }
 
     public char[] getSshPassword() {
-        String[] result = DatabaseHandlerSingleton.getInstance(null).retrievePassword();
-        String word = result[0];
-        password = calculatePassword(userName, word).toCharArray();
-
-        //todo: remove
-        serverAddresses.clear();
-
-        serverAddresses.add(result[1]);
-        return password;
+        String result = DatabaseHandlerSingleton.getInstance(null).retrievePassword(1);
+        return calculatePassword(userName, result).toCharArray();
     }
 
     public void resetPass() {
-        password = null;
-        serverAddresses.clear();
+        targetServers.clear();
     }
 
-    public static synchronized UserData getInstance() {
-        if (userData == null) {
-            userData = new UserData();
+    public static synchronized UserDataManager getInstance() {
+        if (userDataManager == null) {
+            userDataManager = new UserDataManager();
         }
-        return userData;
+        return userDataManager;
     }
 
-    public void parseData(double remainingGb,
-                          String endCreditDate,
-                          long totalTrafficB,
-                          long usedTrafficB,
-                          boolean unlimitedCreditTime,
-                          boolean unlimitedTraffic,
-                          boolean hasPaid,
-                          int connectedIps,
-                          int allowedIps,
-                          String paymentReceipt,
-                          String message,
-                          String messageDate,
-                          boolean messagePending,
-                          String userName) {
+    public void parseData(JSONObject data) throws JSONException {
 
-        if (userData == null) {
+        if (userDataManager == null) {
             return;
         }
+        JSONObject userCreditInfo = data.getJSONObject("user_credit_info");
+        double remainingGb = userCreditInfo.getDouble("remaining_gb");
+        String endCreditDate = userCreditInfo.getString("end_credit_date");
+        long totalTrafficB = userCreditInfo.getLong("total_traffic_b");
+        long usedTrafficB = userCreditInfo.getLong("used_traffic_b");
+        boolean unlimitedCreditTime = userCreditInfo.getBoolean("unlimited_credit_time");
+        boolean unlimitedTraffic = userCreditInfo.getBoolean("unlimited_traffic");
+        boolean hasPaid = userCreditInfo.getBoolean("has_paid");
+        int connectedIps = userCreditInfo.getInt("connected_ips");
+        int allowedIps = userCreditInfo.getInt("allowed_ips");
+        String paymentReceipt = userCreditInfo.getString("payment_receipt");
+        String message = data.getString("message");
+        String messageDate = data.getString("message_date");
+        boolean messagePending = data.getBoolean("message_pending");
+        String userName = data.getJSONObject("user").getString("username");
         this.remainingTrafficGB = Math.round(remainingGb * 100) / 100.;
 
         try {
@@ -103,8 +102,24 @@ public class UserData {
         this.userName = userName;
     }
 
-    public List<String> getServerAddresses() {
-        return serverAddresses;
+    public void fillTargetServers(JSONArray data) throws JSONException {
+        targetServers.clear();
+        for (int i = 0; i < data.length(); i++) {
+            TargetServer targetServer = new TargetServer();
+            targetServer.parseData(data.getJSONObject(i));
+            targetServers.add(targetServer);
+        }
+    }
+
+    public List<TargetServer> getTargetServers() {
+        return targetServers;
+    }
+    public List<String> getAvailableServerLocations() {
+        Map<String, String> locations = new HashMap<>();
+        targetServers.forEach(targetServer -> {
+            locations.put(targetServer.getLocationCode(), "");
+        });
+        return new ArrayList<>(locations.keySet());
     }
 
     public int getAllowedIps() {
@@ -126,9 +141,9 @@ public class UserData {
     public String getJalaliEndCreditDate() {
         DateConverter dateConverter = new DateConverter();
         return dateConverter.gregorianToJalali(
-                userData.getEndCreditDate().getYear(),
-                userData.getEndCreditDate().getMonthValue(),
-                userData.getEndCreditDate().getDayOfMonth()).toString();
+                userDataManager.getEndCreditDate().getYear(),
+                userDataManager.getEndCreditDate().getMonthValue(),
+                userDataManager.getEndCreditDate().getDayOfMonth()).toString();
     }
 
     public long getDaysLeft() {
@@ -193,7 +208,7 @@ public class UserData {
     public String toString() {
         return "UserData{" +
                 "userName='" + userName + '\'' +
-                ", serverAddresses=" + serverAddresses +
+                ", serverAddresses=" + targetServers +
                 ", remainingGb=" + remainingTrafficGB +
                 ", endCreditDate=" + endCreditDate +
                 ", totalTrafficB=" + totalTrafficGB +

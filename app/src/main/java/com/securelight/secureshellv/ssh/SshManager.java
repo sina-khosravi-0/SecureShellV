@@ -3,7 +3,7 @@ package com.securelight.secureshellv.ssh;
 import android.os.Build;
 import android.util.Log;
 
-import com.securelight.secureshellv.backend.UserData;
+import com.securelight.secureshellv.backend.UserDataManager;
 import com.securelight.secureshellv.statics.Constants;
 
 import org.apache.sshd.client.SshClient;
@@ -67,19 +67,21 @@ public class SshManager {
                 lock.unlock();
             }
 
-            session = sshClient.connect(UserData.getInstance().getUserName(),
-                            UserData.getInstance().getServerAddresses().get(0), configs.hostPort)
-                    .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT).getClientSession();
-            session.addSessionListener(getSessionListener());
-            session.addPortForwardingEventListener(new PFEventListener());
-            session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
-                    TimeUnit.SECONDS, 3);
-            session.addPasswordIdentity(password);
-            session.auth().verify(6000, CancelOption.CANCEL_ON_TIMEOUT);
-            established = true;
+            if (sshClient.isStarted()){
+                session = sshClient.connect(UserDataManager.getInstance().getUserName(),
+                                UserDataManager.getInstance().getTargetServers().get(0).getIp(), configs.hostPort)
+                        .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT).getClientSession();
+                session.addSessionListener(getSessionListener());
+                session.addPortForwardingEventListener(new PFEventListener());
+                session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
+                        TimeUnit.SECONDS, 3);
+                session.addPasswordIdentity(password);
+                session.auth().verify(6000, CancelOption.CANCEL_ON_TIMEOUT);
+                established = true;
+            }
         } catch (SshException e) {
             if (e.getMessage().contains("No more authentication methods available")) {
-                UserData.getInstance().resetPass();
+                UserDataManager.getInstance().resetPass();
             }
         } catch (IOException | IllegalArgumentException e) {
             Log.d(TAG, e.getMessage());
@@ -102,14 +104,14 @@ public class SshManager {
             }
 
             // opening session for iran server
-            bridgeSession = sshClient.connect(UserData.getInstance().getUserName(), configs.bridgeHostAddress, configs.bridgeHostPort)
+            bridgeSession = sshClient.connect(UserDataManager.getInstance().getUserName(), configs.bridgeHostAddress, configs.bridgeHostPort)
                     .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
                     .getClientSession();
             bridgeSession.addSessionListener(getSessionListener());
             bridgeSession.addPortForwardingEventListener(new PFEventListener());
             bridgeSession.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
                     , TimeUnit.SECONDS, 3);
-            bridgeSession.addPasswordIdentity(String.valueOf(UserData.getInstance().getSshPassword()));
+            bridgeSession.addPasswordIdentity(String.valueOf(UserDataManager.getInstance().getSshPassword()));
             bridgeSession.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
             // create local port forwarding
@@ -118,14 +120,14 @@ public class SshManager {
                     // todo: fetch the port dynamically from server
                     new SshdSocketAddress("127.0.0.1", 2000)));
 
-            session = sshClient.connect(UserData.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
+            session = sshClient.connect(UserDataManager.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
                     .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
                     .getClientSession();
             session.addSessionListener(getSessionListener());
             session.addPortForwardingEventListener(new PFEventListener());
             session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
                     TimeUnit.SECONDS, 3);
-            session.addPasswordIdentity(String.valueOf(UserData.getInstance().getSshPassword()));
+            session.addPasswordIdentity(String.valueOf(UserDataManager.getInstance().getSshPassword()));
             session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
             established = true;
@@ -217,12 +219,6 @@ public class SshManager {
         } finally {
             lock.unlock();
         }
-    }
-
-    public String getSshAddress() {
-        //todo: calculate best server (possibly based on selected options e.g location, ISP)
-        List<String> serverAddresses = UserData.getInstance().getServerAddresses();
-        return "64.226.64.126";
     }
 
     public SshClient getSshClient() {

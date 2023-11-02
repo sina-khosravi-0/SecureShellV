@@ -1,6 +1,7 @@
 package com.securelight.secureshellv.vpnservice;
 
 import static androidx.core.app.NotificationCompat.EXTRA_NOTIFICATION_ID;
+import static com.securelight.secureshellv.statics.Constants.CREDIT_EXPIRED_CODE_STRING;
 import static com.securelight.secureshellv.statics.Constants.apiHeartbeatPeriod;
 
 import android.app.Notification;
@@ -29,7 +30,9 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.statics.Constants;
+import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
 import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
@@ -39,7 +42,6 @@ import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -139,8 +141,10 @@ public class SSVpnService extends VpnService {
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+
             if (STOP_VPN_SERVICE_ACTION.equals(intent.getAction())) {
-                stopVpnService();
+                stopVpnService(intent.getBooleanExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, false),
+                        intent.getBooleanExtra(Constants.CREDIT_EXPIRED_CODE_STRING, false));
                 Log.i(TAG, "VPN service stopped");
             }
         }
@@ -167,30 +171,6 @@ public class SSVpnService extends VpnService {
         }
     };
 
-    //TODO: remove after implementing database handling
-    private final BroadcastReceiver directBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            connectionMethod = Constants.Protocol.DIRECT_SSH;
-        }
-    };
-
-    //TODO: remove after implementing database handling
-    private final BroadcastReceiver tlsBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            connectionMethod = Constants.Protocol.TLS_SSH;
-        }
-    };
-
-    //TODO: remove after implementing database handling
-    private final BroadcastReceiver dualBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            connectionMethod = Constants.Protocol.DUAL_SSH;
-        }
-    };
-
     @Override
     public void onCreate() {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
@@ -198,9 +178,6 @@ public class SSVpnService extends VpnService {
         lbm.registerReceiver(connectedBr, new IntentFilter(CONNECTED_ACTION));
         lbm.registerReceiver(connectingBr, new IntentFilter(CONNECTING_ACTION));
         lbm.registerReceiver(disconnectedBr, new IntentFilter(DISCONNECTED_ACTION));
-        lbm.registerReceiver(directBr, new IntentFilter("direct__"));
-        lbm.registerReceiver(tlsBr, new IntentFilter("tls__"));
-        lbm.registerReceiver(dualBr, new IntentFilter("dual__"));
     }
 
     @Override
@@ -214,7 +191,7 @@ public class SSVpnService extends VpnService {
             PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
             PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                     "SecureShellV::MyWakelockTag");
-            wakeLock.acquire(20*60*1000L /*10 minutes*/);
+            wakeLock.acquire(20 * 60 * 1000L /*10 minutes*/);
             startedAt = System.currentTimeMillis();
             serviceActive.set(true);
 
@@ -338,7 +315,6 @@ public class SSVpnService extends VpnService {
 
         if (notificationManager != null) {
             Notification notification = notificationBuilder.build();
-//            notificationManager.notify(1, notification);
             startForeground(1, notification);
         }
     }
@@ -388,20 +364,31 @@ public class SSVpnService extends VpnService {
         stopSelf();
     }
 
-    public void stopVpnService() {
-        if (System.currentTimeMillis() - startedAt > 2000) {
-            try {
-                apiHeartbeatTimer.cancel();
-                serviceActive.set(false);
-                connectionHandler.interrupt();
-                connectionHandler.join();
-                notificationBuilder.clearActions().addAction(notifStartAction);
-                notificationBuilder.addAction(notifQuitAction);
-                notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
-            } catch (NullPointerException | InterruptedException e) {
-                Log.e(TAG, "Fuck Null");
-            }
+
+    private void stopVpnService(boolean insufficient_traffic, boolean credit_expired) {
+        if (insufficient_traffic) {
+            LocalBroadcastManager.getInstance(this).sendBroadcast(
+                    new Intent(Intents.INSUFFICIENT_TRAFFIC_INTENT));
         }
+        if (credit_expired) {
+            LocalBroadcastManager.getInstance(this).sendBroadcast(
+                    new Intent(Intents.CREDIT_EXPIRED_INTENT));
+        }
+        try {
+            apiHeartbeatTimer.cancel();
+            serviceActive.set(false);
+            connectionHandler.interrupt();
+            connectionHandler.join();
+            notificationBuilder.clearActions().addAction(notifStartAction);
+            notificationBuilder.addAction(notifQuitAction);
+            notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
+        } catch (NullPointerException | InterruptedException e) {
+            Log.e(TAG, "Fuck Null");
+        }
+    }
+
+    public void stopVpnService() {
+        stopVpnService(false, false);
     }
 
     public void yes() {

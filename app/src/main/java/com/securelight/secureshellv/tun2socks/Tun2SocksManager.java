@@ -6,6 +6,8 @@ import com.securelight.secureshellv.vpnservice.VpnSettings;
 import com.securelight.secureshellv.vpnservice.listeners.Tun2SocksListener;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Tun2SocksManager {
@@ -14,6 +16,8 @@ public class Tun2SocksManager {
     private final ParcelFileDescriptor vpnInterface;
     private boolean isRunning;
     private Tun2SocksListener t2SListener;
+    private static Thread thread;
+    private static final List<Long> threadIds = new ArrayList<>();
 
     public Tun2SocksManager(ParcelFileDescriptor vpnInterface, Tun2SocksListener t2SListener) {
         this.vpnInterface = vpnInterface;
@@ -21,28 +25,48 @@ public class Tun2SocksManager {
     }
 
     public void start() {
-        new Thread(() -> {
+        if (thread != null) {
+            return;
+        }
+        thread = new Thread(() -> {
+            for (int i = 0; i < 20; i++){
+                if (Tun2SocksJni.canStart() == 0) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ignored) {
+                    }
+                } else {
+                    break;
+                }
+
+            }
             isRunning = true;
             Tun2SocksJni.runTun2Socks(vpnInterface.getFd(), 1500, VpnSettings.iFaceAddress,
                     VpnSettings.iFaceSubnet, VpnSettings.iFaceAddress + ":" + VpnSettings.socksPort,
                     "127.0.0.1" + ":" + 7300,
-                    0, -1);
+                    1, -1);
             isRunning = false;
             t2SListener.onTun2SocksStopped();
-        }).start();
+        }, "Tun2Socks-Starting-Thread");
+        threadIds.add(thread.getId());
+        thread.start();
     }
 
     public void stop() {
-        if (isRunning) {
-            new Thread(() -> {
-                Tun2SocksJni.terminateTun2Socks();
+        new Thread(() -> {
+            while (Tun2SocksJni.canStop() == 0) {
                 try {
-                    vpnInterface.close();
-                } catch (IOException e) {
+                    Thread.sleep(500);
+                } catch (InterruptedException ignored) {
                 }
-            }).start();
-        }
-        isRunning = false;
+            }
+            Tun2SocksJni.terminateTun2Socks();
+            try {
+                vpnInterface.close();
+            } catch (IOException e) {
+            }
+            thread = null;
+        }, "Tun2Socks-Stopping-Thread").start();
     }
 
     public boolean isRunning() {

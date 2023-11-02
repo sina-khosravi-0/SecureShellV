@@ -50,7 +50,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
-import com.securelight.secureshellv.backend.UserData;
+import com.securelight.secureshellv.backend.UserDataManager;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
@@ -168,21 +168,21 @@ public class MainActivity extends AppCompatActivity {
         @SuppressLint("SetTextI18n")
         @Override
         public void onReceive(Context context, Intent intent) {
-            UserData userData = UserData.getInstance();
-            buttonText.setText(userData.getRemainingTrafficGB() + "\nGB");
+            UserDataManager userDataManager = UserDataManager.getInstance();
+            buttonText.setText(userDataManager.getRemainingTrafficGB() + "\nGB");
             if (vpnServiceBinder != null && vpnServiceBinder.getService().isServiceActive()) {
-                trafficProgressIndicator.setProgress(userData.getRemainingPercent(), true);
+                trafficProgressIndicator.setProgress(userDataManager.getRemainingPercent(), true);
             }
 
-            if (userData.getDaysLeft() <= 3 && userData.getDaysLeft() > 1) {
+            if (userDataManager.getDaysLeft() <= 3 && userDataManager.getDaysLeft() > 1) {
                 daysLeftText.setTextColor(colorWarning);
-            } else if (userData.getDaysLeft() <= 1) {
+            } else if (userDataManager.getDaysLeft() <= 1) {
                 daysLeftText.setTextColor(colorAlert);
             } else {
                 daysLeftText.setTextColor(colorOk);
             }
             daysLeftText.setText(getResources().getQuantityString(R.plurals.days_left,
-                    (int) userData.getDaysLeft(), (int) userData.getDaysLeft()));
+                    (int) userDataManager.getDaysLeft(), (int) userDataManager.getDaysLeft()));
         }
     };
 
@@ -602,10 +602,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
                 super.applyTransformation(interpolatedTime, t);
-                UserData userData = UserData.getInstance();
-                double value = userData.getRemainingTrafficGB() / userData.getTotalTrafficGB() *
+                UserDataManager userDataManager = UserDataManager.getInstance();
+                double value = userDataManager.getRemainingTrafficGB() / userDataManager.getTotalTrafficGB() *
                         interpolatedTime * 100;
-                double traffic = 0 + userData.getRemainingTrafficGB() * interpolatedTime;
+                double traffic = 0 + userDataManager.getRemainingTrafficGB() * interpolatedTime;
                 buttonText.setText(String.format("%.2f", traffic) + "\nGB");
                 trafficProgressIndicator.setProgress((int) value);
             }
@@ -646,13 +646,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
                 super.applyTransformation(interpolatedTime, t);
-                UserData userData = UserData.getInstance();
-                double value = (userData.getRemainingTrafficGB() / userData.getTotalTrafficGB() -
-                        userData.getRemainingTrafficGB() / userData.getTotalTrafficGB() *
+                UserDataManager userDataManager = UserDataManager.getInstance();
+                double value = (userDataManager.getRemainingTrafficGB() / userDataManager.getTotalTrafficGB() -
+                        userDataManager.getRemainingTrafficGB() / userDataManager.getTotalTrafficGB() *
                                 interpolatedTime) * 100;
 
-                double traffic = userData.getRemainingTrafficGB() -
-                        userData.getRemainingTrafficGB() * interpolatedTime;
+                double traffic = userDataManager.getRemainingTrafficGB() -
+                        userDataManager.getRemainingTrafficGB() * interpolatedTime;
                 buttonText.setText(String.format("%.2f", traffic) + "\nGB");
                 trafficProgressIndicator.setProgress((int) value);
 

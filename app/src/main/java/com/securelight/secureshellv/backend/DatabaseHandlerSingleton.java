@@ -6,7 +6,6 @@ import static com.securelight.secureshellv.statics.Constants.endPoint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.provider.Telephony;
 
 import androidx.annotation.NonNull;
 import androidx.collection.LruCache;
@@ -23,14 +22,16 @@ import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.toolbox.Volley;
 import com.securelight.secureshellv.MainActivity;
-import com.securelight.secureshellv.statics.Intents;
+import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -45,24 +46,23 @@ import java.util.concurrent.atomic.AtomicReference;
 public class DatabaseHandlerSingleton {
     enum TokenResult {
         TOKEN_VALID, TOKEN_INVALID, NO_AUTH, NO_CONNECTION, TIMEOUT, UNAUTHORIZED;
+
     }
 
     public enum FetchDbResult {
         SUCCESS, AUTH_FAIL, NO_CONNECTION, TIMEOUT,
+
     }
 
     private static DatabaseHandlerSingleton instance;
     private RequestQueue requestQueue;
     private final ImageLoader imageLoader;
-    private static Context context;
-    private static final String TOKEN_INVALID_CODE_STRING = "token_not_valid";
-    private static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
-    private static final String OUT_OF_TRAFFIC_CODE_STRING = "insufficient_traffic";
+    private final Context context;
 
     private DatabaseHandlerSingleton(@NonNull Context context) {
         // getApplicationContext() is key, it keeps you from leaking the
         // Activity or BroadcastReceiver if someone passes one in.
-        DatabaseHandlerSingleton.context = context.getApplicationContext();
+        this.context = context.getApplicationContext();
         requestQueue = getRequestQueue();
 
         imageLoader = new ImageLoader(requestQueue, new ImageLoader.ImageCache() {
@@ -185,23 +185,9 @@ public class DatabaseHandlerSingleton {
 
     private void makeUserDataRequest(String url, String accessTokenFinal) {
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, response -> {
-            UserData userData = UserData.getInstance();
+            UserDataManager userDataManager = UserDataManager.getInstance();
             try {
-                JSONObject userCreditInfo = response.getJSONObject("user_credit_info");
-                userData.parseData(userCreditInfo.getDouble("remaining_gb"),
-                        userCreditInfo.getString("end_credit_date"),
-                        userCreditInfo.getLong("total_traffic_b"),
-                        userCreditInfo.getLong("used_traffic_b"),
-                        userCreditInfo.getBoolean("unlimited_credit_time"),
-                        userCreditInfo.getBoolean("unlimited_traffic"),
-                        userCreditInfo.getBoolean("has_paid"),
-                        userCreditInfo.getInt("connected_ips"),
-                        userCreditInfo.getInt("allowed_ips"),
-                        userCreditInfo.getString("payment_receipt"),
-                        response.getString("message"),
-                        response.getString("message_date"),
-                        response.getBoolean("message_pending"),
-                        response.getJSONObject("user").getString("username"));
+                userDataManager.parseData(response);
                 LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
             } catch (JSONException e) {
                 throw new RuntimeException("error parsing userdata", e);
@@ -296,10 +282,10 @@ public class DatabaseHandlerSingleton {
         instance.addToRequestQueue(jsonObjectRequest);
     }
 
-    public String[] retrievePassword() {
+    public String retrievePassword(int serverId) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         // todo: make the url id dynamic
-        String url = endPoint + "api/pass/1";
+        String url = endPoint + "api/pass/" + serverId;
 
         RequestFuture<JSONObject> future = RequestFuture.newFuture();
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, future, future) {
@@ -313,30 +299,31 @@ public class DatabaseHandlerSingleton {
         instance.addToRequestQueue(request);
         try {
             JSONObject object = future.get(10, TimeUnit.SECONDS);
-            return new String[]{object.getString("password"), object.getString("ip")};
+            return object.getString("password");
         } catch (InterruptedException | TimeoutException | JSONException e) {
-            return new String[]{"", ""};
+            return "";
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof AuthFailureError) {
-                NetworkResponse networkResponse = ((AuthFailureError) (e.getCause())).networkResponse;
-                if (networkResponse.statusCode == 403) {
-                    if (new String(networkResponse.data).contains("insufficient_traffic")) {
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(
-                                new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION));
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(
-                                new Intent(Intents.INSUFFICIENT_TRAFFIC_INTENT));
-                    }
-                    if (new String(networkResponse.data).contains("credit_expired")) {
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(
-                                new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION));
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(
-                                new Intent(Intents.CREDIT_EXPIRED_INTENT));
-                    }
-                }
+            handleResponsePasswordError(e.getCause());
+        }
+        return "";
+    }
 
+    private void handleResponsePasswordError(Throwable error) {
+        if (error instanceof AuthFailureError) {
+            NetworkResponse networkResponse = ((AuthFailureError) (error)).networkResponse;
+            if (networkResponse.statusCode == 403) {
+                if (new String(networkResponse.data).contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {
+                    LocalBroadcastManager.getInstance(context).sendBroadcast(
+                            new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION)
+                                    .putExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, true));
+                }
+                if (new String(networkResponse.data).contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
+                    LocalBroadcastManager.getInstance(context).sendBroadcast(
+                            new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION)
+                                    .putExtra(Constants.CREDIT_EXPIRED_CODE_STRING, true));
+                }
             }
         }
-        return new String[]{"", ""};
     }
 
     public void sendHeartbeat() {
@@ -351,6 +338,32 @@ public class DatabaseHandlerSingleton {
             }
         };
         instance.addToRequestQueue(request);
+    }
+
+    public void fetchServerList() {
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
+        String url = endPoint + "api/servers/";
+
+        RequestFuture<JSONArray> future = RequestFuture.newFuture();
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
+            }
+        };
+        instance.addToRequestQueue(request);
+        try {
+            JSONArray response = future.get(10, TimeUnit.SECONDS);
+            UserDataManager userDataManager = UserDataManager.getInstance();
+            userDataManager.fillTargetServers(response);
+            userDataManager.getTargetServers().forEach(System.out::println);
+            System.out.println(userDataManager.getAvailableServerLocations());
+//            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
+        } catch (InterruptedException | ExecutionException | TimeoutException |
+                 JSONException ignored) {
+        }
     }
 
     private void broadcastSignIn() {

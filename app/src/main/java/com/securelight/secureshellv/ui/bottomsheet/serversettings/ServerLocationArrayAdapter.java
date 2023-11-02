@@ -16,6 +16,7 @@ import androidx.appcompat.content.res.AppCompatResources;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.securelight.secureshellv.MainActivityTest;
 import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,15 +84,14 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
     @NonNull
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+
         if (convertView == null) {
             convertView = LayoutInflater.from(parent.getContext()).inflate(resourceId, parent, false);
-//            convertView.setBackgroundColor(context.getResources().getColor(android.R.color.transparent));
             TextView itemTextView = convertView.findViewById(R.id.server_location_item_text);
             Drawable icon;
             if (codes.get(position).equals("ato")) {
                 itemTextView.setPadding(0, 10, 0, 10);
                 icon = AppCompatResources.getDrawable(context, R.drawable.auto_server_select);
-                icon.setTint(MainActivityTest.colorPrimary);
             } else {
                 int drawableId = context.getResources()
                         .getIdentifier("flag_" + codes.get(position), "drawable", context.getPackageName());
@@ -114,7 +114,6 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
             Drawable icon;
             if (code.equals("ato")) {
                 icon = AppCompatResources.getDrawable(context, R.drawable.auto_server_select);
-                icon.setTint(MainActivityTest.colorPrimary);
             } else {
                 int drawableId = context.getResources()
                         .getIdentifier("flag_" + code, "drawable", context.getPackageName());

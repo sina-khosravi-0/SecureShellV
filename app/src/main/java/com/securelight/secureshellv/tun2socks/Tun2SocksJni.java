@@ -41,9 +41,9 @@ public class Tun2SocksJni {
 
     public static native void resetBytes();
 
-    public static native int isSocksUp();
+    public static native int canStart();
 
-    public static native int isSocksClosed();
+    public static native int canStop();
 
     public static native long getUDPBytes();
 

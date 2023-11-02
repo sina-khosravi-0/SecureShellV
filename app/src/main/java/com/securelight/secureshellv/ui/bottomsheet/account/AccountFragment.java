@@ -18,7 +18,7 @@ import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputLayout;
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.R;
-import com.securelight.secureshellv.backend.UserData;
+import com.securelight.secureshellv.backend.UserDataManager;
 
 public class AccountFragment extends Fragment {
     private TextInputLayout username;
@@ -34,19 +34,19 @@ public class AccountFragment extends Fragment {
     private final BroadcastReceiver updateUserDataBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            UserData userData = UserData.getInstance();
+            UserDataManager userDataManager = UserDataManager.getInstance();
             try {
-                username.getEditText().setText(String.valueOf(userData.getUserName()));
+                username.getEditText().setText(String.valueOf(userDataManager.getUserName()));
 
-                endCreditDate.getEditText().setText(String.valueOf(userData.getJalaliEndCreditDate()));
-                remainingTr.getEditText().setText(String.valueOf(userData.getRemainingTrafficGB()));
-                usedTr.getEditText().setText(String.valueOf(userData.getUsedTrafficGB()));
-                totalTr.getEditText().setText(String.valueOf(userData.getTotalTrafficGB()));
-                unlimitedTime.setChecked(userData.isUnlimitedCreditTime());
-                unlimitedTraffic.setChecked(userData.isUnlimitedTraffic());
-                connectedIps.getEditText().setText(String.valueOf(userData.getConnectedIps()));
-                serverMessage.getEditText().setText(String.valueOf(userData.getMessage()));
-                serverMessage.setHelperText(String.valueOf(userData.getMessageDateTimeString()));
+                endCreditDate.getEditText().setText(String.valueOf(userDataManager.getJalaliEndCreditDate()));
+                remainingTr.getEditText().setText(String.valueOf(userDataManager.getRemainingTrafficGB()));
+                usedTr.getEditText().setText(String.valueOf(userDataManager.getUsedTrafficGB()));
+                totalTr.getEditText().setText(String.valueOf(userDataManager.getTotalTrafficGB()));
+                unlimitedTime.setChecked(userDataManager.isUnlimitedCreditTime());
+                unlimitedTraffic.setChecked(userDataManager.isUnlimitedTraffic());
+                connectedIps.getEditText().setText(String.valueOf(userDataManager.getConnectedIps()));
+                serverMessage.getEditText().setText(String.valueOf(userDataManager.getMessage()));
+                serverMessage.setHelperText(String.valueOf(userDataManager.getMessageDateTimeString()));
             } catch (Exception e) {
                 e.printStackTrace();
             }

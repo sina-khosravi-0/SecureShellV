@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.ParcelFileDescriptor;
+import android.provider.ContactsContract;
 import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -17,7 +18,7 @@ import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.StunnelManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.SendTrafficTimeTask;
-import com.securelight.secureshellv.backend.UserData;
+import com.securelight.secureshellv.backend.UserDataManager;
 import com.securelight.secureshellv.ssh.SshConfigs;
 import com.securelight.secureshellv.ssh.SshManager;
 import com.securelight.secureshellv.statics.Constants;
@@ -67,6 +68,7 @@ public class ConnectionHandler extends Thread {
         @Override
         public void onTun2SocksStopped() {
             if (!interrupted) {
+                System.out.println("shit");
                 tun2SocksManager.start();
             }
         }
@@ -101,6 +103,8 @@ public class ConnectionHandler extends Thread {
         LocalBroadcastManager.getInstance(context).sendBroadcast(
                 new Intent(SSVpnService.CONNECTING_ACTION));
         notificationListener.updateNotification(networkState, connectionState);
+        DatabaseHandlerSingleton.getInstance(context).fetchServerList();
+
 
         boolean bridge = false;
         switch (connectionMethod) {
@@ -115,7 +119,6 @@ public class ConnectionHandler extends Thread {
                 bridge = true;
                 break;
         }
-        String password = String.valueOf(UserData.getInstance().getSshPassword());
 
         tun2SocksManager = new Tun2SocksManager(vpnInterface, t2SListener);
 
@@ -126,7 +129,7 @@ public class ConnectionHandler extends Thread {
             if (bridge) {
                 sshManager.connectWithBridge();
             } else {
-                sshManager.connect(password);
+                sshManager.connect(String.valueOf(UserDataManager.getInstance().getSshPassword()));
             }
         }
         if (!interrupted) {
@@ -162,7 +165,7 @@ public class ConnectionHandler extends Thread {
                 if (bridge) {
                     sshManager.connectWithBridge();
                 } else {
-                    sshManager.connect(String.valueOf(UserData.getInstance().getSshPassword()));
+                    sshManager.connect(String.valueOf(UserDataManager.getInstance().getSshPassword()));
                 }
             }
             if (!interrupted) {
