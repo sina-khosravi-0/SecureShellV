@@ -9,6 +9,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TargetServer {
+    enum Type {
+        DIRECT("D"),
+        TLS_DIRECT("TD"),
+        TLS_HOP("TH"),
+        DUAL_HOP("DH");
+
+        public final String value;
+
+        private Type(String value) {
+            this.value = value;
+        }
+    }
+
     static class ISPScore {
         String ispName;
         double ispScore;
@@ -32,7 +45,7 @@ public class TargetServer {
     private final List<ISPScore> ispScores = new ArrayList<>();
     private String ip;
     private String locationCode;
-    private String type;
+    private Type type;
     private int port;
     private String local_ip;
     private int local_port;
@@ -46,9 +59,10 @@ public class TargetServer {
         }
         ip = data.getString("ip");
         locationCode = data.getString("location_code");
-        type = data.getString("type");
+        type = Type.valueOf(data.getString("type"));
         port = data.getInt("port");
-        if (!type.equals("D")) {
+
+        if (type != Type.DIRECT) {
             local_ip = data.getString("local_ip");
             local_port = data.getInt("local_port");
         }
@@ -70,7 +84,7 @@ public class TargetServer {
         return locationCode;
     }
 
-    public String getType() {
+    public Type getType() {
         return type;
     }
 
