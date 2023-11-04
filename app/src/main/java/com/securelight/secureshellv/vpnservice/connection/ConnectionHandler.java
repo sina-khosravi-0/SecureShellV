@@ -126,7 +126,7 @@ public class ConnectionHandler extends Thread {
 
         while (!sshManager.isEstablished() && !interrupted) {
             if (bridge) {
-                sshManager.connectWithBridge();
+                sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword()));
             } else {
                 sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword()));
             }
@@ -162,7 +162,7 @@ public class ConnectionHandler extends Thread {
             // reconnect
             while (!sshManager.isEstablished() && !interrupted) {
                 if (bridge) {
-                    sshManager.connectWithBridge();
+                    sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword()));
                 } else {
                     sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword()));
                 }

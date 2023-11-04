@@ -87,7 +87,7 @@ public class SshManager {
         }
     }
 
-    public void connectWithBridge() {
+    public void connectWithBridge(String password) {
         established = false;
         try {
             // wait for InternetAccessHandler or stop() to notify.
@@ -109,7 +109,7 @@ public class SshManager {
             bridgeSession.addPortForwardingEventListener(new PFEventListener());
             bridgeSession.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
                     , TimeUnit.SECONDS, 3);
-            bridgeSession.addPasswordIdentity(DataManager.getInstance().getSshPassword());
+            bridgeSession.addPasswordIdentity(password);
             bridgeSession.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
             // create local port forwarding
@@ -125,7 +125,7 @@ public class SshManager {
             session.addPortForwardingEventListener(new PFEventListener());
             session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
                     TimeUnit.SECONDS, 3);
-            session.addPasswordIdentity(DataManager.getInstance().getSshPassword());
+            session.addPasswordIdentity(password);
             session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
 
             established = true;
