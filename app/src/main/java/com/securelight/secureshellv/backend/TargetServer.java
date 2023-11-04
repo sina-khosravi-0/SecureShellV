@@ -10,10 +10,10 @@ import java.util.List;
 
 public class TargetServer {
     enum Type {
-        DIRECT("D"),
-        TLS_DIRECT("TD"),
-        TLS_HOP("TH"),
-        DUAL_HOP("DH");
+        D("DIRECT"),
+        TD("TLS_DIRECT"),
+        TH("TLS_HOP"),
+        DH("DUAL_HOP");
 
         public final String value;
 
@@ -62,7 +62,7 @@ public class TargetServer {
         type = Type.valueOf(data.getString("type"));
         port = data.getInt("port");
 
-        if (type != Type.DIRECT) {
+        if (type == Type.DH) {
             local_ip = data.getString("local_ip");
             local_port = data.getInt("local_port");
         }

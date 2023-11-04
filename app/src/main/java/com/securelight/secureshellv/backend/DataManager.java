@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 public class DataManager {
     private static DataManager dataManager;
@@ -51,7 +52,7 @@ public class DataManager {
 
     /**
      * Requests password of the best server from the backend
-     * */
+     */
     public String getSshPassword() {
         String result = DatabaseHandlerSingleton.getInstance(null).retrievePassword(bestServer.getId());
         return calculatePassword(userName, result);
@@ -141,7 +142,7 @@ public class DataManager {
             JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServerList(location);
             fillTargetServers(response);
         } catch (JSONException e) {
-            throw new RuntimeException("error parsing target servers");
+            throw new RuntimeException("error parsing target servers", e);
         } finally {
             isFetching = false;
             lock.lock();
@@ -153,7 +154,7 @@ public class DataManager {
 
     /**
      * Returns available server locations without duplicates.
-     * */
+     */
     public List<String> getAvailableServerLocations() {
         Map<String, String> locations = new HashMap<>();
         targetServers.forEach(targetServer -> {
@@ -164,9 +165,16 @@ public class DataManager {
 
 
     public void calculateBestServer(String location) {
-        List<TargetServer> targetServers = DataManager.getInstance().getTargetServers(location);
+        List<TargetServer> servers = DataManager.getInstance().getTargetServers(location);
+        List<TargetServer> targetServers = servers.stream().filter(server -> server.getType() == TargetServer.Type.D)
+                .collect(Collectors.toList());
+        List<TargetServer> indirectServers = servers.stream().filter(server ->
+                        server.getType() == TargetServer.Type.TH || server.getType() == TargetServer.Type.DH)
+                .collect(Collectors.toList());
+
         List<Thread> threadList = new ArrayList<>();
         Map<TargetServer, Integer> serverPings = new HashMap<>();
+
         targetServers.forEach(targetServer -> {
             Thread thread = new Thread(() -> {
                 serverPings.put(targetServer, NetTools.getServerPing(targetServer));
@@ -183,12 +191,44 @@ public class DataManager {
         AtomicReference<TargetServer> bestServer = new AtomicReference<>();
         AtomicInteger bestPing = new AtomicInteger(Integer.MAX_VALUE);
         serverPings.forEach((targetServer, ping) -> {
-            if (bestPing.get() > ping) {
+            if (bestPing.get() > ping && ping != 0) {
                 bestServer.set(targetServer);
                 bestPing.set(ping);
             }
         });
+        // if direct servers were unreachable
+        if (bestServer.get() == null) {
+            bestServer.set(calculateBestIndirectServer(indirectServers, threadList, serverPings));
+        }
         this.bestServer = bestServer.get();
+    }
+
+    private TargetServer calculateBestIndirectServer(List<TargetServer> indirectServers, List<Thread> threadList, Map<TargetServer, Integer> serverPings) {
+        threadList.clear();
+        serverPings.clear();
+
+        indirectServers.forEach(targetServer -> {
+            Thread thread = new Thread(() -> {
+                serverPings.put(targetServer, NetTools.getServerPing(targetServer));
+            });
+            thread.start();
+            threadList.add(thread);
+        });
+        for (Thread thread : threadList) {
+            try {
+                thread.join();
+            } catch (InterruptedException ignored) {
+            }
+        }
+        AtomicReference<TargetServer> bestIndirectServer = new AtomicReference<>();
+        AtomicInteger bestIndirectPing = new AtomicInteger(Integer.MAX_VALUE);
+        serverPings.forEach((targetServer, ping) -> {
+            if (bestIndirectPing.get() > ping && ping != 0) {
+                bestIndirectServer.set(targetServer);
+                bestIndirectPing.set(ping);
+            }
+        });
+        return bestIndirectServer.get();
     }
 
     public void calculateBestServer() {

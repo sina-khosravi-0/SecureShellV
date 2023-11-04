@@ -60,6 +60,10 @@ import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

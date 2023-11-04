@@ -3,6 +3,8 @@ package com.securelight.secureshellv.utility;
 
 import android.util.Log;
 
+import androidx.dynamicanimation.animation.SpringAnimation;
+
 import com.securelight.secureshellv.backend.TargetServer;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.vpnservice.VpnSettings;
@@ -11,6 +13,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.sql.SQLOutput;
 
 public class NetTools {
     public static boolean checkInternetAccess() {
