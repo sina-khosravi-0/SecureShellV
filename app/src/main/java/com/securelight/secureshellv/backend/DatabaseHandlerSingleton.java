@@ -6,6 +6,8 @@ import static com.securelight.secureshellv.statics.Constants.endPoint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.collection.LruCache;
@@ -18,7 +20,6 @@ import com.android.volley.ParseError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
-import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.ImageLoader;
@@ -35,6 +36,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
@@ -78,6 +80,9 @@ public class DatabaseHandlerSingleton {
                 cache.put(url, bitmap);
             }
         });
+
+        // initialize listeners
+
     }
 
     public static synchronized DatabaseHandlerSingleton getInstance(Context context) {
@@ -127,84 +132,53 @@ public class DatabaseHandlerSingleton {
     public void fetchUserData() {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
         String accessToken = preferences.getAccessToken();
-        String refreshToken = preferences.getRefreshToken();
         String url = endPoint + "api/account/user/";
 
-        Response.Listener<JSONObject> accessVerifyResponseListener = verifyResponse -> {
-            makeUserDataRequest(url, accessToken);
-        };
-
-
-        Response.Listener<JSONObject> refreshTokenResponseListener = refreshResponse -> {
-            try {
-                if (refreshResponse.has("access")) {
-                    preferences.saveAccessToken(refreshResponse.getString("access"));
-                }
-                if (refreshResponse.has("refresh")) {
-                    preferences.saveRefreshToken(refreshResponse.getString("refresh"));
-                }
-            } catch (JSONException ignored) {
-            }
-            String accessTokenFinal = preferences.getAccessToken();
-            makeUserDataRequest(url, accessTokenFinal);
-        };
-
-        Response.Listener<JSONObject> refreshVerifyResponseListener = verifyResponse -> {
-            try {
-                // success only if code == 200
-                if (verifyResponse.getString("code").equals("200")) {
-                    // refresh tokens if refresh token is valid
-                    doRefreshToken(refreshTokenResponseListener, null);
-                }
-            } catch (JSONException ignored) {
-            }
-        };
-
-        Response.ErrorListener refreshErrorListener = error -> {
-            if (error instanceof AuthFailureError) {
-                // Both tokens are invalid. Send broadcast to sign in again
-                broadcastSignIn();
-            } else if (error instanceof TimeoutError) {
-
-            }
-        };
-
-        Response.ErrorListener accessErrorListener = error -> {
-            if (error instanceof AuthFailureError) {
-                // verify refresh token if access token is invalid
-                verifyToken(refreshToken, refreshVerifyResponseListener, refreshErrorListener);
-            } else if (error instanceof TimeoutError) {
-
-            }
-        };
-
-        // verify access token
-        verifyToken(accessToken, accessVerifyResponseListener, accessErrorListener);
-        // todo remove return
-    }
-
-    private void makeUserDataRequest(String url, String accessTokenFinal) {
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, response -> {
-            DataManager dataManager = DataManager.getInstance();
-            try {
-                dataManager.parseData(response);
-                LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
-            } catch (JSONException e) {
-                throw new RuntimeException("error parsing userdata", e);
-            }
-        }, error -> {
-            if (error instanceof AuthFailureError) {
-                broadcastSignIn();
-            }
-        }) {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
             @Override
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
-                params.put("Authorization", "Bearer " + accessTokenFinal);
+                params.put("Authorization", "Bearer " + accessToken);
                 return params;
+            }
+
+            @Override
+            protected VolleyError parseNetworkError(VolleyError error) {
+                if (error instanceof AuthFailureError) {
+                    // refresh tokens and fetch user data again
+                    if (new String(error.networkResponse.data).contains("token_not_valid")) {
+                        new Thread(() -> {
+                            if (requestTokenRefresh()) {
+                                fetchUserData();
+                            }
+                        }).start();
+                    }
+                }
+                return error;
+            }
+
+            @Override
+            protected Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
+                try {
+                    String jsonString = new String(response.data,
+                            HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
+                    DataManager dataManager = DataManager.getInstance();
+
+                    try {
+                        dataManager.parseData(new JSONObject(jsonString));
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
+                    } catch (JSONException e) {
+                        Log.d("DatabaseHandler", "error parsing userdata", e);
+                    }
+
+                    return Response.success(new JSONObject(jsonString), HttpHeaderParser.parseCacheHeaders(response));
+                } catch (UnsupportedEncodingException | JSONException e) {
+                    return Response.error(new ParseError(e));
+                }
             }
         };
         instance.addToRequestQueue(jsonObjectRequest);
+
     }
 
     public void verifyToken(String token, Response.Listener<JSONObject> responseListener,
@@ -245,8 +219,7 @@ public class DatabaseHandlerSingleton {
         result.get();
     }
 
-    public void doRefreshToken(Response.Listener<JSONObject> responseListener,
-                               Response.ErrorListener errorListener) {
+    public boolean requestTokenRefresh() {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
         String url = endPoint + "api/token/refresh/";
 
@@ -255,9 +228,34 @@ public class DatabaseHandlerSingleton {
             object.put("refresh", preferences.getRefreshToken());
         } catch (JSONException ignored) {
         }
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, responseListener, errorListener);
 
+        RequestFuture<JSONObject> future = RequestFuture.newFuture();
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, future, future);
         instance.addToRequestQueue(jsonObjectRequest);
+
+        try {
+            JSONObject response = future.get(10, TimeUnit.SECONDS);
+            try {
+                if (response.has("access")) {
+                    preferences.saveAccessToken(response.getString("access"));
+                }
+                if (response.has("refresh")) {
+                    preferences.saveRefreshToken(response.getString("refresh"));
+                }
+            } catch (JSONException ignored) {
+            }
+        } catch (InterruptedException | TimeoutException ignored) {
+
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof AuthFailureError) {
+                if (new String(((AuthFailureError) e.getCause()).networkResponse.data).contains("token_not_valid")) {
+                    broadcastSignIn();
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public void sendTrafficIncrement(long trafficBytes) {
@@ -282,10 +280,12 @@ public class DatabaseHandlerSingleton {
         instance.addToRequestQueue(jsonObjectRequest);
     }
 
-    public String retrievePassword(int serverId) {
+    public String retrievePassword(int serverId, boolean reset) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        // todo: make the url id dynamic
         String url = endPoint + "api/pass/" + serverId;
+        if (reset) {
+            url = endPoint + "api/reset_pass/" + serverId;
+        }
 
         RequestFuture<JSONObject> future = RequestFuture.newFuture();
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, future, future) {
@@ -303,27 +303,23 @@ public class DatabaseHandlerSingleton {
         } catch (InterruptedException | TimeoutException | JSONException e) {
             return "";
         } catch (ExecutionException e) {
-            handleResponsePasswordError(e.getCause());
-        }
-        return "";
-    }
-
-    private void handleResponsePasswordError(Throwable error) {
-        if (error instanceof AuthFailureError) {
-            NetworkResponse networkResponse = ((AuthFailureError) (error)).networkResponse;
-            if (networkResponse.statusCode == 403) {
-                if (new String(networkResponse.data).contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {
-                    LocalBroadcastManager.getInstance(context).sendBroadcast(
-                            new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION)
-                                    .putExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, true));
-                }
-                if (new String(networkResponse.data).contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
-                    LocalBroadcastManager.getInstance(context).sendBroadcast(
-                            new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION)
-                                    .putExtra(Constants.CREDIT_EXPIRED_CODE_STRING, true));
+            if (e.getCause() instanceof AuthFailureError) {
+                NetworkResponse networkResponse = ((AuthFailureError) (e.getCause())).networkResponse;
+                if (networkResponse.statusCode == 403) {
+                    if (new String(networkResponse.data).contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                                new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION)
+                                        .putExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, true));
+                    }
+                    if (new String(networkResponse.data).contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                                new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION)
+                                        .putExtra(Constants.CREDIT_EXPIRED_CODE_STRING, true));
+                    }
                 }
             }
         }
+        return "";
     }
 
     public void sendHeartbeat() {
@@ -335,6 +331,19 @@ public class DatabaseHandlerSingleton {
                 Map<String, String> params = new HashMap<>();
                 params.put("Authorization", "Bearer " + accessToken);
                 return params;
+            }
+
+            @Override
+            protected VolleyError parseNetworkError(VolleyError error) {
+                if (error instanceof AuthFailureError) {
+                    // refresh token and send heartbeat again
+                    if (new String(error.networkResponse.data).contains("token_not_valid")) {
+                        if (requestTokenRefresh()) {
+                            sendHeartbeat();
+                        }
+                    }
+                }
+                return error;
             }
         };
         instance.addToRequestQueue(request);
@@ -355,11 +364,52 @@ public class DatabaseHandlerSingleton {
         };
         instance.addToRequestQueue(request);
         try {
-            return future.get(10, TimeUnit.SECONDS);
+            return future.get(20, TimeUnit.SECONDS);
 //            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
-        } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
-            throw new RuntimeException("Error in fetching server list");
+        } catch (InterruptedException | ExecutionException | TimeoutException ex) {
+            Log.d("DatabaseHandler", ex.getMessage(), ex);
+            return new JSONArray();
         }
+    }
+
+    private void uploadBitmap(final Bitmap bitmap, Response.Listener<JSONObject> responseListener,
+                              Response.ErrorListener errorListener) {
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
+        String url = endPoint + "/api/renew/receipt";
+
+        VolleyMultipartRequest volleyMultipartRequest = new VolleyMultipartRequest(Request.Method.POST, url,
+                response -> {
+                    try {
+                        JSONObject obj = new JSONObject(new String(response.data));
+                        Toast.makeText(context, obj.getString("message"), Toast.LENGTH_SHORT).show();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                },
+                error -> {
+                    Toast.makeText(context, error.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.e("GotError", "" + error.getMessage());
+                }) {
+
+
+            @Override
+            protected Map<String, DataPart> getByteData() {
+                Map<String, DataPart> params = new HashMap<>();
+                long imagename = System.currentTimeMillis();
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream);
+                params.put("image", new DataPart(imagename + ".png", byteArrayOutputStream.toByteArray()));
+                return params;
+            }
+
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
+            }
+        };
+        instance.addToRequestQueue(volleyMultipartRequest);
     }
 
     private void broadcastSignIn() {

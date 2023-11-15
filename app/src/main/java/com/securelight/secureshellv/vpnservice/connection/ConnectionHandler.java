@@ -9,15 +9,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.StunnelManager;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
-import com.securelight.secureshellv.backend.SendTrafficTimeTask;
 import com.securelight.secureshellv.backend.DataManager;
+import com.securelight.secureshellv.backend.SendTrafficTimeTask;
 import com.securelight.secureshellv.ssh.SshConfigs;
 import com.securelight.secureshellv.ssh.SshManager;
 import com.securelight.secureshellv.statics.Constants;
@@ -28,10 +28,12 @@ import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import com.securelight.secureshellv.vpnservice.listeners.Tun2SocksListener;
 
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.SshException;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
@@ -67,7 +69,6 @@ public class ConnectionHandler extends Thread {
         @Override
         public void onTun2SocksStopped() {
             if (!interrupted) {
-                System.out.println("shit");
                 tun2SocksManager.start();
             }
         }
@@ -98,37 +99,60 @@ public class ConnectionHandler extends Thread {
     @Override
     public void run() {
         running = true;
-        connectionState = ConnectionState.CONNECTING;
-        LocalBroadcastManager.getInstance(context).sendBroadcast(
-                new Intent(SSVpnService.CONNECTING_ACTION));
-        notificationListener.updateNotification(networkState, connectionState);
-        DataManager.getInstance().calculateBestServer();
-
-
-        boolean bridge = false;
-        switch (connectionMethod) {
-            case DIRECT_SSH:
-                setupDirectSsh();
-                break;
-            case TLS_SSH:
-                setupTLSSsh();
-                break;
-            case DUAL_SSH:
-                setupDualSsh();
-                bridge = true;
-                break;
-        }
-
-        tun2SocksManager = new Tun2SocksManager(vpnInterface, t2SListener);
+        int retryCount = 0;
+        boolean reset = false;
+        updateConnectionStateUI(ConnectionState.CONNECTING);
 
         // start internet access timer
         internetTimer.schedule(internetAccessHandler, 0, internetAccessPeriod);
 
+        // calculate the best server and put it in DataManager.bestServer
+        if (!DataManager.getInstance().calculateBestServer()) {
+            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION));
+            updateConnectionStateUI(ConnectionState.DISCONNECTED);
+            return;
+        }
+
+        boolean bridge = false;
+        switch (DataManager.getInstance().getBestServer().getType()) {
+            case D:
+                setupDirectSsh();
+                break;
+            case TD:
+                break;
+            case TH:
+                setupTLSSsh();
+                break;
+            case DH:
+                setupDualSsh();
+                bridge = true;
+                break;
+
+        }
+
+        tun2SocksManager = new Tun2SocksManager(vpnInterface, t2SListener);
+
         while (!sshManager.isEstablished() && !interrupted) {
-            if (bridge) {
-                sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword()));
-            } else {
-                sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword()));
+            try {
+                if (bridge) {
+                    sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
+                } else {
+                    sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
+                }
+            } catch (SshException sE) {
+                if (Objects.equals(sE.getMessage(), "No more authentication methods available")) {
+                    // retry 3 times and reset the password
+                    if (retryCount > 2) {
+                        retryCount = 0;
+                        reset = true;
+                    } else {
+                        reset = false;
+                        retryCount++;
+                    }
+                }
+                Log.d("SshManager", sE.getMessage(), sE);
+            } catch (IOException ioE) {
+                Log.d("SshManager", ioE.getMessage(), ioE);
             }
         }
         if (!interrupted) {
@@ -142,29 +166,39 @@ public class ConnectionHandler extends Thread {
         socksTimer.schedule(socksHeartbeatHandler, 0, socksHeartbeatPeriod);
 
         while (!interrupted) {
-            connectionState = ConnectionState.CONNECTED;
-            LocalBroadcastManager.getInstance(context).sendBroadcast(
-                    new Intent(SSVpnService.CONNECTED_ACTION));
-            notificationListener.updateNotification(networkState, connectionState);
+            updateConnectionStateUI(ConnectionState.CONNECTED);
 
             sshManager.getSession().waitFor(Arrays.asList(ClientSession.ClientSessionEvent.CLOSED,
                     ClientSession.ClientSessionEvent.TIMEOUT), 0);
+            sshManager.setEstablished(false);
 
             sendTrafficTimer.cancel();
             sendTrafficTimer = new Timer();
             sendTrafficHandler = new SendTrafficTimeTask(context);
-            sshManager.setEstablished(false);
-            connectionState = ConnectionState.CONNECTING;
-            LocalBroadcastManager.getInstance(context).sendBroadcast(
-                    new Intent(SSVpnService.CONNECTING_ACTION));
-            notificationListener.updateNotification(networkState, connectionState);
 
-            // reconnect
+            updateConnectionStateUI(ConnectionState.CONNECTING);
+
+            // try reconnecting till SshManager.established is true
             while (!sshManager.isEstablished() && !interrupted) {
-                if (bridge) {
-                    sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword()));
-                } else {
-                    sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword()));
+                try {
+                    if (bridge) {
+                        sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
+                    } else {
+                        sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
+                    }
+                } catch (SshException sE) {
+                    if (Objects.equals(sE.getMessage(), "No more authentication methods available")) {
+                        if (retryCount == 2) {
+                            retryCount = 0;
+                            reset = true;
+                        } else {
+                            reset = false;
+                            retryCount++;
+                        }
+                    }
+                    Log.d("SshManager", sE.getMessage(), sE);
+                } catch (IOException ioE) {
+                    Log.d("SshManager", ioE.getMessage(), ioE);
                 }
             }
             if (!interrupted) {
@@ -173,11 +207,7 @@ public class ConnectionHandler extends Thread {
             }
         } // while (!interrupted)
 
-        connectionState = ConnectionState.DISCONNECTED;
-        LocalBroadcastManager.getInstance(context).sendBroadcast(
-                new Intent(SSVpnService.DISCONNECTED_ACTION));
-        networkState = NetworkState.NONE;
-        notificationListener.updateNotification(networkState, connectionState);
+        updateConnectionStateUI(ConnectionState.DISCONNECTED);
 
         sendTrafficTimer.cancel();
         socksTimer.cancel();
@@ -242,16 +272,28 @@ public class ConnectionHandler extends Thread {
     public void interrupt() {
         interrupted = true;
         super.interrupt();
-        tun2SocksManager.stop();
-        sshManager.getSshClient().stop();
+        try {
+            tun2SocksManager.stop();
+        } catch (NullPointerException ignored) {
+        }
+        try {
+            sshManager.getSshClient().stop();
+        } catch (NullPointerException ignored) {
+        }
         // ensure no stuckage
         new Thread(() -> {
-            while (running) {
-                sshManager.clearLock();
+            try {
+                while (running) {
+                    sshManager.clearLock();
+                }
+            } catch (NullPointerException ignored) {
             }
         }).start();
-        if (connectionMethod == Constants.Protocol.TLS_SSH) {
-            stunnelManager.close();
+        try {
+            if (connectionMethod == Constants.Protocol.TLS_SSH) {
+                stunnelManager.close();
+            }
+        } catch (NullPointerException ignored) {
         }
     }
 
@@ -267,7 +309,25 @@ public class ConnectionHandler extends Thread {
         Toast.makeText(context, preferences.getString("died", "N/A"), Toast.LENGTH_SHORT).show();
     }
 
-
+    private void updateConnectionStateUI(ConnectionState state) {
+        switch (state) {
+            case CONNECTED:
+                LocalBroadcastManager.getInstance(context).sendBroadcast(
+                        new Intent(SSVpnService.CONNECTED_ACTION));
+                break;
+            case CONNECTING:
+                LocalBroadcastManager.getInstance(context).sendBroadcast(
+                        new Intent(SSVpnService.CONNECTING_ACTION));
+                break;
+            case DISCONNECTED:
+                LocalBroadcastManager.getInstance(context).sendBroadcast(
+                        new Intent(SSVpnService.DISCONNECTED_ACTION));
+                networkState = NetworkState.NONE;
+                break;
+        }
+        connectionState = state;
+        notificationListener.updateNotification(networkState, state);
+    }
 
     public Tun2SocksManager getTun2SocksManager() {
         return tun2SocksManager;

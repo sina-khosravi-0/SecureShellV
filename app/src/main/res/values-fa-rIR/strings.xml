@@ -76,4 +76,21 @@
     <string name="insufficient_traffic">اتمام ترافیک</string>
     <string name="credit_expired">اتمام اشتراک</string>
     <string name="credit_time_has_run_out">مهلت اشتراک به اتمام رسیده است.</string>
+    <string name="renew">تمدید سرویس</string>
+    <string name="amount">مقدار(تومان):</string>
+    <string name="card_number">شماره کارت:</string>
+    <string name="renew_credit_description">جهت تمدید اشتراک، لطفا ابتدا مقدار مشخص شده را به شماره کارت زیر واریز نمایید و سپس رسید آن را در همین صفحه انتخاب و ارسال کنید.</string>
+    <string name="select">انتخاب</string>
+    <string name="submit">ارسال</string>
+    <plurals name="months" tools:ignore="MissingQuantity">
+        <item quantity="other">%d ماه</item>
+    </plurals>
+    <plurals name="years" tools:ignore="MissingQuantity">
+        <item quantity="other">%d سال</item>
+    </plurals>
+    <plurals name="users" tools:ignore="MissingQuantity">
+        <item quantity="other">%d کاربر</item>
+    </plurals>
+    <string name="please_select">لطفا انتخاب کنید</string>
+
 </resources>

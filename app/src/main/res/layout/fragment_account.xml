@@ -8,205 +8,218 @@
     android:padding="10dp"
     tools:context=".ui.bottomsheet.account.AccountFragment">
 
-    <FrameLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-        <LinearLayout
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/account_fragment_renew_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:divider="@drawable/empty_divider"
-            android:layoutDirection="ltr"
-            android:orientation="vertical"
-            android:showDividers="middle">
+            android:text="@string/renew"
+            app:cornerRadius="5dp"/>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:baselineAligned="false"
                 android:divider="@drawable/empty_divider"
-                android:orientation="horizontal"
+                android:layoutDirection="ltr"
+                android:orientation="vertical"
                 android:showDividers="middle">
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/account_username_text_field"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="@string/username">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:focusable="false"
-                        android:inputType="textNoSuggestions"
-                        android:maxLines="1"
-                        android:textAlignment="center" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/end_credit_date_text_field"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-
-                    android:hint="@string/end_credit_date">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="datetime"
-                        android:maxLines="1"
-                        android:textAlignment="center" />
-                </com.google.android.material.textfield.TextInputLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layoutDirection="locale"
-                android:orientation="vertical">
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/traffic"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:baselineAligned="false"
-                    android:layoutDirection="ltr"
-                    android:orientation="horizontal">
+                    android:divider="@drawable/empty_divider"
+                    android:orientation="horizontal"
+                    android:showDividers="middle">
 
                     <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/remaining_tr_text_field"
+                        android:id="@+id/account_username_text_field"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="@string/remaining"
-                        app:suffixText="GB"
-                        app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
+                        android:hint="@string/username">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:focusable="false"
+                            android:inputType="textNoSuggestions"
                             android:maxLines="1"
-                            android:text="@string/remaining"
                             android:textAlignment="center" />
+
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/used_tr_text_field"
+                        android:id="@+id/end_credit_date_text_field"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="@string/used"
-                        app:suffixText="GB"
-                        app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
+
+                        android:hint="@string/end_credit_date">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:inputType="datetime"
                             android:maxLines="1"
-                            android:text="@string/used"
-                            android:textAlignment="center" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/total_tr_text_field"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="@string/total"
-                        app:suffixText="GB"
-                        app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:maxLines="1"
-                            android:text="@string/total"
                             android:textAlignment="center" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:divider="@drawable/empty_divider"
-                android:layoutDirection="locale"
-                android:orientation="vertical"
-                android:paddingHorizontal="30dp"
-                android:showDividers="middle">
-
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/unlimited_time"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="@string/unlimited_time" />
+                    android:layoutDirection="locale"
+                    android:orientation="vertical">
 
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/unlimited_traffic"
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/traffic"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:baselineAligned="false"
+                        android:layoutDirection="ltr"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/remaining_tr_text_field"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="@string/remaining"
+                            app:suffixText="GB"
+                            app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:maxLines="1"
+                                android:text="@string/remaining"
+                                android:textAlignment="center" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/used_tr_text_field"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="@string/used"
+                            app:suffixText="GB"
+                            app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:maxLines="1"
+                                android:text="@string/used"
+                                android:textAlignment="center" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/total_tr_text_field"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="@string/total"
+                            app:suffixText="GB"
+                            app:suffixTextAppearance="@style/TextAppearance.AppCompat.Small">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:maxLines="1"
+                                android:text="@string/total"
+                                android:textAlignment="center" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:autoSizeMaxTextSize="20dp"
-                    android:gravity="center"
-                    android:maxLines="1"
-                    android:text="@string/unlimited_traffic" />
-            </LinearLayout>
+                    android:divider="@drawable/empty_divider"
+                    android:layoutDirection="locale"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="30dp"
+                    android:showDividers="middle">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/unlimited_time"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="@string/unlimited_time" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/unlimited_traffic"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:autoSizeMaxTextSize="20dp"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:text="@string/unlimited_traffic" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/connected_ips_text_field"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+
+                        android:layout_weight="1"
+                        android:hint="@string/connected_ips"
+                        app:suffixText="10">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:maxLines="1"
+                            android:textAlignment="center" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/connected_ips_text_field"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-
+                    android:id="@+id/server_message_text_field"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:hint="@string/connected_ips"
-                    app:suffixText="10">
+                    android:hint="@string/broadcast_message"
+                    android:layoutDirection="locale"
+                    app:helperText="@string/date">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:maxLines="1"
-                        android:textAlignment="center" />
-
+                        android:inputType="textMultiLine|textNoSuggestions" />
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/server_message_text_field"
+            <FrameLayout
+                android:id="@+id/touch_blocker"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:hint="@string/broadcast_message"
-                android:layoutDirection="locale"
-                app:helperText="@string/date">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textMultiLine|textNoSuggestions" />
-            </com.google.android.material.textfield.TextInputLayout>
-        </LinearLayout>
-
-        <FrameLayout
-            android:id="@+id/touch_blocker"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:focusable="true"
-            tools:visibility="gone" />
-    </FrameLayout>
+                android:layout_height="match_parent"
+                android:focusable="true"
+                tools:visibility="gone" />
+        </FrameLayout>
+    </LinearLayout>
 </ScrollView>

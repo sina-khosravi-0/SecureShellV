@@ -76,13 +76,32 @@
     <string name="persian" translatable="false">فارسی</string>
     <string name="restart_app">Restart App</string>
     <string name="persistent_notification">Persistent Notification</string>
-     <string name="persistent_notification_switch_hint">By enabling this option, the VPN notification will not go away after turning off the VPN.</string>
+    <string name="persistent_notification_switch_hint">By enabling this option, the VPN notification will not go away after turning off the VPN.</string>
     <string name="you_traffic_has_run_out">You traffic has run out.</string>
     <string name="insufficient_traffic">Insufficient traffic</string>
     <string name="credit_expired">Credit expired</string>
     <string name="credit_time_has_run_out">Credit time has run out.</string>
+    <string name="renew">Renew Service</string>
+    <string name="card_number">Card Number:</string>
+    <string name="amount">Amount(Toman):</string>
+    <string name="renew_credit_description">In order to renew your credit, please first transfer the specified amount to the following card number and then select and submit the receipt\'s image below.</string>
+    <string name="select">Select</string>
+    <string name="submit">Submit</string>
+    <string name="please_select">Please Select</string>
     <plurals name="days_left">
         <item quantity="one">%d day left</item>
         <item quantity="other">%d days left</item>
+    </plurals>
+    <plurals name="months">
+        <item quantity="one">%d Month</item>
+        <item quantity="other">%d Months</item>
+    </plurals>
+    <plurals name="years">
+        <item quantity="one">%d Year</item>
+        <item quantity="other">%d Years</item>
+    </plurals>
+    <plurals name="users">
+        <item quantity="one">%d user</item>
+        <item quantity="other">%d users</item>
     </plurals>
 </resources>

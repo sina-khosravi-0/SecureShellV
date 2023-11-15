@@ -45,12 +45,13 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.DataManager;
+import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
@@ -60,10 +61,6 @@ import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -87,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView buttonText;
     private TextView mainConnectText;
     private TextView daysLeftText;
+    private MaterialButton serviceRenewButton;
     private CircularProgressIndicator trafficProgressIndicator;
 
     public static int colorPrimary;
@@ -169,11 +167,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final BroadcastReceiver updateUserDataUIBr = new BroadcastReceiver() {
-        @SuppressLint("SetTextI18n")
+        @SuppressLint({"SetTextI18n", "DefaultLocale"})
         @Override
         public void onReceive(Context context, Intent intent) {
             DataManager dataManager = DataManager.getInstance();
-            buttonText.setText(dataManager.getRemainingTrafficGB() + "\nGB");
+            buttonText.setText(String.format("%.2f\nGB", dataManager.getRemainingTrafficGB()));
             if (vpnServiceBinder != null && vpnServiceBinder.getService().isServiceActive()) {
                 trafficProgressIndicator.setProgress(dataManager.getRemainingPercent(), true);
             }
@@ -182,8 +180,10 @@ public class MainActivity extends AppCompatActivity {
                 daysLeftText.setTextColor(colorWarning);
             } else if (dataManager.getDaysLeft() <= 1) {
                 daysLeftText.setTextColor(colorAlert);
+                serviceRenewButton.setVisibility(View.VISIBLE);
             } else {
                 daysLeftText.setTextColor(colorOk);
+                serviceRenewButton.setVisibility(View.GONE);
             }
             daysLeftText.setText(getResources().getQuantityString(R.plurals.days_left,
                     (int) dataManager.getDaysLeft(), (int) dataManager.getDaysLeft()));
@@ -232,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
         setColors();
         // initialize database handler singleton
         DatabaseHandlerSingleton.getInstance(this);
-
+        SharedPreferencesSingleton.getInstance(this);
         // set vpn intent
         vpnServiceIntent = new Intent(this, SSVpnService.class).setAction(VPN_SERVICE_ACTION)
                 .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
@@ -262,6 +262,8 @@ public class MainActivity extends AppCompatActivity {
         trafficProgressIndicator = buttonFrame.findViewById(R.id.traffic_progress);
         mainConnectText = findViewById(R.id.main_connect_status);
         daysLeftText = findViewById(R.id.days_left);
+        serviceRenewButton = findViewById(R.id.main_screen_renew_button);
+
         buttonFrame.setOnClickListener(v -> {
             updateUserData();
             if (vpnServiceBinder.getConnectionState().equals(ConnectionState.DISCONNECTED)) {
@@ -438,6 +440,7 @@ public class MainActivity extends AppCompatActivity {
                 Manifest.permission.READ_PHONE_STATE,
                 Manifest.permission.CHANGE_NETWORK_STATE,
                 Manifest.permission.VIBRATE));
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             requiredPermissions.add(Manifest.permission.POST_NOTIFICATIONS);
         }

@@ -24,6 +24,8 @@
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/auto_server_select"
             android:drawablePadding="10dp"
+            android:dropDownAnchor="@id/server_location_text_input"
+            android:dropDownHeight="wrap_content"
             android:inputType="none"
             android:labelFor="@+id/location_selection" />
     </com.google.android.material.textfield.TextInputLayout>

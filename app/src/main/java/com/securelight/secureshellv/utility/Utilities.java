@@ -48,7 +48,7 @@ public class Utilities {
 
     public static String calculatePassword(String username, String word) {
         try {
-            return toHexString(getSHA(String.format("%s 8 %s fuckyou", username, word)));
+            return toHexString(getSHA(username + " 8 " + word + " fuckyou"));
         } catch (NoSuchAlgorithmException e) {
             return null;
         }

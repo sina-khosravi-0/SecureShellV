@@ -42,6 +42,7 @@ import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -366,6 +367,9 @@ public class SSVpnService extends VpnService {
 
 
     private void stopVpnService(boolean insufficient_traffic, boolean credit_expired) {
+        if (!this.isServiceActive()) {
+            return;
+        }
         if (insufficient_traffic) {
             LocalBroadcastManager.getInstance(this).sendBroadcast(
                     new Intent(Intents.INSUFFICIENT_TRAFFIC_INTENT));
@@ -375,15 +379,23 @@ public class SSVpnService extends VpnService {
                     new Intent(Intents.CREDIT_EXPIRED_INTENT));
         }
         try {
-            apiHeartbeatTimer.cancel();
             serviceActive.set(false);
+            apiHeartbeatTimer.cancel();
             connectionHandler.interrupt();
             connectionHandler.join();
             notificationBuilder.clearActions().addAction(notifStartAction);
             notificationBuilder.addAction(notifQuitAction);
             notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
+            new Thread(() -> {
+                try {
+                    Thread.sleep(500);
+                    vpnInterface.close();
+                } catch (InterruptedException | IOException ignored) {
+                    Log.d("","",ignored);
+                }
+            }).start();
         } catch (NullPointerException | InterruptedException e) {
-            Log.e(TAG, "Fuck Null");
+            Log.e(TAG, "Fuck Null", e);
         }
     }
 

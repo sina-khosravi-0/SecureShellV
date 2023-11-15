@@ -9,7 +9,6 @@ import com.securelight.secureshellv.statics.Constants;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.forward.PortForwardingTracker;
-import org.apache.sshd.common.SshException;
 import org.apache.sshd.common.future.CancelOption;
 import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.session.SessionHeartbeatController;
@@ -53,7 +52,9 @@ public class SshManager {
         CoreModuleProperties.IDLE_TIMEOUT.set(sshClient, Duration.ofMillis(5000));
     }
 
-    public void connect(String password) {
+    private int retryCount = 0;
+
+    public void connect(String password) throws IOException {
         established = false;
         try {
             // wait for InternetAccessHandler or stop() to notify.
@@ -67,7 +68,7 @@ public class SshManager {
                 lock.unlock();
             }
 
-            if (sshClient.isStarted()){
+            if (sshClient.isStarted()) {
                 session = sshClient.connect(DataManager.getInstance().getUserName(),
                                 DataManager.getInstance().getBestServer().getIp(),
                                 configs.hostPort)
@@ -80,58 +81,52 @@ public class SshManager {
                 session.auth().verify(6000, CancelOption.CANCEL_ON_TIMEOUT);
                 established = true;
             }
-        } catch (SshException ignored) {
-        } catch (IOException | IllegalArgumentException e) {
-            Log.d(TAG, e.getMessage());
+        } catch (IllegalArgumentException e) {
             Log.e(TAG, "connection failed.", e);
         }
     }
 
-    public void connectWithBridge(String password) {
+    public void connectWithBridge(String password) throws IOException {
         established = false;
+        // wait for InternetAccessHandler or stop() to notify.
         try {
-            // wait for InternetAccessHandler or stop() to notify.
-            try {
-                lock.lock();
-                internetAvailableCondition.await();
-            } catch (InterruptedException e) {
-                Log.d(TAG, "Current thread was Interrupted");
-                return;
-            } finally {
-                lock.unlock();
-            }
-
-            // opening session for iran server
-            bridgeSession = sshClient.connect(DataManager.getInstance().getUserName(), configs.bridgeHostAddress, configs.bridgeHostPort)
-                    .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
-                    .getClientSession();
-            bridgeSession.addSessionListener(getSessionListener());
-            bridgeSession.addPortForwardingEventListener(new PFEventListener());
-            bridgeSession.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
-                    , TimeUnit.SECONDS, 3);
-            bridgeSession.addPasswordIdentity(password);
-            bridgeSession.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
-
-            // create local port forwarding
-            portForwardingTrackers.add(bridgeSession.createLocalPortForwardingTracker(
-                    new SshdSocketAddress(configs.hostAddress, configs.hostPort),
-                    new SshdSocketAddress(DataManager.getInstance().getBestServer().getLocal_ip(),
-                            DataManager.getInstance().getBestServer().getLocal_port())));
-
-            session = sshClient.connect(DataManager.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
-                    .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
-                    .getClientSession();
-            session.addSessionListener(getSessionListener());
-            session.addPortForwardingEventListener(new PFEventListener());
-            session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
-                    TimeUnit.SECONDS, 3);
-            session.addPasswordIdentity(password);
-            session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
-
-            established = true;
-        } catch (IOException e) {
-            Log.d(TAG, "connection failed.", e);
+            lock.lock();
+            internetAvailableCondition.await();
+        } catch (InterruptedException e) {
+            Log.d(TAG, "Current thread was Interrupted");
+            return;
+        } finally {
+            lock.unlock();
         }
+
+        // opening session for iran server
+        bridgeSession = sshClient.connect(DataManager.getInstance().getUserName(), configs.bridgeHostAddress, configs.bridgeHostPort)
+                .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
+                .getClientSession();
+        bridgeSession.addSessionListener(getSessionListener());
+        bridgeSession.addPortForwardingEventListener(new PFEventListener());
+        bridgeSession.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE
+                , TimeUnit.SECONDS, 3);
+        bridgeSession.addPasswordIdentity(password);
+        bridgeSession.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
+
+        // create local port forwarding
+        portForwardingTrackers.add(bridgeSession.createLocalPortForwardingTracker(
+                new SshdSocketAddress(configs.hostAddress, configs.hostPort),
+                new SshdSocketAddress(DataManager.getInstance().getBestServer().getLocal_ip(),
+                        DataManager.getInstance().getBestServer().getLocal_port())));
+
+        session = sshClient.connect(DataManager.getInstance().getUserName(), configs.hostAddress, configs.hostPort)
+                .verify(12, TimeUnit.SECONDS, CancelOption.CANCEL_ON_TIMEOUT)
+                .getClientSession();
+        session.addSessionListener(getSessionListener());
+        session.addPortForwardingEventListener(new PFEventListener());
+        session.setSessionHeartbeat(SessionHeartbeatController.HeartbeatType.IGNORE,
+                TimeUnit.SECONDS, 3);
+        session.addPasswordIdentity(password);
+        session.auth().verify(3000, CancelOption.CANCEL_ON_TIMEOUT);
+
+        established = true;
     }
 
     public void createPortForwarding() {
@@ -159,8 +154,7 @@ public class SshManager {
                     Log.v(TAG, portForwardingTracker + " closing.");
                     try {
                         portForwardingTracker.close();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+                    } catch (IOException ignored) {
                     }
                 });
                 portForwardingTrackers.clear();

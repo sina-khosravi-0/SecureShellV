@@ -16,6 +16,7 @@ import androidx.appcompat.content.res.AppCompatResources;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.securelight.secureshellv.MainActivityTest;
 import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 
 import java.util.ArrayList;
@@ -26,10 +27,10 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
     private List<String> codes;
     private Context context;
     private int resourceId;
-    /**
-     * Filter List for handling data changing, range changes and managing data globally
-     */
-    private ListFilter listFilter = new ListFilter();
+//    /**
+//     * Filter List for handling data changing, range changes and managing data globally
+//     */
+//    private ListFilter listFilter = new ListFilter();
     /**
      * Another array used to perform some in-module operations
      */
@@ -64,7 +65,7 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
 
     @Override
     public int getCount() {
-        return codes.size();
+        return getCodes().size();
     }
 
     @Nullable
@@ -73,12 +74,19 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
         if (position == 0) {
             return context.getString(R.string.auto);
         }
-        Locale locale = new Locale("", codes.get(position));
+        Locale locale = new Locale("", getCodes().get(position));
         return locale.getDisplayCountry(locale);
     }
 
+    public List<String> getCodes() {
+        codes = new ArrayList<>();
+        codes.add("ato");
+        codes.addAll(DataManager.getInstance().getAvailableServerLocations());
+        return codes;
+    }
+
     public String getCode(int position) {
-        return codes.get(position);
+        return getCodes().get(position);
     }
 
     @NonNull
@@ -89,12 +97,12 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
             convertView = LayoutInflater.from(parent.getContext()).inflate(resourceId, parent, false);
             TextView itemTextView = convertView.findViewById(R.id.server_location_item_text);
             Drawable icon;
-            if (codes.get(position).equals("ato")) {
+            if (getCodes().get(position).equals("ato")) {
                 itemTextView.setPadding(0, 10, 0, 10);
                 icon = AppCompatResources.getDrawable(context, R.drawable.auto_server_select);
             } else {
                 int drawableId = context.getResources()
-                        .getIdentifier("flag_" + codes.get(position), "drawable", context.getPackageName());
+                        .getIdentifier("flag_" + getCodes().get(position), "drawable", context.getPackageName());
                 if (drawableId == 0) {
                     icon = AppCompatResources.getDrawable(context, R.drawable.flag_empty);
                 } else {
@@ -109,8 +117,8 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
     }
 
     public void setAutoCompleteItem(MaterialAutoCompleteTextView autoComplete, String code) {
-        if (codes.contains(code)) {
-            autoComplete.setText(getItem(codes.indexOf(code)), false);
+        if (getCodes().contains(code)) {
+            autoComplete.setText(getItem(getCodes().indexOf(code)), false);
             Drawable icon;
             if (code.equals("ato")) {
                 icon = AppCompatResources.getDrawable(context, R.drawable.auto_server_select);
@@ -127,57 +135,57 @@ public class ServerLocationArrayAdapter extends ArrayAdapter<String> {
                     (icon, null, null, null);
         }
     }
-
-    @NonNull
-    @Override
-    public Filter getFilter() {
-        return listFilter;
-    }
-
-    public class ListFilter extends Filter {
-        private final Object lock = new Object();
-
-        @Override
-        protected FilterResults performFiltering(CharSequence prefix) {
-            FilterResults results = new FilterResults();
-            if (dataListAllItems == null) {
-                synchronized (lock) {
-                    dataListAllItems = new ArrayList<>(codes);
-                }
-            }
-            if (prefix == null || prefix.length() == 0) {
-                synchronized (lock) {
-                    results.values = dataListAllItems;
-                    results.count = dataListAllItems.size();
-                }
-            } else {
-                final String searchStrLowerCase = prefix.toString().toLowerCase();
-                ArrayList<String> matchValues = new ArrayList<String>();
-                for (String dataItem : dataListAllItems) {
-                    if (dataItem.toLowerCase().startsWith(searchStrLowerCase)) {
-                        matchValues.add(dataItem);
-                    }
-                }
-                results.values = matchValues;
-                results.count = matchValues.size();
-            }
-            return results;
-        }
-
-        @Override
-        protected void publishResults(CharSequence constraint, FilterResults results) {
-            if (results.values != null) {
-                codes = (ArrayList<String>) results.values;
-            } else {
-                codes = null;
-            }
-            if (results.count > 0) {
-                notifyDataSetChanged();
-            } else {
-                notifyDataSetInvalidated();
-            }
-        }
-
-    }
+//
+//    @NonNull
+//    @Override
+//    public Filter getFilter() {
+//        return listFilter;
+//    }
+//
+//    public class ListFilter extends Filter {
+//        private final Object lock = new Object();
+//
+//        @Override
+//        protected FilterResults performFiltering(CharSequence prefix) {
+//            FilterResults results = new FilterResults();
+//            if (dataListAllItems == null) {
+//                synchronized (lock) {
+//                    dataListAllItems = new ArrayList<>(getCodes());
+//                }
+//            }
+//            if (prefix == null || prefix.length() == 0) {
+//                synchronized (lock) {
+//                    results.values = dataListAllItems;
+//                    results.count = dataListAllItems.size();
+//                }
+//            } else {
+//                final String searchStrLowerCase = prefix.toString().toLowerCase();
+//                ArrayList<String> matchValues = new ArrayList<String>();
+//                for (String dataItem : dataListAllItems) {
+//                    if (dataItem.toLowerCase().startsWith(searchStrLowerCase)) {
+//                        matchValues.add(dataItem);
+//                    }
+//                }
+//                results.values = matchValues;
+//                results.count = matchValues.size();
+//            }
+//            return results;
+//        }
+//
+//        @Override
+//        protected void publishResults(CharSequence constraint, FilterResults results) {
+//            if (results.values != null) {
+//                codes = (ArrayList<String>) results.values;
+//            } else {
+//                codes = null;
+//            }
+//            if (results.count > 0) {
+//                notifyDataSetChanged();
+//            } else {
+//                notifyDataSetInvalidated();
+//            }
+//        }
+//
+//    }
 
 }

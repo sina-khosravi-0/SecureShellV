@@ -14,10 +14,12 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputLayout;
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.RenewServiceActivity;
 import com.securelight.secureshellv.backend.DataManager;
 
 public class AccountFragment extends Fragment {
@@ -30,6 +32,7 @@ public class AccountFragment extends Fragment {
     private MaterialCheckBox unlimitedTraffic;
     private TextInputLayout connectedIps;
     private TextInputLayout serverMessage;
+    private MaterialButton serviceRenewButton;
 
     private final BroadcastReceiver updateUserDataBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -83,6 +86,11 @@ public class AccountFragment extends Fragment {
         unlimitedTraffic = view.findViewById(R.id.unlimited_traffic);
         connectedIps = view.findViewById(R.id.connected_ips_text_field);
         serverMessage = view.findViewById(R.id.server_message_text_field);
+        serviceRenewButton = view.findViewById(R.id.account_fragment_renew_button);
+
+        serviceRenewButton.setOnClickListener(v -> {
+            startActivity(new Intent(getContext(), RenewServiceActivity.class));
+        });
     }
 
     @Override

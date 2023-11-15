@@ -13,12 +13,10 @@ import java.util.Set;
 public class SharedPreferencesSingleton {
 
     private static SharedPreferencesSingleton instance;
-    private final Context context;
     private final SharedPreferences userSettingsPreferences;
     private final SharedPreferences apiCachePreferences;
 
     private SharedPreferencesSingleton(Context context) {
-        this.context = context.getApplicationContext();
         userSettingsPreferences = context.getSharedPreferences(Constants.USER_SETTINGS_PREFERENCES_NAME, Context.MODE_PRIVATE);
         apiCachePreferences = context.getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Context.MODE_PRIVATE);
     }
@@ -30,12 +28,17 @@ public class SharedPreferencesSingleton {
         return instance;
     }
 
-    public void setServer(String code) {
+    public void setServerLocation(String code) {
         userSettingsPreferences.edit().putString(Constants.SERVER_LOCATION_PREFERENCES_NAME, code).apply();
     }
 
-    public String getSelectedServerLocation() {
+    public String getSelectedServerLocationForDropDown() {
         return userSettingsPreferences.getString(Constants.SERVER_LOCATION_PREFERENCES_NAME, Constants.SERVER_LOCATION_DEFAULT);
+    }
+
+    public String getSelectedServerLocation() {
+        String selected = getSelectedServerLocationForDropDown();
+        return selected.equals("ato") ? "" : selected;
     }
 
     public void clearFilteredPackages() {

@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TargetServer {
-    enum Type {
+    public enum Type {
         D("DIRECT"),
         TD("TLS_DIRECT"),
         TH("TLS_HOP"),
@@ -58,7 +58,7 @@ public class TargetServer {
             ispScores.add(ispScore);
         }
         ip = data.getString("ip");
-        locationCode = data.getString("location_code");
+        locationCode = data.getString("location");
         type = Type.valueOf(data.getString("type"));
         port = data.getInt("port");
 
@@ -66,6 +66,18 @@ public class TargetServer {
             local_ip = data.getString("local_ip");
             local_port = data.getInt("local_port");
         }
+    }
+
+    public static TargetServer newEmptyServer(String s) {
+        TargetServer server = new TargetServer();
+        server.id = -1;
+        server.ip = "";
+        server.locationCode = "";
+        server.type = null;
+        server.port = 0;
+        server.local_ip = "";
+        server.local_port = 0;
+        return server;
     }
 
     public int getId() {

@@ -10,14 +10,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputLayout;
 import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,25 +47,38 @@ public class ServerFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         SharedPreferencesSingleton preferencesSingleton = SharedPreferencesSingleton.getInstance(getActivity());
         TextInputLayout textInputLayout = view.findViewById(R.id.server_location_text_input);
-        // TODO: get servers list
-        List<String> items =
-                Arrays.asList("ato", "us", "ae", "au", "ca", "cn", "de", "fr",
-                        "in", "it", "jp", "nl", "se", "sg", "tr", "uk");
+        List<String> items = new ArrayList<>();
+        items.add("ato");
+        items.addAll(DataManager.getInstance().getAvailableServerLocations());
 
+        if (getActivity() == null) {
+            return;
+        }
         ServerLocationArrayAdapter arrayAdapter = new ServerLocationArrayAdapter(
-                requireActivity(), R.layout.dropdown_item, items);
+                getActivity(), R.layout.dropdown_item, items);
         MaterialAutoCompleteTextView autoComplete = textInputLayout.findViewById(R.id.server_location_auto_complete);
         autoComplete.setAdapter(arrayAdapter);
-        autoComplete.setDropDownAnchor(R.id.server_location_text_input);
 
-        arrayAdapter.setAutoCompleteItem
-                (autoComplete, preferencesSingleton.getSelectedServerLocation());
+        new Thread(() -> {
+            DataManager.getInstance().getServerSelection();
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    arrayAdapter.setAutoCompleteItem(autoComplete, preferencesSingleton.getSelectedServerLocationForDropDown());
+                });
+            }
+        }).start();
 
         autoComplete.setOnItemClickListener((parent, textView, position, menuItemId) -> {
-            ((TextView) autoComplete).setCompoundDrawablesRelativeWithIntrinsicBounds(
+            autoComplete.setCompoundDrawablesRelativeWithIntrinsicBounds(
                     ((TextView) textView).getCompoundDrawablesRelative()[2],
                     null, null, null);
-            preferencesSingleton.setServer(arrayAdapter.getCode(position));
+            preferencesSingleton.setServerLocation(arrayAdapter.getCode(position));
         });
+    }
+
+    @Override
+    public void onResume() {
+        new Thread(() -> DataManager.getInstance().getServerSelection()).start();
+        super.onResume();
     }
 }

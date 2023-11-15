@@ -169,8 +169,13 @@
                     android:layout_height="wrap_content"
                     android:textSize="16sp"
                     tools:text="@string/dash" />
-
             </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/main_screen_renew_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:text="@string/renew"/>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 

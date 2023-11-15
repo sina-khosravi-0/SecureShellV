@@ -4,10 +4,12 @@ import static com.securelight.secureshellv.utility.Utilities.calculatePassword;
 
 import android.annotation.SuppressLint;
 import android.media.Image;
+import android.util.Log;
 
 import com.github.eloyzone.jalalicalendar.DateConverter;
 import com.github.eloyzone.jalalicalendar.JalaliDate;
 import com.securelight.secureshellv.utility.NetTools;
+import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -53,8 +55,8 @@ public class DataManager {
     /**
      * Requests password of the best server from the backend
      */
-    public String getSshPassword() {
-        String result = DatabaseHandlerSingleton.getInstance(null).retrievePassword(bestServer.getId());
+    public String getSshPassword(boolean reset) {
+        String result = DatabaseHandlerSingleton.getInstance(null).retrievePassword(bestServer.getId(), reset);
         return calculatePassword(userName, result);
     }
 
@@ -111,6 +113,9 @@ public class DataManager {
     }
 
     public void fillTargetServers(JSONArray data) throws JSONException {
+        if (data == null) {
+            return;
+        }
         targetServers.clear();
         for (int i = 0; i < data.length(); i++) {
             TargetServer targetServer = new TargetServer();
@@ -122,7 +127,10 @@ public class DataManager {
     private ReentrantLock lock = new ReentrantLock();
     private Condition condition = lock.newCondition();
 
-    public List<TargetServer> getTargetServers(String location) {
+    /**
+     * Gets servers with regards to the selected location
+     */
+    public List<TargetServer> getTargetServers() {
         if (isFetching) {
             while (isFetching) {
                 try {
@@ -139,10 +147,54 @@ public class DataManager {
 
         isFetching = true;
         try {
-            JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServerList(location);
+
+            JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServerList(
+                    SharedPreferencesSingleton.getInstance(null)
+                            .getSelectedServerLocation());
+            if (response.length() == 0) {
+                // if nothing was found we fetch servers from all locations
+                response = DatabaseHandlerSingleton.getInstance(null).fetchServerList("");
+                SharedPreferencesSingleton.getInstance(null).setServerLocation("ato");
+            }
+            System.out.println(response.length());
             fillTargetServers(response);
         } catch (JSONException e) {
             throw new RuntimeException("error parsing target servers", e);
+        } finally {
+            isFetching = false;
+            lock.lock();
+            condition.signalAll();
+            lock.unlock();
+        }
+        return targetServers;
+    }
+
+    /**
+     * Gets all servers regardless of location
+     */
+    public List<TargetServer> getServerSelection() {
+        List<TargetServer> targetServers = new ArrayList<>();
+        if (isFetching) {
+            while (isFetching) {
+                try {
+                    lock.lock();
+                    condition.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    lock.unlock();
+                }
+            }
+            return targetServers;
+        }
+
+        isFetching = true;
+        try {
+
+            JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServerList("");
+            fillTargetServers(response);
+        } catch (JSONException e) {
+            Log.d("DataManager", e.getMessage(), e);
         } finally {
             isFetching = false;
             lock.lock();
@@ -158,14 +210,30 @@ public class DataManager {
     public List<String> getAvailableServerLocations() {
         Map<String, String> locations = new HashMap<>();
         targetServers.forEach(targetServer -> {
-            locations.put(targetServer.getLocationCode(), "");
+            locations.put(targetServer.getLocationCode().toLowerCase(), "");
         });
         return new ArrayList<>(locations.keySet());
     }
 
 
-    public void calculateBestServer(String location) {
-        List<TargetServer> servers = DataManager.getInstance().getTargetServers(location);
+    private int emptyCount = 0;
+
+    /**
+     * Calculate best server and put it in bestServer.
+     *
+     * @return true if best server was found; false otherwise
+     */
+    public boolean calculateBestServer() {
+        List<TargetServer> servers = DataManager.getInstance().getTargetServers();
+
+        while (servers.size() == 0) {
+            emptyCount++;
+            servers = DataManager.getInstance().getTargetServers();
+            if (emptyCount == 3) {
+                return false;
+            }
+        }
+
         List<TargetServer> targetServers = servers.stream().filter(server -> server.getType() == TargetServer.Type.D)
                 .collect(Collectors.toList());
         List<TargetServer> indirectServers = servers.stream().filter(server ->
@@ -188,6 +256,7 @@ public class DataManager {
             } catch (InterruptedException ignored) {
             }
         }
+
         AtomicReference<TargetServer> bestServer = new AtomicReference<>();
         AtomicInteger bestPing = new AtomicInteger(Integer.MAX_VALUE);
         serverPings.forEach((targetServer, ping) -> {
@@ -200,7 +269,11 @@ public class DataManager {
         if (bestServer.get() == null) {
             bestServer.set(calculateBestIndirectServer(indirectServers, threadList, serverPings));
         }
+        if (bestServer.get() == null) {
+            return false;
+        }
         this.bestServer = bestServer.get();
+        return true;
     }
 
     private TargetServer calculateBestIndirectServer(List<TargetServer> indirectServers, List<Thread> threadList, Map<TargetServer, Integer> serverPings) {
@@ -230,11 +303,6 @@ public class DataManager {
         });
         return bestIndirectServer.get();
     }
-
-    public void calculateBestServer() {
-        calculateBestServer("");
-    }
-
 
     public TargetServer getBestServer() {
         return bestServer;

@@ -15,7 +15,6 @@ public class SendTrafficTimeTask extends TimerTask {
 
     @Override
     public void run() {
-        // TODO: Create method in the handler
         DatabaseHandlerSingleton.getInstance(context).sendTrafficIncrement(calcBytes());
     }
 

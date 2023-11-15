@@ -15,10 +15,6 @@ import com.securelight.secureshellv.utility.Utilities;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * {@link RecyclerView.Adapter} that can display a {@link AppInfoItem}.
- * TODO: Replace the implementation with code for your data type.
- */
 public class PackageReViewAdapter extends RecyclerView.Adapter<PackageReViewAdapter.ViewHolder> {
     private List<AppInfoItem> appInfoList;
     private List<AppInfoItem> originalList;

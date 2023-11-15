@@ -70,7 +70,6 @@ public class MainActivityTest extends AppCompatActivity {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
 
-        // TODO: set locale based on user preference
         Locale locale = new Locale("fa");
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.create(locale));
 
