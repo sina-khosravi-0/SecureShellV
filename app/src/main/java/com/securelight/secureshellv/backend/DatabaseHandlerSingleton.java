@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.collection.LruCache;
@@ -38,7 +37,9 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -132,7 +133,7 @@ public class DatabaseHandlerSingleton {
     public void fetchUserData() {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
         String accessToken = preferences.getAccessToken();
-        String url = endPoint + "api/account/user/";
+        String url = endPoint + "api/account/details/";
 
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
             @Override
@@ -372,33 +373,113 @@ public class DatabaseHandlerSingleton {
         }
     }
 
-    private void uploadBitmap(final Bitmap bitmap, Response.Listener<JSONObject> responseListener,
-                              Response.ErrorListener errorListener) {
+    public JSONArray fetchServicePlans(boolean gold) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "/api/renew/receipt";
+        String url = endPoint + "api/account/services/";
+        if (gold) {
+            url += "gold/";
+        }
 
-        VolleyMultipartRequest volleyMultipartRequest = new VolleyMultipartRequest(Request.Method.POST, url,
-                response -> {
-                    try {
-                        JSONObject obj = new JSONObject(new String(response.data));
-                        Toast.makeText(context, obj.getString("message"), Toast.LENGTH_SHORT).show();
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                },
-                error -> {
-                    Toast.makeText(context, error.getMessage(), Toast.LENGTH_LONG).show();
-                    Log.e("GotError", "" + error.getMessage());
-                }) {
+        RequestFuture<JSONArray> future = RequestFuture.newFuture();
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
+            }
+        };
+        instance.addToRequestQueue(request);
+        try {
+            return future.get(20, TimeUnit.SECONDS);
+//            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
+        } catch (InterruptedException | ExecutionException | TimeoutException ex) {
+            Log.d("DatabaseHandler", ex.getMessage(), ex);
+            return new JSONArray();
+        }
+    }
 
+    public List<Integer> fetchPlanDurations() {
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
+        String url = endPoint + "api/account/durations/";
+
+        RequestFuture<JSONArray> future = RequestFuture.newFuture();
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
+            }
+        };
+        instance.addToRequestQueue(request);
+        try {
+            JSONArray response = future.get(20, TimeUnit.SECONDS);
+            List<Integer> durations = new ArrayList<>();
+            for (int i = 0; i < response.length(); i++) {
+                durations.add(response.getJSONObject(i).getInt("months"));
+            }
+            return durations;
+//            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
+        } catch (InterruptedException | ExecutionException | TimeoutException ex) {
+            Log.d("DatabaseHandler", ex.getMessage(), ex);
+        } catch (JSONException ignored) {
+        }
+        return new ArrayList<>();
+    }
+
+    public List<String> fetchCardNumbers() {
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
+        String url = endPoint + "api/card_numbers";
+
+        RequestFuture<JSONArray> future = RequestFuture.newFuture();
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
+            }
+        };
+        instance.addToRequestQueue(request);
+        try {
+            JSONArray response = future.get(20, TimeUnit.SECONDS);
+            List<String> cardNumbers = new ArrayList<>();
+            for (int i = 0; i < response.length(); i++) {
+                cardNumbers.add(response.getJSONObject(i).getString("card_number"));
+            }
+            return cardNumbers;
+//            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
+        } catch (InterruptedException | ExecutionException | TimeoutException ex) {
+            Log.d("DatabaseHandler", ex.getMessage(), ex);
+        } catch (JSONException ignored) {
+        }
+        return new ArrayList<>();
+    }
+
+    public void sendRenewRequest(final Bitmap bitmap, int servicePlanId, Response.Listener<NetworkResponse> responseListener,
+                                 Response.ErrorListener errorListener) {
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
+        String url = endPoint + "api/account/renew/";
+
+        VolleyMultipartRequest volleyMultipartRequest = new VolleyMultipartRequest(Request.Method.PUT, url,
+                responseListener, errorListener) {
+
+            @NonNull
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("current_service_plan", String.valueOf(servicePlanId));
+                return params;
+            }
 
             @Override
             protected Map<String, DataPart> getByteData() {
                 Map<String, DataPart> params = new HashMap<>();
-                long imagename = System.currentTimeMillis();
+                long imageName = System.currentTimeMillis();
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream);
-                params.put("image", new DataPart(imagename + ".png", byteArrayOutputStream.toByteArray()));
+                params.put("payment_receipt", new DataPart(imageName + ".png", byteArrayOutputStream.toByteArray()));
                 return params;
             }
 

@@ -10,7 +10,7 @@
     <color name="md_theme_light_primary">#074559</color>
     <color name="md_theme_light_onPrimary">#C8DBE6</color>
     <color name="md_theme_light_primaryContainer">#5FA8C8</color>
-    <color name="md_theme_light_primaryContainer_opaque">#995FA8C8</color>
+    <color name="md_theme_light_primaryContainer_opaque">#D85FA8C8</color>
     <color name="md_theme_light_onPrimaryContainer">#355473</color>
     <color name="md_theme_light_secondary">#3DA7AC</color>
     <color name="md_theme_light_onSecondary">#899D9E</color>

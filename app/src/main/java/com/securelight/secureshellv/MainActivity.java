@@ -68,6 +68,11 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import fr.bmartel.speedtest.SpeedTestReport;
+import fr.bmartel.speedtest.SpeedTestSocket;
+import fr.bmartel.speedtest.inter.ISpeedTestListener;
+import fr.bmartel.speedtest.model.SpeedTestError;
+
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXIT_APP_ACTION = "com.securelight.secureshellv.EXIT_APP";
@@ -83,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView buttonImage;
     private TextView buttonText;
     private TextView mainConnectText;
-    private TextView daysLeftText;
+    private TextView remainingTimeText;
     private MaterialButton serviceRenewButton;
     private CircularProgressIndicator trafficProgressIndicator;
 
@@ -175,18 +180,25 @@ public class MainActivity extends AppCompatActivity {
             if (vpnServiceBinder != null && vpnServiceBinder.getService().isServiceActive()) {
                 trafficProgressIndicator.setProgress(dataManager.getRemainingPercent(), true);
             }
-
-            if (dataManager.getDaysLeft() <= 3 && dataManager.getDaysLeft() > 1) {
-                daysLeftText.setTextColor(colorWarning);
-            } else if (dataManager.getDaysLeft() <= 1) {
-                daysLeftText.setTextColor(colorAlert);
+            long remainingDays = dataManager.getRemainingDays();
+            if (remainingDays <= 3 && remainingDays > 1) {
+                remainingTimeText.setTextColor(colorWarning);
+            } else if (remainingDays <= 1) {
+                remainingTimeText.setTextColor(colorAlert);
                 serviceRenewButton.setVisibility(View.VISIBLE);
             } else {
-                daysLeftText.setTextColor(colorOk);
+                remainingTimeText.setTextColor(colorOk);
                 serviceRenewButton.setVisibility(View.GONE);
             }
-            daysLeftText.setText(getResources().getQuantityString(R.plurals.days_left,
-                    (int) dataManager.getDaysLeft(), (int) dataManager.getDaysLeft()));
+            if (remainingDays == 0) {
+                long[] timeLeft = dataManager.getRemainingTime();
+                remainingTimeText.setText(getResources().getQuantityString(R.plurals.hours,
+                        (int) timeLeft[0], (int) timeLeft[0]) + " " + getResources().getQuantityString(R.plurals.minutes,
+                        (int) timeLeft[1], (int) timeLeft[1]) + " " + getResources().getString(R.string.left));
+            } else {
+                remainingTimeText.setText(getResources().getQuantityString(R.plurals.days_left,
+                        (int) remainingDays, (int) remainingDays));
+            }
         }
     };
 
@@ -214,6 +226,42 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        SpeedTestSocket speedTestSocket = new SpeedTestSocket();
+
+// add a listener to wait for speedtest completion and progress
+        speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
+
+            @Override
+            public void onCompletion(SpeedTestReport report) {
+                // called when download/upload is complete
+                System.out.println("[COMPLETED] rate in octet/s : " + report.getTransferRateOctet());
+                System.out.println("[COMPLETED] rate in bit/s   : " + report.getTransferRateBit());
+            }
+
+            @Override
+            public void onError(SpeedTestError speedTestError, String errorMessage) {
+                // called when a download/upload error occur
+                System.out.println(speedTestError);
+                System.out.println(errorMessage);
+            }
+
+            @Override
+            public void onProgress(float percent, SpeedTestReport report) {
+                // called to notify download/upload progress
+                System.out.println("[PROGRESS] progress : " + percent + "%");
+                System.out.println("[PROGRESS] rate in octet/s : " + report.getTransferRateOctet());
+                System.out.println("[PROGRESS] rate in bit/s   : " + report.getTransferRateBit());
+            }
+        });
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException ignored) {
+            }
+            speedTestSocket.startDownload("http://speedtest.etisalat.af:8080/speedtest/random2000x2000.JPG",500);
+        }).start();
         checkAndAddPermissions();
         fetchStringValues();
 
@@ -261,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
         buttonText = buttonFrame.findViewById(R.id.vpn_toggle_txt);
         trafficProgressIndicator = buttonFrame.findViewById(R.id.traffic_progress);
         mainConnectText = findViewById(R.id.main_connect_status);
-        daysLeftText = findViewById(R.id.days_left);
+        remainingTimeText = findViewById(R.id.remaining_time);
         serviceRenewButton = findViewById(R.id.main_screen_renew_button);
 
         buttonFrame.setOnClickListener(v -> {

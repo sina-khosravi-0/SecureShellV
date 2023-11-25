@@ -1,5 +1,7 @@
 package com.securelight.secureshellv.utility;
 
+import android.content.res.Resources;
+
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -52,5 +54,10 @@ public class Utilities {
         } catch (NoSuchAlgorithmException e) {
             return null;
         }
+    }
+
+    public static int convertDPtoPX(Resources resources, int dp){
+        final float scale = resources.getDisplayMetrics().density;
+        return (int) (dp * scale + 0.5f);
     }
 }

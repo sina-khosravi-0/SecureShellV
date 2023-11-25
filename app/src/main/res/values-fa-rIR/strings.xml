@@ -70,6 +70,12 @@
     <plurals name="days_left" tools:ignore="MissingQuantity">
         <item quantity="other">\u202D %d \u202Cروز باقی مانده</item>
     </plurals>
+    <plurals name="hours" tools:ignore="MissingQuantity">
+        <item quantity="other">\u202D %d \u202Cساعت</item>
+    </plurals>
+    <plurals name="minutes" tools:ignore="MissingQuantity">
+        <item quantity="other">\u202D %d \u202Cدقیقه</item>
+    </plurals>
     <string name="persistent_notification">نوتیفیکشن پایدار</string>
     <string name="persistent_notification_switch_hint">با فعال کردن این گزینه، بعد از خاموش کردن VPN، نوتیفیکشن آن باقی میماند.</string>
     <string name="you_traffic_has_run_out">حجم ترافیک شما به اتمام رسیده است.</string>
@@ -79,8 +85,8 @@
     <string name="renew">تمدید سرویس</string>
     <string name="amount">مقدار(تومان):</string>
     <string name="card_number">شماره کارت:</string>
-    <string name="renew_credit_description">جهت تمدید اشتراک، لطفا ابتدا مقدار مشخص شده را به شماره کارت زیر واریز نمایید و سپس رسید آن را در همین صفحه انتخاب و ارسال کنید.</string>
-    <string name="select">انتخاب</string>
+    <string name="renew_credit_description">جهت تمدید اشتراک، لطفا ابتدا بسته مورد نظر خود را انتخاب کنید و سپس مقدار مشخص شده را به شماره کارت زیر واریز نمایید و رسید آن را از همین صفحه ارسال کنید.</string>
+    <string name="select_receipt">انتخاب رسید</string>
     <string name="submit">ارسال</string>
     <plurals name="months" tools:ignore="MissingQuantity">
         <item quantity="other">%d ماه</item>
@@ -89,8 +95,24 @@
         <item quantity="other">%d سال</item>
     </plurals>
     <plurals name="users" tools:ignore="MissingQuantity">
-        <item quantity="other">%d کاربر</item>
+        <item quantity="other">%d کاربره</item>
     </plurals>
+    <plurals name="gigs" tools:ignore="MissingQuantity">
+        <item quantity="other">%d گیگ</item>
+    </plurals>
+    <string name="left">باقیمانده</string>
+    <string name="toman">تومان</string>
     <string name="please_select">لطفا انتخاب کنید</string>
-
+    <string name="duration">مدت:</string>
+    <string name="plan">بسته:</string>
+    <string name="gold_plans">پلن طلایی</string>
+    <string name="processing_data">در حال پردازش اطلاعات</string>
+    <string name="unlimited">نامحدود</string>
+    <string name="what_is_gold_plan">پلن طلایی چیست؟</string>
+    <string name="gold_plan_alert_info">در پلن های طلایی، برنامه برای اتصال، از سرور های داخل ایران استفاده میکند که باعث بهبود کیفیت اتصال میشود. پلن های طلایی به دلیل قیمت بالای سرور های ایرانی و حجمی بودن آنها، گران تر هستند.</string>
+    <string name="silver_plans">پلن نقره ای</string>
+    <string name="silver_plan_alert">لطفا توجه داشته باشید که پلن های نقره ای روی همراه اول و ایرانسل احتمال اتصال بیشتری دارند. درصورتی که اپراتور اینترنت شما بجز این دو است احتمال متصل نشدن وجود دارد و توصیه میشود از پلن طلایی استفاده کنید.</string>
+    <string name="submit_successful">ارسال موفق بود</string>
+    <string name="please_select_a_plan_first">لطفا ابتدا یک بسته را انتخاب کنید</string>
+    <string name="already_requested_renewal">شما قبلا درخواست داده اید. لطفا صبر کنید.</string>
 </resources>

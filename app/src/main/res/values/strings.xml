@@ -84,13 +84,26 @@
     <string name="renew">Renew Service</string>
     <string name="card_number">Card Number:</string>
     <string name="amount">Amount(Toman):</string>
-    <string name="renew_credit_description">In order to renew your credit, please first transfer the specified amount to the following card number and then select and submit the receipt\'s image below.</string>
-    <string name="select">Select</string>
+    <string name="renew_credit_description">In order to renew your credit, please first select your desired plan and duration, then transfer the specified amount to the following card number and submit the receipt\'s image below.</string>
+    <string name="select_receipt">Select Receipt</string>
     <string name="submit">Submit</string>
     <string name="please_select">Please Select</string>
+    <string name="duration">Duration:</string>
+    <string name="plan">Plan:</string>
+    <string name="gold_plans">Gold Plan</string>
+    <string name="processing_data">Processing Data</string>
+    <string name="left">left</string>
     <plurals name="days_left">
         <item quantity="one">%d day left</item>
         <item quantity="other">%d days left</item>
+    </plurals>
+    <plurals name="hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
     </plurals>
     <plurals name="months">
         <item quantity="one">%d Month</item>
@@ -104,4 +117,17 @@
         <item quantity="one">%d user</item>
         <item quantity="other">%d users</item>
     </plurals>
+    <plurals name="gigs">
+        <item quantity="one">%dGB</item>
+        <item quantity="other">%dGB</item>
+    </plurals>
+    <string name="toman">toman</string>
+    <string name="unlimited">Unlimited</string>
+    <string name="what_is_gold_plan">What is Gold plan?</string>
+    <string name="gold_plan_alert_info">In Gold plans, the VPN utilizes servers located in iran to connect to the destination server. This will improve VPN quality and reduce disconnection. Gold plans have limited traffic and higher prices due to iranian server\'s high prices.</string>
+    <string name="silver_plans">Silver Plan</string>
+    <string name="silver_plan_alert">Please note that silver plans work best with Hamrah-e-Aval and sometimes Irancell. If your internet service provider is any other than these two, it is advised to consider the gold plans.</string>
+    <string name="submit_successful">Submit Successful</string>
+    <string name="please_select_a_plan_first">Please select a plan first</string>
+    <string name="already_requested_renewal">You have already requested renewal. Please wait.</string>
 </resources>

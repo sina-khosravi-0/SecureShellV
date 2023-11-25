@@ -94,7 +94,7 @@
                 android:showDividers="middle">
 
                 <TextView
-                    android:id="@+id/days_left"
+                    android:id="@+id/remaining_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="?attr/warning"

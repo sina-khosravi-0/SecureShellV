@@ -1,135 +1,228 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_margin="20dp"
-    android:animateLayoutChanges="true"
-    android:background="@drawable/rounded_container_background"
-    android:backgroundTint="?attr/colorSecondaryContainer"
-    android:fillViewport="true">
+    android:layout_height="match_parent">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-
-        android:divider="@drawable/empty_divider"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="10dp"
-        android:showDividers="middle"
-        tools:context=".RenewServiceActivity">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/renew_credit_description"
-            android:textStyle="bold" />
+        android:layout_height="match_parent"
+        android:layout_margin="20dp"
+        android:animateLayoutChanges="true"
+        android:background="@drawable/rounded_container_background"
+        android:backgroundTint="?attr/colorSecondaryContainer"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:divider="@drawable/empty_divider"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:showDividers="middle|beginning">
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:showDividers="middle"
+            tools:context=".RenewServiceActivity">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/card_number" />
-
-            <TextView
-                android:id="@+id/card_number_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/rounded_container_background"
-                android:foreground="?android:attr/selectableItemBackground"
-                android:padding="10dp"
-                android:text="۶۲۱۹-۸۶۱۰-۶۰۲۶-1467"
-                android:textSize="17sp"
+                android:text="@string/renew_credit_description"
                 android:textStyle="bold" />
 
-        </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:showDividers="middle|beginning">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:divider="@drawable/empty_divider"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:showDividers="middle|beginning">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/what_is_gold_plan"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-            <TextView
+                <ImageButton
+                    android:id="@+id/gold_info_button"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+
+                    android:background="@drawable/ic_info"
+                    android:backgroundTint="?attr/colorPrimary"
+                    android:contentDescription="@string/info_about_app_filter" />
+            </LinearLayout>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/gold_switch"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/amount" />
+                android:checked="true"
+                android:text="@string/gold_plans" />
 
-            <TextView
-                android:id="@+id/amount_text"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:showDividers="middle|beginning">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/duration" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/duration_dropdown_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawableEnd="@drawable/baseline_arrow_drop_down_24"
+                    android:drawableTint="?attr/colorOnPrimary"
+                    tools:text="1 Month" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:showDividers="middle|beginning">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/plan" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/users_dropdown_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawableEnd="@drawable/baseline_arrow_drop_down_24"
+                    android:drawableTint="?attr/colorOnPrimary"
+                    android:text="@string/please_select"
+                    tools:text="1 User" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:showDividers="middle|beginning">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_number" />
+
+                <LinearLayout
+                    android:id="@+id/card_number_area"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/empty_divider"
+                    android:orientation="vertical"
+                    android:showDividers="middle" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+
+                android:orientation="horizontal"
+                android:showDividers="middle|beginning">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/amount" />
+
+                <TextView
+                    android:id="@+id/amount_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_container_background"
+                    android:padding="10dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="70,000" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:showDividers="middle|beginning">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/select_receipt_image_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/select_receipt" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/submit_receipt_image_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="?attr/colorTertiary"
+                    android:text="@string/submit"
+                    android:textColor="?attr/colorOnTertiary"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/receipt_image_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
                 android:background="@drawable/rounded_container_background"
-                android:padding="10dp"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                tools:text="@string/please_select" />
-
-        </LinearLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/duration_dropdown_button"
-            android:layout_width="wrap_content"
-
-            android:layout_height="wrap_content"
-            android:drawableEnd="@drawable/baseline_arrow_drop_down_24"
-            android:drawableTint="?attr/colorOnPrimary"
-            tools:text="1 Month" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/users_dropdown_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:drawableEnd="@drawable/baseline_arrow_drop_down_24"
-            android:drawableTint="?attr/colorOnPrimary"
-            tools:text="1 User" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:divider="@drawable/empty_divider"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:showDividers="middle|beginning">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/select_receipt_image_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/select" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/submit_receipt_image_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:backgroundTint="?attr/colorTertiary"
-                android:text="@string/submit"
-                android:textColor="?attr/colorOnTertiary"
+                android:contentDescription="Receipt Image"
+                android:maxHeight="300dp"
+                android:padding="5dp"
                 android:visibility="gone"
-                tools:visibility="visible" />
+                tools:ignore="HardcodedText" />
+
         </LinearLayout>
+    </ScrollView>
 
-        <ImageView
-            android:id="@+id/receipt_image_view"
-            android:layout_width="match_parent"
+    <LinearLayout
+        android:id="@+id/loading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?attr/colorPrimaryContainerOpaque"
+        android:clickable="true"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:adjustViewBounds="true"
-            android:background="@drawable/rounded_container_background"
-            android:contentDescription="Receipt Image"
-            android:maxHeight="300dp"
-            android:padding="5dp"
-            android:visibility="gone"
-            tools:ignore="HardcodedText" />
+            android:layout_gravity="center"
+            android:indeterminateTint="?attr/colorOnPrimaryContainer" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/processing_data"
+            android:textColor="?attr/colorOnPrimaryContainer"
+            android:textSize="20sp"
+            android:textStyle="bold" />
     </LinearLayout>
-</ScrollView>
+</FrameLayout>

@@ -39,7 +39,7 @@ public class DataManager {
     private double usedTrafficGB;
     private boolean unlimitedCreditTime;
     private boolean unlimitedTraffic;
-    private boolean hasPaid;
+    private boolean renewPending;
     private int connectedIps;
     private int allowedIps;
     private Image paymentReceipt;
@@ -79,7 +79,7 @@ public class DataManager {
         long usedTrafficB = userCreditInfo.getLong("used_traffic_b");
         boolean unlimitedCreditTime = userCreditInfo.getBoolean("unlimited_credit_time");
         boolean unlimitedTraffic = userCreditInfo.getBoolean("unlimited_traffic");
-        boolean hasPaid = userCreditInfo.getBoolean("has_paid");
+        boolean renewPending = userCreditInfo.getBoolean("renew_pending");
         int connectedIps = userCreditInfo.getInt("connected_ips");
         int allowedIps = userCreditInfo.getInt("allowed_ips");
         String paymentReceipt = userCreditInfo.getString("payment_receipt");
@@ -98,7 +98,7 @@ public class DataManager {
         this.usedTrafficGB = Math.round((usedTrafficB / 1000000000.) * 100) / 100.;
         this.unlimitedCreditTime = unlimitedCreditTime;
         this.unlimitedTraffic = unlimitedTraffic;
-        this.hasPaid = hasPaid;
+        this.renewPending = renewPending;
         this.connectedIps = connectedIps;
         this.allowedIps = allowedIps;
 //        this.paymentReceipt = paymentReceipt;
@@ -148,15 +148,13 @@ public class DataManager {
         isFetching = true;
         try {
 
-            JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServerList(
-                    SharedPreferencesSingleton.getInstance(null)
-                            .getSelectedServerLocation());
+            JSONArray response = DatabaseHandlerSingleton.getInstance(null)
+                    .fetchServerList(SharedPreferencesSingleton.getInstance(null).getSelectedServerLocation());
             if (response.length() == 0) {
                 // if nothing was found we fetch servers from all locations
                 response = DatabaseHandlerSingleton.getInstance(null).fetchServerList("");
                 SharedPreferencesSingleton.getInstance(null).setServerLocation("ato");
             }
-            System.out.println(response.length());
             fillTargetServers(response);
         } catch (JSONException e) {
             throw new RuntimeException("error parsing target servers", e);
@@ -304,6 +302,20 @@ public class DataManager {
         return bestIndirectServer.get();
     }
 
+    public List<ServicePlan> getServicePlans(boolean gold) {
+        JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServicePlans(gold);
+        List<ServicePlan> servicePlans = new ArrayList<>();
+        for (int i = 0; i < response.length(); i++) {
+            ServicePlan servicePlan = new ServicePlan();
+            try {
+                servicePlan.parseData(response.getJSONObject(i));
+            } catch (JSONException ignored) {
+            }
+            servicePlans.add(servicePlan);
+        }
+        return servicePlans;
+    }
+
     public TargetServer getBestServer() {
         return bestServer;
     }
@@ -332,8 +344,16 @@ public class DataManager {
                 dataManager.getEndCreditDate().getDayOfMonth()).toString();
     }
 
-    public long getDaysLeft() {
+    public long getRemainingDays() {
         return LocalDateTime.now().until(endCreditDate, ChronoUnit.DAYS);
+    }
+
+    public long[] getRemainingTime() {
+        long[] time = new long[2];
+        time[0] = LocalDateTime.now().until(endCreditDate, ChronoUnit.HOURS);
+        System.out.println(LocalDateTime.now().until(endCreditDate, ChronoUnit.SECONDS) - (time[0] * 60));
+        time[1] = LocalDateTime.now().until(endCreditDate, ChronoUnit.MINUTES) - (time[0] * 60);
+        return time;
     }
 
     public double getTotalTrafficGB() {
@@ -352,8 +372,8 @@ public class DataManager {
         return unlimitedTraffic;
     }
 
-    public boolean isHasPaid() {
-        return hasPaid;
+    public boolean isRenewPending() {
+        return renewPending;
     }
 
     public int getConnectedIps() {
@@ -401,7 +421,7 @@ public class DataManager {
                 ", usedTrafficB=" + usedTrafficGB +
                 ", unlimitedCreditTime=" + unlimitedCreditTime +
                 ", unlimitedTraffic=" + unlimitedTraffic +
-                ", hasPaid=" + hasPaid +
+                ", hasPaid=" + renewPending +
                 ", connectedIps=" + connectedIps +
                 ", allowedIps=" + allowedIps +
                 ", paymentReceipt=" + paymentReceipt +
