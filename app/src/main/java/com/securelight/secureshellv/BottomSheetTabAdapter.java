@@ -7,6 +7,7 @@ import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import com.securelight.secureshellv.ui.bottomsheet.account.AccountFragment;
+import com.securelight.secureshellv.ui.bottomsheet.more.MoreFragment;
 import com.securelight.secureshellv.ui.bottomsheet.serversettings.ServerFragment;
 import com.securelight.secureshellv.ui.bottomsheet.settings.SettingsFragment;
 
@@ -32,6 +33,9 @@ public class BottomSheetTabAdapter extends FragmentStateAdapter {
                 break;
             case 3:
                 fragment = SettingsFragment.newInstance();
+                break;
+            case 4:
+                fragment = MoreFragment.newInstance();
                 break;
             default:
                 fragment = new Fragment();

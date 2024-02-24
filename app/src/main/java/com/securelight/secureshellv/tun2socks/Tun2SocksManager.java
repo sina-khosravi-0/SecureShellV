@@ -15,7 +15,7 @@ public class Tun2SocksManager {
     private final String TAG = this.getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
     private boolean isRunning;
-    private Tun2SocksListener t2SListener;
+    private final Tun2SocksListener t2SListener;
     private static Thread thread;
     private static final List<Long> threadIds = new ArrayList<>();
 

@@ -17,7 +17,7 @@ public class TargetServer {
 
         public final String value;
 
-        private Type(String value) {
+        Type(String value) {
             this.value = value;
         }
     }

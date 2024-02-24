@@ -1,7 +1,7 @@
 *Server has an HTTP proxy on port 3129
 
 1. SSH port forwarding is done with Apache mina sshd.
-    Note1: The proxy has to be established prior to the Tun2Socks service to avoid possible exceptions.
+    Note1: The proxy has to be established prior to the Tun2Socks service to avoid any possible exceptions.
     Note2: Add following lines to build.gradle for mina-sshd to be able to work:
             implementation 'javax.management:jmx:1.2.1'
             implementation 'org.apache.sshd:sshd-core:2.10.0'

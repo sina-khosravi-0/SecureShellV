@@ -115,4 +115,9 @@
     <string name="submit_successful">ارسال موفق بود</string>
     <string name="please_select_a_plan_first">لطفا ابتدا یک بسته را انتخاب کنید</string>
     <string name="already_requested_renewal">شما قبلا درخواست داده اید. لطفا صبر کنید.</string>
+    <string name="log_out">خروج از حساب</string>
+    <string name="are_you_sure_about_logging_out">آیا از خروج از حساب اطمینان دارید؟</string>
+    <string name="confirmation">تاییدیه</string>
+    <string name="no">خیر</string>
+    <string name="yes">بله</string>
 </resources>

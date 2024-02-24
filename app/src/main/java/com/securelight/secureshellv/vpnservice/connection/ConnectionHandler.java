@@ -99,8 +99,6 @@ public class ConnectionHandler extends Thread {
     @Override
     public void run() {
         running = true;
-        int retryCount = 0;
-        boolean reset = false;
         updateConnectionStateUI(ConnectionState.CONNECTING);
 
         // start internet access timer
@@ -119,7 +117,6 @@ public class ConnectionHandler extends Thread {
                 setupDirectSsh();
                 break;
             case TD:
-                break;
             case TH:
                 setupTLSSsh();
                 break;
@@ -132,29 +129,7 @@ public class ConnectionHandler extends Thread {
 
         tun2SocksManager = new Tun2SocksManager(vpnInterface, t2SListener);
 
-        while (!sshManager.isEstablished() && !interrupted) {
-            try {
-                if (bridge) {
-                    sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
-                } else {
-                    sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
-                }
-            } catch (SshException sE) {
-                if (Objects.equals(sE.getMessage(), "No more authentication methods available")) {
-                    // retry 3 times and reset the password
-                    if (retryCount > 2) {
-                        retryCount = 0;
-                        reset = true;
-                    } else {
-                        reset = false;
-                        retryCount++;
-                    }
-                }
-                Log.d("SshManager", sE.getMessage(), sE);
-            } catch (IOException ioE) {
-                Log.d("SshManager", ioE.getMessage(), ioE);
-            }
-        }
+        connect(bridge);
         if (!interrupted) {
             sshManager.createPortForwarding();
             sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, sendTrafficPeriod);
@@ -165,6 +140,7 @@ public class ConnectionHandler extends Thread {
         // start socks heartbeat timer
         socksTimer.schedule(socksHeartbeatHandler, 0, socksHeartbeatPeriod);
 
+        // try to keep the connection alive till the thread is interrupted
         while (!interrupted) {
             updateConnectionStateUI(ConnectionState.CONNECTED);
 
@@ -178,29 +154,7 @@ public class ConnectionHandler extends Thread {
 
             updateConnectionStateUI(ConnectionState.CONNECTING);
 
-            // try reconnecting till SshManager.established is true
-            while (!sshManager.isEstablished() && !interrupted) {
-                try {
-                    if (bridge) {
-                        sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
-                    } else {
-                        sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
-                    }
-                } catch (SshException sE) {
-                    if (Objects.equals(sE.getMessage(), "No more authentication methods available")) {
-                        if (retryCount == 2) {
-                            retryCount = 0;
-                            reset = true;
-                        } else {
-                            reset = false;
-                            retryCount++;
-                        }
-                    }
-                    Log.d("SshManager", sE.getMessage(), sE);
-                } catch (IOException ioE) {
-                    Log.d("SshManager", ioE.getMessage(), ioE);
-                }
-            }
+            connect(bridge);
             if (!interrupted) {
                 sshManager.createPortForwarding();
                 sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, sendTrafficPeriod);
@@ -219,6 +173,27 @@ public class ConnectionHandler extends Thread {
         running = false;
     }
 
+    /**
+     * blocks until connection is successful
+     * */
+    private void connect(boolean bridge) {
+        boolean reset = false;
+        while (!sshManager.isEstablished() && !interrupted) {
+            try {
+                if (bridge) {
+                    sshManager.connectWithBridge(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
+                } else {
+                    sshManager.connect(String.valueOf(DataManager.getInstance().getSshPassword(reset)));
+                }
+            } catch (SshException sE) {
+                reset = Objects.equals(sE.getMessage(), "No more authentication methods available");
+                Log.d("SshManager", sE.getMessage(), sE);
+            } catch (IOException ioE) {
+                Log.d("SshManager", ioE.getMessage(), ioE);
+            }
+        }
+    }
+
     private void setupDirectSsh() {
         sshManager = new SshManager(lock,
                 internetAvailableCondition,
@@ -234,6 +209,7 @@ public class ConnectionHandler extends Thread {
         try (ServerSocket serverSocket = new ServerSocket(0)) {
             port = serverSocket.getLocalPort();
         } catch (IOException e) {
+            // no options left we're fucked
             throw new RuntimeException("no free port");
         }
         stunnelManager = new StunnelManager(context.getApplicationContext());
@@ -255,6 +231,7 @@ public class ConnectionHandler extends Thread {
         try (ServerSocket serverSocket = new ServerSocket(0)) {
             port = serverSocket.getLocalPort();
         } catch (IOException e) {
+            // we're done
             throw new RuntimeException("no free port");
         }
         sshManager = new SshManager(lock,

@@ -68,12 +68,6 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import fr.bmartel.speedtest.SpeedTestReport;
-import fr.bmartel.speedtest.SpeedTestSocket;
-import fr.bmartel.speedtest.inter.ISpeedTestListener;
-import fr.bmartel.speedtest.model.SpeedTestError;
-
-
 public class MainActivity extends AppCompatActivity {
     public static final String EXIT_APP_ACTION = "com.securelight.secureshellv.EXIT_APP";
     public static final String SIGN_IN_ACTION = "com.securelight.secureshellv.DO_SIGN_IN";
@@ -227,41 +221,43 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        SpeedTestSocket speedTestSocket = new SpeedTestSocket();
+//        SpeedTestSocket speedTestSocket = new SpeedTestSocket();
+//
+//// add a listener to wait for speedtest completion and progress
+//        speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
+//
+//            @Override
+//            public void onCompletion(SpeedTestReport report) {
+//                // called when download/upload is complete
+//                System.out.println("[COMPLETED] rate in octet/s : " + report.getTransferRateOctet());
+//                System.out.println("[COMPLETED] rate in bit/s   : " + report.getTransferRateBit());
+//            }
+//
+//            @Override
+//            public void onError(SpeedTestError speedTestError, String errorMessage) {
+//                // called when a download/upload error occur
+//                System.out.println(speedTestError);
+//                System.out.println(errorMessage);
+//            }
+//
+//            @Override
+//            public void onProgress(float percent, SpeedTestReport report) {
+//                // called to notify download/upload progress
+//                System.out.println("[PROGRESS] progress : " + percent + "%");
+//                System.out.println("[PROGRESS] rate in octet/s : " + report.getTransferRateOctet());
+//                System.out.println("[PROGRESS] rate in bit/s   : " + report.getTransferRateBit());
+//            }
+//        });
+//
+//        new Thread(() -> {
+//            try {
+//                Thread.sleep(2000);
+//            } catch (InterruptedException ignored) {
+//            }
+//            speedTestSocket.startDownload("http://speedtest.etisalat.af:8080/speedtest/random2000x2000.JPG", 500);
+//        }).start();
+//
 
-// add a listener to wait for speedtest completion and progress
-        speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
-
-            @Override
-            public void onCompletion(SpeedTestReport report) {
-                // called when download/upload is complete
-                System.out.println("[COMPLETED] rate in octet/s : " + report.getTransferRateOctet());
-                System.out.println("[COMPLETED] rate in bit/s   : " + report.getTransferRateBit());
-            }
-
-            @Override
-            public void onError(SpeedTestError speedTestError, String errorMessage) {
-                // called when a download/upload error occur
-                System.out.println(speedTestError);
-                System.out.println(errorMessage);
-            }
-
-            @Override
-            public void onProgress(float percent, SpeedTestReport report) {
-                // called to notify download/upload progress
-                System.out.println("[PROGRESS] progress : " + percent + "%");
-                System.out.println("[PROGRESS] rate in octet/s : " + report.getTransferRateOctet());
-                System.out.println("[PROGRESS] rate in bit/s   : " + report.getTransferRateBit());
-            }
-        });
-
-        new Thread(() -> {
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException ignored) {
-            }
-            speedTestSocket.startDownload("http://speedtest.etisalat.af:8080/speedtest/random2000x2000.JPG",500);
-        }).start();
         checkAndAddPermissions();
         fetchStringValues();
 
@@ -277,7 +273,8 @@ public class MainActivity extends AppCompatActivity {
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.create(locale));
 
         setContentView(R.layout.activity_main);
-        setColors();
+
+        initColors();
         // initialize database handler singleton
         DatabaseHandlerSingleton.getInstance(this);
         SharedPreferencesSingleton.getInstance(this);
@@ -571,7 +568,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * REMOVE
+     * REMOVE.
      * only for debugging.
      */
     public void onDestroyClicked(View view) {
@@ -734,7 +731,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void setColors() {
+    private void initColors() {
         TypedValue typedValue = new TypedValue();
 
         getTheme().resolveAttribute(R.attr.colorPrimary, typedValue, true);

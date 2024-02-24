@@ -1,7 +1,7 @@
 package com.securelight.secureshellv.backend;
 
 
-import static com.securelight.secureshellv.statics.Constants.endPoint;
+import static com.securelight.secureshellv.statics.Constants.apiEndPoint;
 
 import android.content.Context;
 import android.content.Intent;
@@ -47,20 +47,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DatabaseHandlerSingleton {
-    enum TokenResult {
-        TOKEN_VALID, TOKEN_INVALID, NO_AUTH, NO_CONNECTION, TIMEOUT, UNAUTHORIZED;
-
-    }
-
-    public enum FetchDbResult {
-        SUCCESS, AUTH_FAIL, NO_CONNECTION, TIMEOUT,
-
-    }
-
     private static DatabaseHandlerSingleton instance;
-    private RequestQueue requestQueue;
     private final ImageLoader imageLoader;
     private final Context context;
+    private RequestQueue requestQueue;
 
     private DatabaseHandlerSingleton(@NonNull Context context) {
         // getApplicationContext() is key, it keeps you from leaking the
@@ -69,7 +59,7 @@ public class DatabaseHandlerSingleton {
         requestQueue = getRequestQueue();
 
         imageLoader = new ImageLoader(requestQueue, new ImageLoader.ImageCache() {
-            private final LruCache<String, Bitmap> cache = new LruCache<String, Bitmap>(20);
+            private final LruCache<String, Bitmap> cache = new LruCache<>(20);
 
             @Override
             public Bitmap getBitmap(String url) {
@@ -81,9 +71,6 @@ public class DatabaseHandlerSingleton {
                 cache.put(url, bitmap);
             }
         });
-
-        // initialize listeners
-
     }
 
     public static synchronized DatabaseHandlerSingleton getInstance(Context context) {
@@ -110,7 +97,7 @@ public class DatabaseHandlerSingleton {
 
     public void signIn(String username, String password, Response.Listener<JSONObject> responseListener,
                        Response.ErrorListener errorListener) {
-        String url = endPoint + "api/token/";
+        String url = apiEndPoint + "api/token/";
         JSONObject object = new JSONObject();
         try {
             object.put("username", username);
@@ -133,7 +120,7 @@ public class DatabaseHandlerSingleton {
     public void fetchUserData() {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
         String accessToken = preferences.getAccessToken();
-        String url = endPoint + "api/account/details/";
+        String url = apiEndPoint + "api/account/details/";
 
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
             @Override
@@ -146,14 +133,7 @@ public class DatabaseHandlerSingleton {
             @Override
             protected VolleyError parseNetworkError(VolleyError error) {
                 if (error instanceof AuthFailureError) {
-                    // refresh tokens and fetch user data again
-                    if (new String(error.networkResponse.data).contains("token_not_valid")) {
-                        new Thread(() -> {
-                            if (requestTokenRefresh()) {
-                                fetchUserData();
-                            }
-                        }).start();
-                    }
+                    handleAuthFailureError(error);
                 }
                 return error;
             }
@@ -182,6 +162,24 @@ public class DatabaseHandlerSingleton {
 
     }
 
+    /**
+     * handles volley request auth failures
+     */
+    private void handleAuthFailureError(VolleyError error) {
+        // refresh tokens and fetch user data again
+        String data = new String(error.networkResponse.data);
+        System.out.println(data);
+        if (data.contains("token_not_valid")) {
+            new Thread(() -> {
+                if (requestTokenRefresh()) {
+                    fetchUserData();
+                }
+            }).start();
+        } else if (data.contains("password_changed") || data.contains("user_inactive")) {
+            broadcastSignIn();
+        }
+    }
+
     public void verifyToken(String token, Response.Listener<JSONObject> responseListener,
                             Response.ErrorListener errorListener) {
         if (token.isEmpty()) {
@@ -189,7 +187,7 @@ public class DatabaseHandlerSingleton {
         }
         AtomicReference<TokenResult> result = new AtomicReference<>();
 
-        String url = endPoint + "api/token/verify/";
+        String url = apiEndPoint + "api/token/verify/";
         JSONObject object;
         object = new JSONObject();
         try {
@@ -222,7 +220,7 @@ public class DatabaseHandlerSingleton {
 
     public boolean requestTokenRefresh() {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
-        String url = endPoint + "api/token/refresh/";
+        String url = apiEndPoint + "api/token/refresh/";
 
         JSONObject object = new JSONObject();
         try {
@@ -261,7 +259,7 @@ public class DatabaseHandlerSingleton {
 
     public void sendTrafficIncrement(long trafficBytes) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/account/increment_traffic/";
+        String url = apiEndPoint + "api/account/increment_traffic/";
 
         JSONObject object = new JSONObject();
         try {
@@ -283,9 +281,10 @@ public class DatabaseHandlerSingleton {
 
     public String retrievePassword(int serverId, boolean reset) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/pass/" + serverId;
+
+        String url = apiEndPoint + "api/pass/" + serverId;
         if (reset) {
-            url = endPoint + "api/reset_pass/" + serverId;
+            url = apiEndPoint + "api/reset_pass/" + serverId;
         }
 
         RequestFuture<JSONObject> future = RequestFuture.newFuture();
@@ -325,7 +324,7 @@ public class DatabaseHandlerSingleton {
 
     public void sendHeartbeat() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/heartbeat/";
+        String url = apiEndPoint + "api/heartbeat/";
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
             @Override
             public Map<String, String> getHeaders() {
@@ -337,12 +336,7 @@ public class DatabaseHandlerSingleton {
             @Override
             protected VolleyError parseNetworkError(VolleyError error) {
                 if (error instanceof AuthFailureError) {
-                    // refresh token and send heartbeat again
-                    if (new String(error.networkResponse.data).contains("token_not_valid")) {
-                        if (requestTokenRefresh()) {
-                            sendHeartbeat();
-                        }
-                    }
+                    handleAuthFailureError(error);
                 }
                 return error;
             }
@@ -352,7 +346,7 @@ public class DatabaseHandlerSingleton {
 
     public JSONArray fetchServerList(String location) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/servers/" + location;
+        String url = apiEndPoint + "api/servers/" + location;
 
         RequestFuture<JSONArray> future = RequestFuture.newFuture();
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
@@ -375,7 +369,7 @@ public class DatabaseHandlerSingleton {
 
     public JSONArray fetchServicePlans(boolean gold) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/account/services/";
+        String url = apiEndPoint + "api/account/services/";
         if (gold) {
             url += "gold/";
         }
@@ -401,7 +395,7 @@ public class DatabaseHandlerSingleton {
 
     public List<Integer> fetchPlanDurations() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/account/durations/";
+        String url = apiEndPoint + "api/account/durations/";
 
         RequestFuture<JSONArray> future = RequestFuture.newFuture();
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
@@ -430,7 +424,7 @@ public class DatabaseHandlerSingleton {
 
     public List<String> fetchCardNumbers() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/card_numbers";
+        String url = apiEndPoint + "api/card_numbers";
 
         RequestFuture<JSONArray> future = RequestFuture.newFuture();
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
@@ -460,7 +454,7 @@ public class DatabaseHandlerSingleton {
     public void sendRenewRequest(final Bitmap bitmap, int servicePlanId, Response.Listener<NetworkResponse> responseListener,
                                  Response.ErrorListener errorListener) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = endPoint + "api/account/renew/";
+        String url = apiEndPoint + "api/account/renew/";
 
         VolleyMultipartRequest volleyMultipartRequest = new VolleyMultipartRequest(Request.Method.PUT, url,
                 responseListener, errorListener) {
@@ -515,6 +509,16 @@ public class DatabaseHandlerSingleton {
             return FetchDbResult.AUTH_FAIL;
         }
         return FetchDbResult.TIMEOUT;
+    }
+
+    enum TokenResult {
+        TOKEN_VALID, TOKEN_INVALID, NO_AUTH, NO_CONNECTION, TIMEOUT, UNAUTHORIZED;
+
+    }
+
+    public enum FetchDbResult {
+        SUCCESS, AUTH_FAIL, NO_CONNECTION, TIMEOUT,
+
     }
 
 

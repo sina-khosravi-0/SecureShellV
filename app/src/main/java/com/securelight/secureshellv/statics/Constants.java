@@ -2,7 +2,8 @@ package com.securelight.secureshellv.statics;
 
 public class Constants {
 //    private String endPoint = "http://192.168.128.71:8000/";
-    public static final String endPoint = "https://api.weary.tech/";
+//    public static final String apiEndPoint = "https://api.weary.tech/";
+    public static final String apiEndPoint = "http://192.168.186.90:8000/";
     public static final String APP_FILTER_PACKAGES = "appFilterPackages";
     public static final String APP_LANGUAGE_NAME = "appLanguage";
     public static final String ACCESS_TOKEN_PREF_NAME = "verify";

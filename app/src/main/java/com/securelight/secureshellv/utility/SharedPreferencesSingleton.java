@@ -65,10 +65,6 @@ public class SharedPreferencesSingleton {
         return packages.stream().anyMatch(s -> s.equals(packageName));
     }
 
-    public void setAppFilterMode(Constants.AppFilterMode mode) {
-        userSettingsPreferences.edit().putInt(Constants.APP_FILTER_MODE_NAME, mode.value).apply();
-    }
-
     public Constants.AppFilterMode getAppFilterMode() {
         switch (userSettingsPreferences.getInt(Constants.APP_FILTER_MODE_NAME, Constants.AppFilterMode.OFF.value)) {
             default: // off
@@ -80,13 +76,17 @@ public class SharedPreferencesSingleton {
         }
     }
 
-    public void setAppLanguage(String language) {
-        userSettingsPreferences.edit().putString(Constants.APP_LANGUAGE_NAME, language).apply();
+    public void setAppFilterMode(Constants.AppFilterMode mode) {
+        userSettingsPreferences.edit().putInt(Constants.APP_FILTER_MODE_NAME, mode.value).apply();
     }
 
     public String getAppLanguage() {
         return userSettingsPreferences.getString(Constants.APP_LANGUAGE_NAME,
                 Resources.getSystem().getConfiguration().getLocales().get(0).getLanguage());
+    }
+
+    public void setAppLanguage(String language) {
+        userSettingsPreferences.edit().putString(Constants.APP_LANGUAGE_NAME, language).apply();
     }
 
     public void saveAccessToken(String access) {
@@ -98,10 +98,16 @@ public class SharedPreferencesSingleton {
     }
 
     public String getAccessToken() {
-        return apiCachePreferences.getString(Constants.ACCESS_TOKEN_PREF_NAME, "");
+
+        return apiCachePreferences.getString(Constants.ACCESS_TOKEN_PREF_NAME, "289734582");
     }
 
     public String getRefreshToken() {
-        return apiCachePreferences.getString(Constants.REFRESH_TOKEN_PREF_NAME, "");
+        return apiCachePreferences.getString(Constants.REFRESH_TOKEN_PREF_NAME, "27831891");
+    }
+
+    public void clearTokens() {
+        apiCachePreferences.edit().remove(Constants.ACCESS_TOKEN_PREF_NAME).apply();
+        apiCachePreferences.edit().remove(Constants.REFRESH_TOKEN_PREF_NAME).apply();
     }
 }

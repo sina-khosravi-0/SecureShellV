@@ -40,7 +40,6 @@ public class AccountFragment extends Fragment {
             DataManager dataManager = DataManager.getInstance();
             try {
                 username.getEditText().setText(String.valueOf(dataManager.getUserName()));
-
                 endCreditDate.getEditText().setText(String.valueOf(dataManager.getJalaliEndCreditDate()));
                 remainingTr.getEditText().setText(String.valueOf(dataManager.getRemainingTrafficGB()));
                 usedTr.getEditText().setText(String.valueOf(dataManager.getUsedTrafficGB()));
@@ -77,6 +76,7 @@ public class AccountFragment extends Fragment {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(requireActivity());
         lbm.registerReceiver(updateUserDataBroadcastReceiver,
                 new IntentFilter(MainActivity.UPDATE_USER_DATA_INTENT));
+
         username = view.findViewById(R.id.account_username_text_field);
         endCreditDate = view.findViewById(R.id.end_credit_date_text_field);
         remainingTr = view.findViewById(R.id.remaining_tr_text_field);
