@@ -27,7 +27,7 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="33">
         <activity
-            android:name=".RenewServiceActivity"
+            android:name=".ResubscribeServiceActivity"
             android:exported="false"/>
         <!-- <activity -->
         <!-- android:name=".MainActivityTest" -->

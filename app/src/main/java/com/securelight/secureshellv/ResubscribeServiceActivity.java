@@ -38,7 +38,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class RenewServiceActivity extends Activity {
+public class ResubscribeServiceActivity extends Activity {
 
 
     private static final String ROOT_URL = "http://seoforworld.com/api/v1/file-upload.php";
@@ -61,7 +61,7 @@ public class RenewServiceActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_renew_service);
+        setContentView(R.layout.activity_resubscribe);
 
         amountText = findViewById(R.id.amount_text);
         ImageButton goldInfoButton = findViewById(R.id.gold_info_button);
@@ -80,8 +80,8 @@ public class RenewServiceActivity extends Activity {
                 .setMessage(R.string.gold_plan_alert_info)
                 .setNeutralButton(R.string.ok, null).show());
 
-        PopupMenu monthsPopup = new PopupMenu(RenewServiceActivity.this, selectDurationButton);
-        PopupMenu plansPopup = new PopupMenu(RenewServiceActivity.this, selectPlanButton);
+        PopupMenu monthsPopup = new PopupMenu(ResubscribeServiceActivity.this, selectDurationButton);
+        PopupMenu plansPopup = new PopupMenu(ResubscribeServiceActivity.this, selectPlanButton);
         fillShitUp(monthsPopup, plansPopup, goldSwitch.isChecked());
 
         monthsPopup.setOnMenuItemClickListener(item -> {

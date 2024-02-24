@@ -78,12 +78,12 @@ public class MainActivity extends AppCompatActivity {
     private Intent vpnServiceIntent;
     private LinearLayout bottomSheetLayout;
     private BottomSheetBehavior<View> bottomSheetBehavior;
-    private FrameLayout buttonFrame;
+    private FrameLayout startButtonFrame;
     private ImageView buttonImage;
     private TextView buttonText;
     private TextView mainConnectText;
     private TextView remainingTimeText;
-    private MaterialButton serviceRenewButton;
+    private MaterialButton resubscribeButton;
     private CircularProgressIndicator trafficProgressIndicator;
 
     public static int colorPrimary;
@@ -179,10 +179,10 @@ public class MainActivity extends AppCompatActivity {
                 remainingTimeText.setTextColor(colorWarning);
             } else if (remainingDays <= 1) {
                 remainingTimeText.setTextColor(colorAlert);
-                serviceRenewButton.setVisibility(View.VISIBLE);
+                resubscribeButton.setVisibility(View.VISIBLE);
             } else {
                 remainingTimeText.setTextColor(colorOk);
-                serviceRenewButton.setVisibility(View.GONE);
+                resubscribeButton.setVisibility(View.GONE);
             }
             if (remainingDays == 0) {
                 long[] timeLeft = dataManager.getRemainingTime();
@@ -301,21 +301,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initUIComponents() {
-        buttonFrame = findViewById(R.id.vpn_toggle_frame);
-        buttonImage = buttonFrame.findViewById(R.id.vpn_toggle_img);
-        buttonText = buttonFrame.findViewById(R.id.vpn_toggle_txt);
-        trafficProgressIndicator = buttonFrame.findViewById(R.id.traffic_progress);
+        startButtonFrame = findViewById(R.id.vpn_toggle_frame);
+        buttonImage = startButtonFrame.findViewById(R.id.vpn_toggle_img);
+        buttonText = startButtonFrame.findViewById(R.id.vpn_toggle_txt);
+        trafficProgressIndicator = startButtonFrame.findViewById(R.id.traffic_progress);
         mainConnectText = findViewById(R.id.main_connect_status);
         remainingTimeText = findViewById(R.id.remaining_time);
-        serviceRenewButton = findViewById(R.id.main_screen_renew_button);
+        resubscribeButton = findViewById(R.id.main_screen_renew_button);
 
-        buttonFrame.setOnClickListener(v -> {
+        startButtonFrame.setOnClickListener(v -> {
             updateUserData();
             if (vpnServiceBinder.getConnectionState().equals(ConnectionState.DISCONNECTED)) {
                 startVpnService();
             } else {
                 stopVpnService();
             }
+        });
+
+        resubscribeButton.setOnClickListener(v -> {
+            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
         });
 
         bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);

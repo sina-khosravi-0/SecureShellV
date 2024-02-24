@@ -84,7 +84,7 @@
     <string name="renew">Renew Service</string>
     <string name="card_number">Card Number:</string>
     <string name="amount">Amount(Toman):</string>
-    <string name="renew_credit_description">In order to renew your credit, please first select your desired plan and duration, then transfer the specified amount to the following card number and submit the receipt\'s image below.</string>
+    <string name="renew_credit_description">To resubscribe, please first select your desired plan and duration, then transfer the specified amount to the following card number and submit the receipt\'s image below.</string>
     <string name="select_receipt">Select Receipt</string>
     <string name="submit">Submit</string>
     <string name="please_select">Please Select</string>

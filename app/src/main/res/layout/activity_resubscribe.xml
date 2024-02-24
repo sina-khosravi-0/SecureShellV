@@ -22,7 +22,7 @@
             android:orientation="vertical"
             android:padding="10dp"
             android:showDividers="middle"
-            tools:context=".RenewServiceActivity">
+            tools:context=".ResubscribeServiceActivity">
 
             <TextView
                 android:layout_width="match_parent"

@@ -356,7 +356,7 @@ public class SSVpnService extends VpnService {
     }
 
     /**
-     * Called when app is exiting and needs to clear the VPN and connections
+     * Called when app is exiting and needs to clear the VPN and connections and services
      */
     public void finalizeAndStop() {
         stopVpnService();
@@ -367,6 +367,7 @@ public class SSVpnService extends VpnService {
 
 
     private void stopVpnService(boolean insufficient_traffic, boolean credit_expired) {
+
         if (!this.isServiceActive()) {
             return;
         }
