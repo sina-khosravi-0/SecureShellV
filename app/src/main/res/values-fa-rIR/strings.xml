@@ -10,7 +10,7 @@
     <string name="full_internet_access">اینترنت جهانی</string>
     <string name="restricted_internet_access">اینترانت ایران</string>
     <string name="no_internet_access">دسترسی اینترنت وجود ندارد</string>
-    <string name="network_unavailable">لطفا به یک شبکه متصل شوید</string>
+    <string name="network_unavailable">لطفا به اینترنت متصل شوید</string>
     <string name="internet_access_state">وضعیت</string>
     <string name="direct_ssh">مستقیم</string>
     <string name="tls_ssh">دو جانبه TLS</string>
@@ -36,9 +36,9 @@
     <string name="used">استفاده شده</string>
     <string name="total">کل</string>
     <string name="unlimited_time">زمان نامحدود</string>
-    <string name="unlimited_traffic">ترافیک نامحدود</string>
+    <string name="unlimited_data">ترافیک نامحدود</string>
     <string name="connected_ips">تعداد اتصالات جاری</string>
-    <string name="traffic">حجم:</string>
+    <string name="data_limit">حجم:</string>
     <string name="broadcast_message">پیغام پشتیبانی</string>
     <string name="date">تاریخ</string>
     <string name="location">موقعیت</string>
@@ -78,8 +78,8 @@
     </plurals>
     <string name="persistent_notification">نوتیفیکشن پایدار</string>
     <string name="persistent_notification_switch_hint">با فعال کردن این گزینه، بعد از خاموش کردن VPN، نوتیفیکشن آن باقی میماند.</string>
-    <string name="you_traffic_has_run_out">حجم ترافیک شما به اتمام رسیده است.</string>
-    <string name="insufficient_traffic">اتمام ترافیک</string>
+    <string name="data_limit_reached">حجم ترافیک شما به اتمام رسیده است.</string>
+    <string name="insufficient_data">اتمام ترافیک</string>
     <string name="credit_expired">اتمام اشتراک</string>
     <string name="credit_time_has_run_out">مهلت اشتراک به اتمام رسیده است.</string>
     <string name="renew">تمدید سرویس</string>

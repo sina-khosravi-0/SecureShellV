@@ -18,6 +18,7 @@ import android.graphics.drawable.Animatable2;
 import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.TrafficStats;
+import android.net.VpnService;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Process;
@@ -52,6 +53,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.backend.V2rayConfig;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
@@ -61,12 +63,20 @@ import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 
+import org.json.JSONException;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import dev.dev7.lib.v2ray.V2rayController;
+import dev.dev7.lib.v2ray.utils.Utilities;
+import dev.dev7.lib.v2ray.utils.V2rayConfigs;
+import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXIT_APP_ACTION = "com.securelight.secureshellv.EXIT_APP";
@@ -75,17 +85,6 @@ public class MainActivity extends AppCompatActivity {
     public static final String CONNECTION_INFO_PREF = "CONNECTION_INFO";
     public static final String UPDATE_USER_DATA_INTENT = "UPDATE_USER_DATA";
     public static boolean started = false;
-    private Intent vpnServiceIntent;
-    private LinearLayout bottomSheetLayout;
-    private BottomSheetBehavior<View> bottomSheetBehavior;
-    private FrameLayout startButtonFrame;
-    private ImageView buttonImage;
-    private TextView buttonText;
-    private TextView mainConnectText;
-    private TextView remainingTimeText;
-    private MaterialButton resubscribeButton;
-    private CircularProgressIndicator trafficProgressIndicator;
-
     public static int colorPrimary;
     public static int colorOnPrimary;
     public static int colorSecondary;
@@ -99,6 +98,68 @@ public class MainActivity extends AppCompatActivity {
     public static int colorOk;
     public static int colorWarning;
     public static int colorAlert;
+    static long bytes = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileRxBytes();
+    private static boolean appClosing = false;
+    private final BroadcastReceiver signInBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            startActivity(new Intent(getApplicationContext(), LoginActivity.class));
+        }
+    };
+    private final BroadcastReceiver insufficientTrafficBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle(R.string.insufficient_data)
+                    .setMessage(R.string.data_limit_reached)
+                    .setNeutralButton(R.string.ok, null).show();
+        }
+    };
+    private final BroadcastReceiver creditExpiredBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle(R.string.credit_expired)
+                    .setMessage(R.string.credit_time_has_run_out)
+                    .setNeutralButton(R.string.ok, null).show();
+        }
+    };
+    private Intent vpnServiceIntent;
+    private final BroadcastReceiver startBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            startVpnService();
+        }
+    };
+    private LinearLayout bottomSheetLayout;
+    private BottomSheetBehavior<View> bottomSheetBehavior;
+    private FrameLayout startButtonFrame;
+    private ImageView buttonImage;
+    private TextView buttonText;
+    private TextView mainConnectText;
+    private TextView remainingTimeText;
+    private MaterialButton resubscribeButton;
+    private CircularProgressIndicator trafficProgressIndicator;
+    private final BroadcastReceiver connectedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            performConnectedAction();
+        }
+    };
+    private final BroadcastReceiver connectingBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            performConnectingAction();
+        }
+    };
+    private final BroadcastReceiver disconnectedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            started = true;
+            performDisconnectedAction();
+        }
+    };
     private SSVpnService.VpnServiceBinder vpnServiceBinder;
     private final ServiceConnection vpnServiceConnection = new ServiceConnection() {
         @Override
@@ -122,49 +183,12 @@ public class MainActivity extends AppCompatActivity {
             vpnServiceBinder = null;
         }
     };
-
-    private static boolean appClosing = false;
-    private final BroadcastReceiver startBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            startVpnService();
-        }
-    };
-
     private final BroadcastReceiver exitBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             exitApp();
         }
     };
-    private final BroadcastReceiver connectedBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            performConnectedAction();
-        }
-    };
-
-    private final BroadcastReceiver connectingBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            performConnectingAction();
-        }
-    };
-
-    private final BroadcastReceiver disconnectedBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            started = true;
-            performDisconnectedAction();
-        }
-    };
-    private final BroadcastReceiver signInBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            startActivity(new Intent(getApplicationContext(), LoginActivity.class));
-        }
-    };
-
     private final BroadcastReceiver updateUserDataUIBr = new BroadcastReceiver() {
         @SuppressLint({"SetTextI18n", "DefaultLocale"})
         @Override
@@ -196,30 +220,14 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final BroadcastReceiver insufficientTrafficBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setTitle(R.string.insufficient_traffic)
-                    .setMessage(R.string.you_traffic_has_run_out)
-                    .setNeutralButton(R.string.ok, null).show();
-        }
-    };
-    private final BroadcastReceiver creditExpiredBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setTitle(R.string.credit_expired)
-                    .setMessage(R.string.credit_time_has_run_out)
-                    .setNeutralButton(R.string.ok, null).show();
-        }
-    };
-
+    public static boolean isAppClosing() {
+        return appClosing;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        V2rayController.init(this, R.drawable.ic_launcher_foreground, "V2ray Android");
 
 //        SpeedTestSocket speedTestSocket = new SpeedTestSocket();
 //
@@ -319,7 +327,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         resubscribeButton.setOnClickListener(v -> {
-            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
+//            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
+            vpnServiceBinder.getService().yes();
         });
 
         bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
@@ -345,9 +354,6 @@ public class MainActivity extends AppCompatActivity {
                         updateUserData();
                     }
                     if (tab.getPosition() == 3) {
-                        new Thread(() -> {
-                            DataManager.getInstance().calculateBestServer();
-                        }).start();
                     }
 
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -532,15 +538,47 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startVpnService() {
-        Intent intent = SSVpnService.prepare(MainActivity.this);
-        if (intent != null) {
-            startActivityForResult(intent, 0);
-        } else {
-            onActivityResult(0, RESULT_OK, null);
-        }
-    }
+        new Thread(() -> {
+            DataManager.getInstance().calculateBestServer();
+            List<V2rayConfig> configs = null;
+            try {
+                configs = DataManager.getInstance().updateV2rayConfigs("");
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+            AtomicInteger bestConfigIndex = new AtomicInteger();
+            double bestPing = Double.MAX_VALUE;
+            List<Thread> threads = new ArrayList<>();
+            for (V2rayConfig config : configs) {
+                List<V2rayConfig> finalConfigs = configs;
+                Thread thread = new Thread(() -> {
+                    try {
+                        if (bestPing > config.calculateBestPing()) {
+                            bestConfigIndex.set(finalConfigs.indexOf(config));
+                        }
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                threads.add(thread);
+                thread.start();
+            }
 
-    static long bytes = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileRxBytes();
+            threads.forEach(thread -> {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                }
+            });
+            Utilities.refillV2rayConfig("Test Server", configs.get(bestConfigIndex.get()).getJson(), null);
+            Intent intent = VpnService.prepare(MainActivity.this);
+            if (intent != null) {
+                startActivityForResult(intent, 0);
+            } else {
+                onActivityResult(0, RESULT_OK, null);
+            }
+        }).start();
+    }
 
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
@@ -592,7 +630,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onYesClicked(View view) {
-//        ssVpnService.yes();
 //        SharedPreferences preferences = this.getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
 //        String accessToken = preferences.getString("refresh", "N/A");
 //        DatabaseHandlerSingleton instance = DatabaseHandlerSingleton.getInstance(this);
@@ -619,6 +656,7 @@ public class MainActivity extends AppCompatActivity {
 //        };
 //        instance.addToRequestQueue(jsonArrayRequest);
 //        startActivity(new Intent(getApplicationContext(), LoginActivity.class));
+
     }
 
     public void onNoClicked(View view) {
@@ -644,7 +682,6 @@ public class MainActivity extends AppCompatActivity {
             unbindService(vpnServiceConnection);
         }
     }
-
 
     @Override
     public void onBackPressed() {
@@ -695,7 +732,6 @@ public class MainActivity extends AppCompatActivity {
         });
         vectorDrawable.start();
     }
-
 
     private void performDisconnectedAction() {
         buttonImage.setImageResource(R.drawable.vpn_toggle_vector);
@@ -760,10 +796,6 @@ public class MainActivity extends AppCompatActivity {
         colorWarning = typedValue.data;
         getTheme().resolveAttribute(R.attr.alert, typedValue, true);
         colorAlert = typedValue.data;
-    }
-
-    public static boolean isAppClosing() {
-        return appClosing;
     }
 
 }

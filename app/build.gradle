@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace 'com.securelight.secureshellv'
-    compileSdk 33
+    compileSdk 34
     defaultConfig {
         applicationId "com.securelight.secureshellv"
         minSdk 26
@@ -40,8 +40,7 @@ android {
 String core_version = "1.10.1"
 
 dependencies {
-
-    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
 
     // required to avoid crash on Android 12 API 31
     implementation 'androidx.work:work-runtime-ktx:2.8.1'
@@ -59,10 +58,12 @@ dependencies {
 
     implementation 'com.github.eloyzone:jalali-calendar:1.0.0'
     implementation 'com.android.volley:volley:1.2.1'
-//    implementation project(path: ':v2ray')
+    implementation project(':v2ray')
+
     implementation 'com.github.FWink:android-stunnel-lib:master-SNAPSHOT'
-    implementation 'net.i2p.crypto:eddsa:0.3.0'
-    implementation "androidx.media:media:1.6.0"
+//    implementation 'net.droidx.media:mei2p.crypto:eddsa:0.3.0'
+//    implementation "andia:1.6.0"
+
     implementation 'androidx.gridlayout:gridlayout:1.0.0'
     implementation 'androidx.annotation:annotation:1.6.0'
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.6.1'

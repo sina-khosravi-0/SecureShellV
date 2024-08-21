@@ -1,9 +1,5 @@
 package com.securelight.secureshellv.vpnservice.connection;
 
-import static com.securelight.secureshellv.statics.Constants.internetAccessPeriod;
-import static com.securelight.secureshellv.statics.Constants.sendTrafficPeriod;
-import static com.securelight.secureshellv.statics.Constants.socksHeartbeatPeriod;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -102,7 +98,7 @@ public class ConnectionHandler extends Thread {
         updateConnectionStateUI(ConnectionState.CONNECTING);
 
         // start internet access timer
-        internetTimer.schedule(internetAccessHandler, 0, internetAccessPeriod);
+        internetTimer.schedule(internetAccessHandler, 0, Constants.internetAccessPeriod);
 
         // calculate the best server and put it in DataManager.bestServer
         if (!DataManager.getInstance().calculateBestServer()) {
@@ -113,18 +109,12 @@ public class ConnectionHandler extends Thread {
 
         boolean bridge = false;
         switch (DataManager.getInstance().getBestServer().getType()) {
-            case D:
+            case M:
                 setupDirectSsh();
                 break;
-            case TD:
-            case TH:
+            case N:
                 setupTLSSsh();
                 break;
-            case DH:
-                setupDualSsh();
-                bridge = true;
-                break;
-
         }
 
         tun2SocksManager = new Tun2SocksManager(vpnInterface, t2SListener);
@@ -132,13 +122,13 @@ public class ConnectionHandler extends Thread {
         connect(bridge);
         if (!interrupted) {
             sshManager.createPortForwarding();
-            sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, sendTrafficPeriod);
+            sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, Constants.sendTrafficPeriod);
         }
         tun2SocksManager.start();
 
         SocksHeartbeatHandler socksHeartbeatHandler = new SocksHeartbeatHandler(sshManager);
         // start socks heartbeat timer
-        socksTimer.schedule(socksHeartbeatHandler, 0, socksHeartbeatPeriod);
+        socksTimer.schedule(socksHeartbeatHandler, 0, Constants.socksHeartbeatPeriod);
 
         // try to keep the connection alive till the thread is interrupted
         while (!interrupted) {
@@ -157,7 +147,7 @@ public class ConnectionHandler extends Thread {
             connect(bridge);
             if (!interrupted) {
                 sshManager.createPortForwarding();
-                sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, sendTrafficPeriod);
+                sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, Constants.sendTrafficPeriod);
             }
         } // while (!interrupted)
 
@@ -198,7 +188,7 @@ public class ConnectionHandler extends Thread {
         sshManager = new SshManager(lock,
                 internetAvailableCondition,
                 new SshConfigs(DataManager.getInstance().getBestServer().getIp(),
-                        DataManager.getInstance().getBestServer().getPort(),
+                        DataManager.getInstance().getBestServer().getPingPort(),
                         VpnSettings.iFaceAddress,
                         VpnSettings.socksPort,
                         Constants.Protocol.DIRECT_SSH));
@@ -209,12 +199,12 @@ public class ConnectionHandler extends Thread {
         try (ServerSocket serverSocket = new ServerSocket(0)) {
             port = serverSocket.getLocalPort();
         } catch (IOException e) {
-            // no options left we're fucked
+            // noter options left we're fucked
             throw new RuntimeException("no free port");
         }
         stunnelManager = new StunnelManager(context.getApplicationContext());
         stunnelManager.open(DataManager.getInstance().getBestServer().getIp(),
-                DataManager.getInstance().getBestServer().getPort(),
+                DataManager.getInstance().getBestServer().getPingPort(),
                 port);
 
         sshManager = new SshManager(lock,
@@ -241,7 +231,7 @@ public class ConnectionHandler extends Thread {
                         VpnSettings.iFaceAddress,
                         VpnSettings.socksPort,
                         DataManager.getInstance().getBestServer().getIp(),
-                        DataManager.getInstance().getBestServer().getPort(),
+                        DataManager.getInstance().getBestServer().getPingPort(),
                         Constants.Protocol.DUAL_SSH));
     }
 

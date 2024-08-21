@@ -46,10 +46,21 @@ public class DataManager {
     private String message;
     private LocalDateTime messageDate;
     private boolean messagePending;
+    private final List<V2rayConfig> v2rayConfigs = new ArrayList<>();
 
     private boolean isFetching = false;
+    private ReentrantLock lock = new ReentrantLock();
+    private Condition condition = lock.newCondition();
+    private int emptyCount = 0;
 
     private DataManager() {
+    }
+
+    public static synchronized DataManager getInstance() {
+        if (dataManager == null) {
+            dataManager = new DataManager();
+        }
+        return dataManager;
     }
 
     /**
@@ -60,13 +71,6 @@ public class DataManager {
         return calculatePassword(userName, result);
     }
 
-    public static synchronized DataManager getInstance() {
-        if (dataManager == null) {
-            dataManager = new DataManager();
-        }
-        return dataManager;
-    }
-
     public void parseData(JSONObject data) throws JSONException {
 
         if (dataManager == null) {
@@ -75,10 +79,10 @@ public class DataManager {
         JSONObject userCreditInfo = data.getJSONObject("user_credit_info");
         double remainingGb = userCreditInfo.getDouble("remaining_gb");
         String endCreditDate = userCreditInfo.getString("end_credit_date");
-        long totalTrafficB = userCreditInfo.getLong("total_traffic_b");
-        long usedTrafficB = userCreditInfo.getLong("used_traffic_b");
+        long totalTrafficB = userCreditInfo.getLong("data_limit_b");
+        long usedTrafficB = userCreditInfo.getLong("used_data_b");
         boolean unlimitedCreditTime = userCreditInfo.getBoolean("unlimited_credit_time");
-        boolean unlimitedTraffic = userCreditInfo.getBoolean("unlimited_traffic");
+        boolean unlimitedTraffic = userCreditInfo.getBoolean("unlimited_data");
         boolean renewPending = userCreditInfo.getBoolean("renew_pending");
         int connectedIps = userCreditInfo.getInt("connected_ips");
         int allowedIps = userCreditInfo.getInt("allowed_ips");
@@ -112,7 +116,7 @@ public class DataManager {
         this.userName = userName;
     }
 
-    public void fillTargetServers(JSONArray data) throws JSONException {
+    public void parseTargetServers(JSONArray data) throws JSONException {
         if (data == null) {
             return;
         }
@@ -123,9 +127,6 @@ public class DataManager {
             targetServers.add(targetServer);
         }
     }
-
-    private ReentrantLock lock = new ReentrantLock();
-    private Condition condition = lock.newCondition();
 
     /**
      * Gets servers with regards to the selected location
@@ -147,7 +148,6 @@ public class DataManager {
 
         isFetching = true;
         try {
-
             JSONArray response = DatabaseHandlerSingleton.getInstance(null)
                     .fetchServerList(SharedPreferencesSingleton.getInstance(null).getSelectedServerLocation());
             if (response.length() == 0) {
@@ -155,7 +155,7 @@ public class DataManager {
                 response = DatabaseHandlerSingleton.getInstance(null).fetchServerList("");
                 SharedPreferencesSingleton.getInstance(null).setServerLocation("ato");
             }
-            fillTargetServers(response);
+            parseTargetServers(response);
         } catch (JSONException e) {
             throw new RuntimeException("error parsing target servers", e);
         } finally {
@@ -190,7 +190,7 @@ public class DataManager {
         try {
 
             JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServerList("");
-            fillTargetServers(response);
+            parseTargetServers(response);
         } catch (JSONException e) {
             Log.d("DataManager", e.getMessage(), e);
         } finally {
@@ -213,18 +213,14 @@ public class DataManager {
         return new ArrayList<>(locations.keySet());
     }
 
-
-    private int emptyCount = 0;
-
     /**
-     * Calculate best server and put it in bestServer.
+     * Calculate best server and put it in this.bestServer.
      *
      * @return true if best server was found; false otherwise
      */
     public boolean calculateBestServer() {
         List<TargetServer> servers = DataManager.getInstance().getTargetServers();
-
-        while (servers.size() == 0) {
+        while (servers.isEmpty()) {
             emptyCount++;
             servers = DataManager.getInstance().getTargetServers();
             if (emptyCount == 3) {
@@ -232,10 +228,10 @@ public class DataManager {
             }
         }
 
-        List<TargetServer> targetServers = servers.stream().filter(server -> server.getType() == TargetServer.Type.D)
+        List<TargetServer> targetServers = servers.stream().filter(server -> server.getType() == TargetServer.Type.M)
                 .collect(Collectors.toList());
-        List<TargetServer> indirectServers = servers.stream().filter(server ->
-                        server.getType() == TargetServer.Type.TH || server.getType() == TargetServer.Type.DH)
+        List<TargetServer> hopServers = servers.stream().filter(server ->
+                        server.getType() == TargetServer.Type.N)
                 .collect(Collectors.toList());
 
         List<Thread> threadList = new ArrayList<>();
@@ -265,7 +261,7 @@ public class DataManager {
         });
         // if direct servers were unreachable
         if (bestServer.get() == null) {
-            bestServer.set(calculateBestIndirectServer(indirectServers, threadList, serverPings));
+            bestServer.set(calculateBestHopServer(hopServers, threadList, serverPings));
         }
         if (bestServer.get() == null) {
             return false;
@@ -274,11 +270,11 @@ public class DataManager {
         return true;
     }
 
-    private TargetServer calculateBestIndirectServer(List<TargetServer> indirectServers, List<Thread> threadList, Map<TargetServer, Integer> serverPings) {
+    private TargetServer calculateBestHopServer(List<TargetServer> hopServers, List<Thread> threadList, Map<TargetServer, Integer> serverPings) {
         threadList.clear();
         serverPings.clear();
 
-        indirectServers.forEach(targetServer -> {
+        hopServers.forEach(targetServer -> {
             Thread thread = new Thread(() -> {
                 serverPings.put(targetServer, NetTools.getServerPing(targetServer));
             });
@@ -291,15 +287,15 @@ public class DataManager {
             } catch (InterruptedException ignored) {
             }
         }
-        AtomicReference<TargetServer> bestIndirectServer = new AtomicReference<>();
-        AtomicInteger bestIndirectPing = new AtomicInteger(Integer.MAX_VALUE);
+        AtomicReference<TargetServer> bestHopServer = new AtomicReference<>();
+        AtomicInteger bestHopPing = new AtomicInteger(Integer.MAX_VALUE);
         serverPings.forEach((targetServer, ping) -> {
-            if (bestIndirectPing.get() > ping && ping != 0) {
-                bestIndirectServer.set(targetServer);
-                bestIndirectPing.set(ping);
+            if (bestHopPing.get() > ping && ping != 0) {
+                bestHopServer.set(targetServer);
+                bestHopPing.set(ping);
             }
         });
-        return bestIndirectServer.get();
+        return bestHopServer.get();
     }
 
     public List<ServicePlan> getServicePlans(boolean gold) {
@@ -314,6 +310,25 @@ public class DataManager {
             servicePlans.add(servicePlan);
         }
         return servicePlans;
+    }
+
+    public List<V2rayConfig> updateV2rayConfigs(String location) throws JSONException {
+        JSONArray jsonArray = DatabaseHandlerSingleton.getInstance(null).fetchConfigs(location);
+        for (int i = 0; i < jsonArray.length(); i++) {
+            V2rayConfig v2rayConfig = new V2rayConfig();
+            v2rayConfig.parseData(jsonArray.getJSONObject(i));
+            v2rayConfigs.add(v2rayConfig);
+        }
+        return v2rayConfigs;
+    }
+
+    public List<V2rayConfig> getV2rayConfigs() {
+        return v2rayConfigs;
+    }
+
+    public TargetServer fetchBestServer() {
+        calculateBestServer();
+        return bestServer;
     }
 
     public TargetServer getBestServer() {

@@ -10,10 +10,8 @@ import java.util.List;
 
 public class TargetServer {
     public enum Type {
-        D("DIRECT"),
-        TD("TLS_DIRECT"),
-        TH("TLS_HOP"),
-        DH("DUAL_HOP");
+        M("MASTER"),
+        N("NODE");
 
         public final String value;
 
@@ -46,9 +44,9 @@ public class TargetServer {
     private String ip;
     private String locationCode;
     private Type type;
-    private int port;
-    private String local_ip;
-    private int local_port;
+    private int pingPort;
+    private String local_ip = "";
+    private int local_port = 0;
 
     public void parseData(JSONObject data) throws JSONException {
         id = data.getInt("id");
@@ -57,15 +55,10 @@ public class TargetServer {
             ispScore.parseData(data.getJSONArray("isp_scores").getJSONObject(i));
             ispScores.add(ispScore);
         }
-        ip = data.getString("ip");
+        ip = data.getString("address");
         locationCode = data.getString("location");
         type = Type.valueOf(data.getString("type"));
-        port = data.getInt("port");
-
-        if (type == Type.DH) {
-            local_ip = data.getString("local_ip");
-            local_port = data.getInt("local_port");
-        }
+        pingPort = data.getInt("ping_port");
     }
 
     public static TargetServer newEmptyServer(String s) {
@@ -74,7 +67,7 @@ public class TargetServer {
         server.ip = "";
         server.locationCode = "";
         server.type = null;
-        server.port = 0;
+        server.pingPort = 0;
         server.local_ip = "";
         server.local_port = 0;
         return server;
@@ -100,8 +93,8 @@ public class TargetServer {
         return type;
     }
 
-    public int getPort() {
-        return port;
+    public int getPingPort() {
+        return pingPort;
     }
 
     public String getLocal_ip() {
@@ -121,7 +114,7 @@ public class TargetServer {
                 ", ip='" + ip + '\'' +
                 ", locationCode='" + locationCode + '\'' +
                 ", type='" + type + '\'' +
-                ", port=" + port +
+                ", port=" + pingPort +
                 ", local_ip=" + local_ip +
                 ", local_port=" + local_port +
                 '}';

@@ -8,6 +8,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -16,13 +17,16 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.net.VpnService;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -30,10 +34,12 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
+import com.securelight.secureshellv.tun2socks.Tun2SocksManager;
 import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.connection.APIHeartbeatHandler;
@@ -41,6 +47,7 @@ import com.securelight.secureshellv.vpnservice.connection.ConnectionHandler;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
+import com.securelight.secureshellv.vpnservice.listeners.Tun2SocksListener;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -49,31 +56,46 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SSVpnService extends VpnService {
+import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
+import dev.dev7.lib.v2ray.interfaces.V2rayServicesListener;
+import dev.dev7.lib.v2ray.model.V2rayConfigModel;
+import dev.dev7.lib.v2ray.utils.V2rayConfigs;
+
+public class SSVpnService extends VpnService implements V2rayServicesListener {
     public static final String STOP_VPN_SERVICE_ACTION = "com.securelight.secureshellv.STOP";
     public static final String START_VPN_ACTION = "com.securelight.secureshellv.START";
     public static final String CONNECTED_ACTION = "com.securelight.secureshellv.CONNECTED";
     public static final String CONNECTING_ACTION = "com.securelight.secureshellv.CONNECTING";
     public static final String DISCONNECTED_ACTION = "com.securelight.secureshellv.DISCONNECTED";
-    private final String TAG = this.getClass().getSimpleName();
     static final String vpnServiceAction = "android.net.VpnService";
+    private final String TAG = this.getClass().getSimpleName();
     private final String notificationChannelID = "onGoing_001";
     private final Set<String> packages = new HashSet<>();
     private final int onGoingNotificationID = 1;
     private final AtomicBoolean serviceActive = new AtomicBoolean();
+    private final IBinder binder = new VpnServiceBinder();
+    private final BroadcastReceiver connectedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+        }
+    };
+    private final BroadcastReceiver connectingBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+        }
+    };
+    private final BroadcastReceiver disconnectedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+        }
+    };
+    V2rayCoreExecutor v2rayCoreExecutor;
     private long startedAt;
     private NotificationCompat.Builder notificationBuilder;
     private NotificationManager notificationManager;
-    private ConnectionHandler connectionHandler;
-    private ParcelFileDescriptor vpnInterface;
-    private NotificationCompat.Action notifStartAction;
-    private NotificationCompat.Action notifStopAction;
-    private NotificationCompat.Action notifQuitAction;
-    private PendingIntent startPendingIntent;
-    private PendingIntent stopPendingIntent;
-    private PendingIntent quitPendingIntent;
-    private Timer apiHeartbeatTimer;
-    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
     private final NotificationListener notificationListener = (networkState, connectionState) -> {
         if (!MainActivity.isAppClosing()) {
             NotificationCompat.Builder builder = getNotificationBuilder();
@@ -84,33 +106,7 @@ public class SSVpnService extends VpnService {
             builder.setSilent(true);
         }
     };
-    private final IBinder binder = new VpnServiceBinder();
-
-    public class VpnServiceBinder extends Binder {
-
-        public SSVpnService getService() {
-            return SSVpnService.this;
-        }
-
-        public void stopService() {
-            finalizeAndStop();
-        }
-
-        public ConnectionState getConnectionState() {
-            try {
-                return connectionHandler.getConnectionState();
-            } catch (NullPointerException e) {
-                return ConnectionState.DISCONNECTED;
-            }
-
-        }
-
-        public NetworkState getNetworkState() {
-            return Objects.requireNonNullElse(connectionHandler.getNetworkState(),
-                    NetworkState.NONE);
-        }
-    }
-
+    private ConnectionHandler connectionHandler;
     private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
         @Override
         public void onAvailable(@NonNull Network network) {
@@ -139,6 +135,14 @@ public class SSVpnService extends VpnService {
             }
         }
     };
+    private ParcelFileDescriptor vpnInterface;
+    private NotificationCompat.Action notifStartAction;
+    private NotificationCompat.Action notifStopAction;
+    private NotificationCompat.Action notifQuitAction;
+    private PendingIntent startPendingIntent;
+    private PendingIntent stopPendingIntent;
+    private PendingIntent quitPendingIntent;
+    private Timer apiHeartbeatTimer;
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -150,27 +154,7 @@ public class SSVpnService extends VpnService {
             }
         }
     };
-
-    private final BroadcastReceiver connectedBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-        }
-    };
-
-    private final BroadcastReceiver connectingBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-        }
-    };
-
-    private final BroadcastReceiver disconnectedBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-        }
-    };
+    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
 
     @Override
     public void onCreate() {
@@ -179,6 +163,7 @@ public class SSVpnService extends VpnService {
         lbm.registerReceiver(connectedBr, new IntentFilter(CONNECTED_ACTION));
         lbm.registerReceiver(connectingBr, new IntentFilter(CONNECTING_ACTION));
         lbm.registerReceiver(disconnectedBr, new IntentFilter(DISCONNECTED_ACTION));
+        v2rayCoreExecutor = new V2rayCoreExecutor(this);
     }
 
     @Override
@@ -188,6 +173,34 @@ public class SSVpnService extends VpnService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        ConnectivityManager connectivityManager = getSystemService(ConnectivityManager.class);
+        boolean allowStart = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Network network = connectivityManager.getActiveNetwork();
+            if (network == null) {
+                allowStart = false;
+            }
+            NetworkCapabilities activeNetwork = connectivityManager.getNetworkCapabilities(network);
+            // if active network is null or if active network doesn't have either cellular or wifi
+            // wifi transport
+            if (!(activeNetwork != null && (activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                    activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)))) {
+                allowStart = false;
+            }
+        } else {
+            NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+            // if network info is null or networkInfo is disconnected
+            if (!(networkInfo != null && networkInfo.isConnected())) {
+                allowStart = false;
+            }
+        }
+        if (!allowStart) {
+            Toast.makeText(getApplicationContext(),
+                    Values.NETWORK_UNAVAILABLE_STRING,
+                    Toast.LENGTH_SHORT).show();
+
+            return START_REDELIVER_INTENT;
+        }
         if (!serviceActive.get()) {
             PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
             PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
@@ -203,14 +216,15 @@ public class SSVpnService extends VpnService {
 
             startVpn();
 
-            ConnectivityManager connectivityManager = getSystemService(ConnectivityManager.class);
             NetworkRequest networkRequest = new NetworkRequest.Builder()
                     .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
                     .addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build();
             connectivityManager.requestNetwork(networkRequest, networkCallback);
         }
-        return START_STICKY;
+//        stopSelf();
+//        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     private void startVpn() {
@@ -221,13 +235,18 @@ public class SSVpnService extends VpnService {
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(vpnServiceAction)
                 .putExtra("vpn_interface", vpnInterface));
+        System.out.println(V2rayConfigs.currentConfig);
+        v2rayCoreExecutor.startCore(V2rayConfigs.currentConfig);
+
 
         //start connection thread
-        apiHeartbeatTimer = new Timer();
-        apiHeartbeatTimer.schedule(new APIHeartbeatHandler(this), 0, apiHeartbeatPeriod);
-        connectionHandler = new ConnectionHandler(vpnInterface, this, notificationListener);
-        connectionHandler.setConnectionMethod(connectionMethod);
-        connectionHandler.start();
+//        apiHeartbeatTimer = new Timer();
+//        apiHeartbeatTimer.schedule(new APIHeartbeatHandler(this), 0, apiHeartbeatPeriod);
+//        connectionHandler = new Connection\Handler(vpnInterface, this, notificationListener);
+//        connectionHandler.setConnectionMethod(connectionMethod);
+//        connectionHandler.start();
+        Tun2SocksManager tun2SocksManager = new Tun2SocksManager(vpnInterface, () -> System.out.println("Tun2Socks stopped"));
+        tun2SocksManager.start();
     }
 
     /**
@@ -240,7 +259,6 @@ public class SSVpnService extends VpnService {
         Builder builder = this.new Builder();
         builder.setSession("SSV Interface");
         builder.addAddress(VpnSettings.iFaceAddress, VpnSettings.iFacePrefix);
-        builder.addDnsServer(VpnSettings.dnsHost);
         builder.addRoute("0.0.0.0", 0);
 
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(this);
@@ -365,7 +383,6 @@ public class SSVpnService extends VpnService {
         stopSelf();
     }
 
-
     private void stopVpnService(boolean insufficient_traffic, boolean credit_expired) {
 
         if (!this.isServiceActive()) {
@@ -392,7 +409,7 @@ public class SSVpnService extends VpnService {
                     Thread.sleep(500);
                     vpnInterface.close();
                 } catch (InterruptedException | IOException ignored) {
-                    Log.d("","",ignored);
+                    Log.d("", "", ignored);
                 }
             }).start();
         } catch (NullPointerException | InterruptedException e) {
@@ -405,7 +422,7 @@ public class SSVpnService extends VpnService {
     }
 
     public void yes() {
-        connectionHandler.yes();
+        v2rayCoreExecutor.broadCastCurrentServerDelay();
     }
 
     public void no() {
@@ -445,4 +462,52 @@ public class SSVpnService extends VpnService {
     public void setConnectionMethod(Constants.Protocol connectionMethod) {
         this.connectionMethod = connectionMethod;
     }
+
+    //    V2rayServicesListener implementations
+    @Override
+    public boolean onProtect(int socket) {
+        return true;
+    }
+
+    @Override
+    public Service getService() {
+        return this;
+    }
+
+    @Override
+    public void startService() {
+
+    }
+
+    @Override
+    public void stopService() {
+
+    }
+//    V2rayServicesListener implementations
+
+    public class VpnServiceBinder extends Binder {
+
+        public SSVpnService getService() {
+            return SSVpnService.this;
+        }
+
+        public void stopService() {
+            finalizeAndStop();
+        }
+
+        public ConnectionState getConnectionState() {
+            try {
+                return connectionHandler.getConnectionState();
+            } catch (NullPointerException e) {
+                return ConnectionState.DISCONNECTED;
+            }
+
+        }
+
+        public NetworkState getNetworkState() {
+            return Objects.requireNonNullElse(connectionHandler.getNetworkState(),
+                    NetworkState.NONE);
+        }
+    }
+
 }

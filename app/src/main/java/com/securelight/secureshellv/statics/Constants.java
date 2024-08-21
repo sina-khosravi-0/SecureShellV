@@ -3,7 +3,7 @@ package com.securelight.secureshellv.statics;
 public class Constants {
 //    private String endPoint = "http://192.168.128.71:8000/";
 //    public static final String apiEndPoint = "https://api.weary.tech/";
-    public static final String apiEndPoint = "http://192.168.186.90:8000/";
+    public static final String apiAddress = "http://192.168.23.90:8000/";
     public static final String APP_FILTER_PACKAGES = "appFilterPackages";
     public static final String APP_LANGUAGE_NAME = "appLanguage";
     public static final String ACCESS_TOKEN_PREF_NAME = "verify";
@@ -11,7 +11,7 @@ public class Constants {
     public static final String APP_FILTER_MODE_NAME = "appFilterMode";
     public static final String TOKEN_INVALID_CODE_STRING = "token_not_valid";
     public static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
-    public static final String OUT_OF_TRAFFIC_CODE_STRING = "insufficient_traffic";
+    public static final String OUT_OF_TRAFFIC_CODE_STRING = "data_limit_reached";
     public static String API_CACHE_PREFERENCES_NAME = "apiCache";
     public static String SERVER_LOCATION_DEFAULT = "ato";
     public static String USER_SETTINGS_PREFERENCES_NAME = "userSettings";
@@ -46,8 +46,8 @@ public class Constants {
         HORRIBLE
     }
 
-    public static final int sendTrafficPeriod = 5000;
-    public static final int apiHeartbeatPeriod = 5000;
+    public static final int sendTrafficPeriod = 10000;
+    public static final int apiHeartbeatPeriod = 8000;
     public static final int socksHeartbeatPeriod = 3000;
     public static final int internetAccessPeriod = 1000;
 }

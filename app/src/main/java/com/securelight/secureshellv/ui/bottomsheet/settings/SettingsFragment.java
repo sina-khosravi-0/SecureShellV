@@ -19,7 +19,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.statics.Constants;
-import com.securelight.secureshellv.ui.bottomsheet.settings.appfilter.InstalledPackageFragment;
+import com.securelight.secureshellv.ui.bottomsheet.settings.appfilter.InstalledPackageDialogFragment;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 /**
@@ -85,7 +85,7 @@ public class SettingsFragment extends Fragment {
         });
         selectAppsButton.setOnClickListener(v -> {
             FragmentManager fm = getActivity().getSupportFragmentManager();
-            InstalledPackageFragment installedPackageDialogue = InstalledPackageFragment.newInstance();
+            InstalledPackageDialogFragment installedPackageDialogue = InstalledPackageDialogFragment.newInstance();
             installedPackageDialogue.show(fm, "fragment_alert");
         });
 

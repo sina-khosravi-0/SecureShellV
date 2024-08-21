@@ -38,9 +38,9 @@
     <string name="used">Used</string>
     <string name="total">Total</string>
     <string name="unlimited_time">Unlimited Time</string>
-    <string name="unlimited_traffic">Unlimited Traffic</string>
+    <string name="unlimited_data">Unlimited Data</string>
     <string name="connected_ips">Current Connected IPs</string>
-    <string name="traffic">Traffic:</string>
+    <string name="data_limit">Data limit:</string>
     <string name="broadcast_message">Broadcast Message</string>
     <string name="date">Date</string>
     <string name="location">Location</string>
@@ -77,8 +77,8 @@
     <string name="restart_app">Restart App</string>
     <string name="persistent_notification">Persistent Notification</string>
     <string name="persistent_notification_switch_hint">By enabling this option, the VPN notification will not go away after turning off the VPN.</string>
-    <string name="you_traffic_has_run_out">You traffic has run out.</string>
-    <string name="insufficient_traffic">Insufficient traffic</string>
+    <string name="data_limit_reached">You have reached your data limit</string>
+    <string name="insufficient_data">Insufficient data</string>
     <string name="credit_expired">Credit expired</string>
     <string name="credit_time_has_run_out">Credit time has run out.</string>
     <string name="renew">Renew Service</string>
@@ -124,7 +124,7 @@
     <string name="toman">toman</string>
     <string name="unlimited">Unlimited</string>
     <string name="what_is_gold_plan">What is Gold plan?</string>
-    <string name="gold_plan_alert_info">In Gold plans, the VPN utilizes servers located in iran to connect to the destination server. This will improve VPN quality and reduce disconnection. Gold plans have limited traffic and higher prices due to iranian server\'s high prices.</string>
+    <string name="gold_plan_alert_info">In Gold plans, the VPN utilizes servers located in iran to connect to the destination server. This will improve VPN quality and reduce disconnection. Gold plans have limited data usage and higher prices due to iranian server\'s high prices.</string>
     <string name="silver_plans">Silver Plan</string>
     <string name="silver_plan_alert">Please note that silver plans work best with Hamrah-e-Aval and sometimes Irancell. If your internet service provider is any other than these two, it is advised to consider the gold plans.</string>
     <string name="submit_successful">Submit Successful</string>

@@ -16,7 +16,7 @@ public class ServicePlan {
         id = jsonObject.getInt("id");
         price = jsonObject.getInt("price");
         users = jsonObject.getInt("users");
-        traffic = jsonObject.getInt("traffic");
+        traffic = jsonObject.getInt("data_usage");
         unlimitedUsers = jsonObject.getBoolean("unlimited_users");
     }
 

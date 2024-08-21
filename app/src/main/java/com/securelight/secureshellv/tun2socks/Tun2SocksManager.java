@@ -12,12 +12,12 @@ import java.util.List;
 
 public class Tun2SocksManager {
 
+    private static final List<Long> threadIds = new ArrayList<>();
+    private static Thread thread;
     private final String TAG = this.getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
-    private boolean isRunning;
     private final Tun2SocksListener t2SListener;
-    private static Thread thread;
-    private static final List<Long> threadIds = new ArrayList<>();
+    private boolean isRunning;
 
     public Tun2SocksManager(ParcelFileDescriptor vpnInterface, Tun2SocksListener t2SListener) {
         this.vpnInterface = vpnInterface;
@@ -29,7 +29,7 @@ public class Tun2SocksManager {
             return;
         }
         thread = new Thread(() -> {
-            for (int i = 0; i < 20; i++){
+            for (int i = 0; i < 20; i++) {
                 if (Tun2SocksJni.canStart() == 0) {
                     try {
                         Thread.sleep(500);
@@ -38,12 +38,14 @@ public class Tun2SocksManager {
                 } else {
                     break;
                 }
-
             }
             isRunning = true;
-            Tun2SocksJni.runTun2Socks(vpnInterface.getFd(), 1500, VpnSettings.iFaceAddress,
-                    VpnSettings.iFaceSubnet, VpnSettings.iFaceAddress + ":" + VpnSettings.socksPort,
-                    "127.0.0.1" + ":" + 7300,
+            Tun2SocksJni.runTun2Socks(vpnInterface.getFd(),
+                    VpnSettings.interfaceMtu,
+                    VpnSettings.iFaceAddress,
+                    VpnSettings.iFaceSubnetMask,
+                    "127.0.0.1" + ":" + VpnSettings.socksPort,
+                    "127.0.0.1" + ":" + 10853,
                     1, -1);
             isRunning = false;
             t2SListener.onTun2SocksStopped();

@@ -15,7 +15,12 @@ dependencyResolutionManagement {
         mavenCentral()
         maven { url 'https://www.datanucleus.org/downloads/maven2/' }
         maven { url "https://jitpack.io" }
+        flatDir {
+            dirs 'v2ray/libs'
+        }
     }
 }
 rootProject.name = "SecureShellV"
 include ':app'
+include ':v2ray'
+project(':v2ray').projectDir = new File(rootDir, 'v2ray')

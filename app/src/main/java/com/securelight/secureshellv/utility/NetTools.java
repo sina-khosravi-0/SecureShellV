@@ -3,8 +3,6 @@ package com.securelight.secureshellv.utility;
 
 import android.util.Log;
 
-import androidx.dynamicanimation.animation.SpringAnimation;
-
 import com.securelight.secureshellv.backend.TargetServer;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.vpnservice.VpnSettings;
@@ -14,7 +12,8 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.sql.SQLOutput;
+
+import dev.dev7.lib.v2ray.V2rayController;
 
 public class NetTools {
     public static boolean checkInternetAccess() {
@@ -36,25 +35,25 @@ public class NetTools {
                 new InetSocketAddress(VpnSettings.iFaceAddress, VpnSettings.socksPort));
 
         long averageMilli = 0;
-        int iterations = 5;
+        int attempts = 5;
 
-        Socket[] sockets = new Socket[iterations];
-        for (int i = 0; i < iterations; i++) {
+        Socket[] sockets = new Socket[attempts];
+        for (int i = 0; i < attempts; i++) {
             sockets[i] = new Socket(proxy);
         }
 
         try {
-            for (int i = 0; i < iterations; i++) {
+            for (int i = 0; i < attempts; i++) {
                 long prev = System.currentTimeMillis();
                 sockets[i].connect(new InetSocketAddress("google.com", 443),
                         3000);
                 averageMilli += System.currentTimeMillis() - prev;
             }
-            averageMilli /= iterations;
+            averageMilli /= attempts;
         } catch (IOException ignored) {
         }
 
-        for (int i = 0; i < iterations; i++) {
+        for (int i = 0; i < attempts; i++) {
             try {
                 sockets[i].close();
             } catch (IOException ignored) {
@@ -78,25 +77,25 @@ public class NetTools {
 
     public static Constants.InternetQuality getInternetConnectionScore() {
         long averageMilli = 0;
-        int iterations = 5;
+        int attempts = 5;
 
-        Socket[] sockets = new Socket[iterations];
-        for (int i = 0; i < iterations; i++) {
+        Socket[] sockets = new Socket[attempts];
+        for (int i = 0; i < attempts; i++) {
             sockets[i] = new Socket();
         }
 
         try {
-            for (int i = 0; i < iterations; i++) {
+            for (int i = 0; i < attempts; i++) {
                 long prev = System.currentTimeMillis();
                 sockets[i].connect(new InetSocketAddress("google.com", 443),
                         3000);
                 averageMilli += System.currentTimeMillis() - prev;
             }
-            averageMilli /= iterations;
+            averageMilli /= attempts;
         } catch (IOException ignored) {
         }
 
-        for (int i = 0; i < iterations; i++) {
+        for (int i = 0; i < attempts; i++) {
             try {
                 sockets[i].close();
             } catch (IOException ignored) {
@@ -120,26 +119,31 @@ public class NetTools {
 
     public static int getServerPing(TargetServer server) {
         long averageMilli = 0;
-        int iterations = 5;
+        int attempts = 5;
 
-        Socket[] sockets = new Socket[iterations];
-        for (int i = 0; i < iterations; i++) {
+        Socket[] sockets = new Socket[attempts];
+        for (int i = 0; i < attempts; i++) {
             sockets[i] = new Socket();
         }
 
         try {
-            for (int i = 0; i < iterations; i++) {
+            for (int i = 0; i < attempts; i++) {
                 long prev = System.currentTimeMillis();
-                sockets[i].connect(new InetSocketAddress(server.getIp(), server.getPort()),
-                        3000);
+
+                try {
+                    sockets[i].connect(new InetSocketAddress(server.getIp(), server.getPingPort()),
+                            3000);
+                } catch (SocketTimeoutException ignored) {
+                }
+
                 averageMilli += System.currentTimeMillis() - prev;
                 Thread.sleep(300);
             }
-            averageMilli /= iterations;
+            averageMilli /= attempts;
         } catch (IOException | InterruptedException ignored) {
         }
 
-        for (int i = 0; i < iterations; i++) {
+        for (int i = 0; i < attempts; i++) {
             try {
                 sockets[i].close();
             } catch (IOException ignored) {
