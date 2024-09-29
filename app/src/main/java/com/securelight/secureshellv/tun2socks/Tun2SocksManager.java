@@ -44,7 +44,6 @@ public class Tun2SocksManager {
                 }
             }
             isRunning = true;
-            System.out.println("motherfuck" + V2rayConfigs.currentConfig.enableLocalTunneledDNS);
             Tun2SocksJni.runTun2Socks(vpnInterface.getFd(),
                     VpnSettings.interfaceMtu,
                     VpnSettings.iFaceAddress,

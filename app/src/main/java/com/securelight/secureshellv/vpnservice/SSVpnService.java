@@ -534,7 +534,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
     @Override
     public void OnTun2SocksHasMassage(V2rayConstants.CORE_STATES tun2SocksState, String newMessage) {
-        System.out.println("FUCKING MESSAGE:" + newMessage);
+        System.out.println("V2RAY MESSAGE:" + newMessage);
     }
 //    V2rayServicesListener implementations
 
