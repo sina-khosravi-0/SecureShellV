@@ -9,6 +9,7 @@ import android.util.Base64;
 import android.util.Log;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -97,9 +98,9 @@ public class Utilities {
         }
     }
 
-    public static String normalizeV2rayFullConfig(String config){
-        if (Libv2ray.isXrayURI(config)){
-           return V2rayConstants.DEFAULT_FULL_JSON_CONFIG.replace(DEFAULT_OUT_BOUND_PLACE_IN_FULL_JSON_CONFIG,Libv2ray.getXrayOutboundFromURI(config));
+    public static String normalizeV2rayFullConfig(String config) {
+        if (Libv2ray.isXrayURI(config)) {
+            return V2rayConstants.DEFAULT_FULL_JSON_CONFIG.replace(DEFAULT_OUT_BOUND_PLACE_IN_FULL_JSON_CONFIG, Libv2ray.getXrayOutboundFromURI(config));
         }
         return config;
     }
@@ -159,10 +160,68 @@ public class Utilities {
                     config_json.put("policy", policy);
                     config_json.put("stats", new JSONObject());
                 } catch (Exception e) {
-                    Log.e("log is here",e.toString());
+                    Log.e("log is here", e.toString());
                     currentConfig.enableTrafficStatics = false;
                     //ignore
                 }
+            }
+
+            try {
+                config_json.getJSONArray("inbounds").put(new JSONObject("{\"listen\": \"127.0.0.1\",\"port\": 10853,\"protocol\": \"dokodemo-door\",\"settings\": {\"address\": \"1.1.1.1\",\"network\": \"tcp,udp\",\"port\": 53},\"tag\": \"dns-in\"}"));
+                config_json.getJSONArray("outbounds").put(new JSONObject("{\"protocol\": \"dns\", \"tag\": \"dns-out\"}"));
+                config_json.put("dns", new JSONObject("{\n" +
+                        "    \"hosts\": {\n" +
+                        "      \"domain:googleapis.cn\": \"googleapis.com\",\n" +
+                        "      \"dns.pub\": [\n" +
+                        "        \"1.12.12.12\",\n" +
+                        "        \"120.53.53.53\"\n" +
+                        "      ],\n" +
+                        "      \"dns.alidns.com\": [\n" +
+                        "        \"223.5.5.5\",\n" +
+                        "        \"223.6.6.6\",\n" +
+                        "        \"2400:3200::1\",\n" +
+                        "        \"2400:3200:baba::1\"\n" +
+                        "      ],\n" +
+                        "      \"one.one.one.one\": [\n" +
+                        "        \"1.1.1.1\",\n" +
+                        "        \"1.0.0.1\",\n" +
+                        "        \"2606:4700:4700::1111\",\n" +
+                        "        \"2606:4700:4700::1001\"\n" +
+                        "      ],\n" +
+                        "      \"dns.google\": [\n" +
+                        "        \"8.8.8.8\",\n" +
+                        "        \"8.8.4.4\",\n" +
+                        "        \"2001:4860:4860::8888\",\n" +
+                        "        \"2001:4860:4860::8844\"\n" +
+                        "      ]\n" +
+                        "    },\n" +
+                        "    \"servers\": [\n" +
+                        "      {\n" +
+                        "        \"address\": \"fakedns\",\n" +
+                        "        \"domains\": [\n" +
+                        "          \"geosite:cn\"\n" +
+                        "        ]\n" +
+                        "      },\n" +
+                        "      \"1.1.1.1\",\n" +
+                        "      {\n" +
+                        "        \"address\": \"223.5.5.5\",\n" +
+                        "        \"domains\": [\n" +
+                        "          \"geosite:cn\"\n" +
+                        "        ],\n" +
+                        "        \"expectIPs\": [\n" +
+                        "          \"geoip:cn\"\n" +
+                        "        ],\n" +
+                        "        \"port\": 53\n" +
+                        "      }\n" +
+                        "    ]\n" +
+                        "  }"));
+                config_json.put("fakedns", new JSONArray("[\n" +
+                        "    {\n" +
+                        "      \"ipPool\": \"198.18.0.0/15\",\n" +
+                        "      \"poolSize\": 10000\n" +
+                        "    }\n" +
+                        "  ]"));
+            } catch (JSONException ignored) {
             }
             currentConfig.fullJsonConfig = config_json.toString();
             return true;

@@ -23,10 +23,8 @@ import libv2ray.V2RayVPNServiceSupportsSet;
 
 public class V2rayCoreExecutor {
 
-    private V2rayConstants.CORE_STATES coreState;
     public V2rayServicesListener v2rayServicesListener;
-
-
+    private V2rayConstants.CORE_STATES coreState;
     public final V2RayPoint v2RayPoint = Libv2ray.newV2RayPoint(new V2RayVPNServiceSupportsSet() {
         @Override
         public long shutdown() {
@@ -85,6 +83,29 @@ public class V2rayCoreExecutor {
         Log.d(V2rayCoreExecutor.class.getSimpleName(), "V2rayCoreExecutor -> New initialize from : " + targetService.getClass().getSimpleName());
     }
 
+    public static long getConfigDelay(final String config) {
+        try {
+            JSONObject config_json = new JSONObject(config);
+            config_json.remove("routing");
+            config_json.remove("dns");
+            JSONObject routing = new JSONObject();
+            routing.put("domainStrategy", "IPIfNonMatch");
+            config_json.put("routing", routing);
+            config_json.put("dns", new JSONObject("{\n" +
+                    "    \"hosts\": {\n" +
+                    "        \"domain:googleapis.cn\": \"googleapis.com\"\n" +
+                    "    },\n" +
+                    "    \"servers\": [\n" +
+                    "        \"1.1.1.1\"\n" +
+                    "    ]\n" +
+                    "}"));
+            return Libv2ray.measureOutboundDelay(config_json.toString(), "");
+        } catch (Exception json_error) {
+            Log.d(V2rayCoreExecutor.class.getSimpleName(), "getCurrentServerDelay -> ", json_error);
+            return -1;
+        }
+    }
+
     public void startCore(final V2rayConfigModel v2rayConfig) {
         try {
             stopCore(false);
@@ -123,7 +144,7 @@ public class V2rayCoreExecutor {
     }
 
     public long getUploadSpeed() {
-        return v2RayPoint.queryStats("block", "uplink")  + v2RayPoint.queryStats("proxy", "uplink");
+        return v2RayPoint.queryStats("block", "uplink") + v2RayPoint.queryStats("proxy", "uplink");
     }
 
     public V2rayConstants.CORE_STATES getCoreState() {
@@ -152,29 +173,6 @@ public class V2rayCoreExecutor {
             serverDelayBroadcast.setPackage(v2rayServicesListener.getService().getPackageName());
             serverDelayBroadcast.putExtra(V2RAY_SERVICE_CURRENT_CONFIG_DELAY_BROADCAST_EXTRA, -1);
             v2rayServicesListener.getService().sendBroadcast(serverDelayBroadcast);
-        }
-    }
-
-    public static long getConfigDelay(final String config) {
-        try {
-            JSONObject config_json = new JSONObject(config);
-            config_json.remove("routing");
-            config_json.remove("dns");
-            JSONObject routing = new JSONObject();
-            routing.put("domainStrategy", "IPIfNonMatch");
-            config_json.put("routing", routing);
-            config_json.put("dns", new JSONObject("{\n" +
-                    "    \"hosts\": {\n" +
-                    "        \"domain:googleapis.cn\": \"googleapis.com\"\n" +
-                    "    },\n" +
-                    "    \"servers\": [\n" +
-                    "        \"1.1.1.1\"\n" +
-                    "    ]\n" +
-                    "}"));
-            return Libv2ray.measureOutboundDelay(config_json.toString(), "");
-        } catch (Exception json_error) {
-            Log.d(V2rayCoreExecutor.class.getSimpleName(), "getCurrentServerDelay -> ", json_error);
-            return -1;
         }
     }
 

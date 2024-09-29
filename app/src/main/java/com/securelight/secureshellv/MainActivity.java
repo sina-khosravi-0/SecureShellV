@@ -538,46 +538,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startVpnService() {
-        new Thread(() -> {
-            DataManager.getInstance().calculateBestServer();
-            List<V2rayConfig> configs = null;
-            try {
-                configs = DataManager.getInstance().updateV2rayConfigs("");
-            } catch (JSONException e) {
-                throw new RuntimeException(e);
-            }
-            AtomicInteger bestConfigIndex = new AtomicInteger();
-            double bestPing = Double.MAX_VALUE;
-            List<Thread> threads = new ArrayList<>();
-            for (V2rayConfig config : configs) {
-                List<V2rayConfig> finalConfigs = configs;
-                Thread thread = new Thread(() -> {
-                    try {
-                        if (bestPing > config.calculateBestPing()) {
-                            bestConfigIndex.set(finalConfigs.indexOf(config));
-                        }
-                    } catch (JSONException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-                threads.add(thread);
-                thread.start();
-            }
-
-            threads.forEach(thread -> {
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                }
-            });
-            Utilities.refillV2rayConfig("Test Server", configs.get(bestConfigIndex.get()).getJson(), null);
-            Intent intent = VpnService.prepare(MainActivity.this);
-            if (intent != null) {
-                startActivityForResult(intent, 0);
-            } else {
-                onActivityResult(0, RESULT_OK, null);
-            }
-        }).start();
+        Intent intent = VpnService.prepare(MainActivity.this);
+        if (intent != null) {
+            startActivityForResult(intent, 0);
+        } else {
+            onActivityResult(0, RESULT_OK, null);
+        }
     }
 
     @Override

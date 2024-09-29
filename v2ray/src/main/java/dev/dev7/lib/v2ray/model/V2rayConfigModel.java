@@ -17,7 +17,7 @@ public class V2rayConfigModel implements Serializable {
     public int localDNSPort = 10853;
     public boolean enableTrafficStatics = false;
     public boolean enableTrafficStaticsOnNotification = false;
-    public boolean enableLocalTunneledDNS = true;
+    public boolean enableLocalTunneledDNS = false;
 
     @Override
     public String toString() {

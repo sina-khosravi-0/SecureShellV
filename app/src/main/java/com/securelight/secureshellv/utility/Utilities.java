@@ -2,10 +2,16 @@ package com.securelight.secureshellv.utility;
 
 import android.content.res.Resources;
 
+import com.securelight.secureshellv.backend.V2rayConfig;
+
+import org.json.JSONException;
+
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Utilities {
     public static boolean containsIgnoreCase(String str, String searchStr) {
@@ -59,5 +65,38 @@ public class Utilities {
     public static int convertDPtoPX(Resources resources, int dp){
         final float scale = resources.getDisplayMetrics().density;
         return (int) (dp * scale + 0.5f);
+    }
+
+    public static V2rayConfig getBestV2rayConfig(List<V2rayConfig> configs) {
+        double[] pings = new double[configs.size()];
+        int bestConfigIndex = 0;
+        double bestPing = Double.MAX_VALUE;
+        List<Thread> threads = new ArrayList<>();
+        for (int i = 0; i < configs.size(); i++) {
+            int index  = i;
+            V2rayConfig config = configs.get(i);
+            Thread thread = new Thread(() -> {
+                try {
+                    pings[index] = config.calculateBestPing();
+                } catch (JSONException ignore) {
+                }
+            });
+            threads.add(thread);
+            thread.start();
+        }
+
+        threads.forEach(thread -> {
+            try {
+                thread.join();
+            } catch (InterruptedException ignored) {
+            }
+        });
+
+        for (int i = 0; i < pings.length; i++) {
+            if (bestPing > pings[i]) {
+                bestConfigIndex = i;
+            }
+        }
+        return configs.get(bestConfigIndex);
     }
 }

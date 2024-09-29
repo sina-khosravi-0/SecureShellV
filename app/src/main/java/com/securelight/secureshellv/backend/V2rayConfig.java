@@ -1,5 +1,7 @@
 package com.securelight.secureshellv.backend;
 
+import static dev.dev7.lib.v2ray.utils.V2rayConfigs.currentConfig;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -12,11 +14,12 @@ public class V2rayConfig {
     int bestIpIndex = -1;
 
     public void parseData(JSONObject jsonObject) throws JSONException {
-        json =  new JSONObject(jsonObject.getString("json"));
+        json = new JSONObject(jsonObject.getString("json"));
         ips = new JSONArray(jsonObject.getJSONObject("server").getJSONArray("ips").toString());
     }
 
     public double calculateBestPing() throws JSONException {
+
         JSONObject alteredJson = new JSONObject(json.toString());
         double bestPing = -1;
         for (int i = 0; i < ips.length(); i++) {
@@ -31,8 +34,10 @@ public class V2rayConfig {
             if (ping > bestPing) {
                 bestPing = ping;
                 this.bestIpIndex = i;
+                json = alteredJson;
             }
         }
+
         return bestPing;
     }
 

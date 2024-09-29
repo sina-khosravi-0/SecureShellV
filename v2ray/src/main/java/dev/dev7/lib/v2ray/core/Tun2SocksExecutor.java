@@ -41,11 +41,9 @@ public class Tun2SocksExecutor {
                 "--tunmtu", "1500",
                 "--sock-path", "sock_path",
                 "--enable-udprelay",
-                "--loglevel", "error"));
-        if (localDnsPort > 0 && localDnsPort < 65000) {
+                "--loglevel", "debug"));
             tun2SocksCommands.add("--dnsgw");
             tun2SocksCommands.add("127.0.0.1:" + localDnsPort);
-        }
         tun2SocksListener.OnTun2SocksHasMassage(V2rayConstants.CORE_STATES.IDLE, "T2S Start Commands => " + tun2SocksCommands);
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(tun2SocksCommands);
@@ -59,6 +57,7 @@ public class Tun2SocksExecutor {
             }, "t2s_output_thread").start();
             new Thread(() -> {
                 Scanner scanner = new Scanner(tun2SocksProcess.getErrorStream());
+
                 while (scanner.hasNextLine()) {
                     String line = scanner.nextLine();
                     tun2SocksListener.OnTun2SocksHasMassage(V2rayConstants.CORE_STATES.RUNNING, "T2S => " + line);

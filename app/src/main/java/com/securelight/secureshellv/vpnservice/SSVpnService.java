@@ -1,7 +1,6 @@
 package com.securelight.secureshellv.vpnservice;
 
 import static androidx.core.app.NotificationCompat.EXTRA_NOTIFICATION_ID;
-import static com.securelight.secureshellv.statics.Constants.CREDIT_EXPIRED_CODE_STRING;
 import static com.securelight.secureshellv.statics.Constants.apiHeartbeatPeriod;
 
 import android.app.Notification;
@@ -15,6 +14,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.LocalSocket;
+import android.net.LocalSocketAddress;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
@@ -35,33 +36,39 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.securelight.secureshellv.MainActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.backend.DataManager;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.backend.V2rayConfig;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
-import com.securelight.secureshellv.tun2socks.Tun2SocksManager;
 import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
+import com.securelight.secureshellv.utility.Utilities;
 import com.securelight.secureshellv.vpnservice.connection.APIHeartbeatHandler;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionHandler;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
-import com.securelight.secureshellv.vpnservice.listeners.Tun2SocksListener;
 
+import org.json.JSONException;
+
+import java.io.File;
+import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import dev.dev7.lib.v2ray.core.Tun2SocksExecutor;
 import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
+import dev.dev7.lib.v2ray.interfaces.Tun2SocksListener;
 import dev.dev7.lib.v2ray.interfaces.V2rayServicesListener;
-import dev.dev7.lib.v2ray.model.V2rayConfigModel;
 import dev.dev7.lib.v2ray.utils.V2rayConfigs;
+import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
-public class SSVpnService extends VpnService implements V2rayServicesListener {
+public class SSVpnService extends VpnService implements V2rayServicesListener, Tun2SocksListener {
     public static final String STOP_VPN_SERVICE_ACTION = "com.securelight.secureshellv.STOP";
     public static final String START_VPN_ACTION = "com.securelight.secureshellv.START";
     public static final String CONNECTED_ACTION = "com.securelight.secureshellv.CONNECTED";
@@ -92,7 +99,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener {
 
         }
     };
-    V2rayCoreExecutor v2rayCoreExecutor;
+    private V2rayCoreExecutor v2rayCoreExecutor;
     private long startedAt;
     private NotificationCompat.Builder notificationBuilder;
     private NotificationManager notificationManager;
@@ -222,8 +229,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener {
                     .addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build();
             connectivityManager.requestNetwork(networkRequest, networkCallback);
         }
-//        stopSelf();
-//        return START_STICKY;
         return START_NOT_STICKY;
     }
 
@@ -235,19 +240,61 @@ public class SSVpnService extends VpnService implements V2rayServicesListener {
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(vpnServiceAction)
                 .putExtra("vpn_interface", vpnInterface));
-        System.out.println(V2rayConfigs.currentConfig);
-        v2rayCoreExecutor.startCore(V2rayConfigs.currentConfig);
-
-
-        //start connection thread
-//        apiHeartbeatTimer = new Timer();
-//        apiHeartbeatTimer.schedule(new APIHeartbeatHandler(this), 0, apiHeartbeatPeriod);
-//        connectionHandler = new Connection\Handler(vpnInterface, this, notificationListener);
-//        connectionHandler.setConnectionMethod(connectionMethod);
-//        connectionHandler.start();
-        Tun2SocksManager tun2SocksManager = new Tun2SocksManager(vpnInterface, () -> System.out.println("Tun2Socks stopped"));
-        tun2SocksManager.start();
+        new Thread(() -> {
+            try {
+                loadV2rayConfig();
+            } catch (JSONException e) {
+                Log.e(TAG, "couldn't load v2ray config", e);
+                throw new RuntimeException(e);
+            }
+            v2rayCoreExecutor.startCore(V2rayConfigs.currentConfig);
+            apiHeartbeatTimer = new Timer();
+            apiHeartbeatTimer.schedule(new APIHeartbeatHandler(this), 0, apiHeartbeatPeriod);
+        }).start();
+        Tun2SocksExecutor tun2SocksExecutor = new Tun2SocksExecutor(this);
+        tun2SocksExecutor.run(this, VpnSettings.socksPort, VpnSettings.localDnsPort);
+        sendFileDescriptor();
     }
+
+
+    private void loadV2rayConfig() throws JSONException {
+        DataManager.getInstance().calculateBestServer();
+        V2rayConfig config = Utilities.getBestV2rayConfig(DataManager.getInstance().updateV2rayConfigs(""));
+        dev.dev7.lib.v2ray.utils.Utilities.refillV2rayConfig("BestConfig", config.getJson(), null);
+    }
+
+
+    private void sendFileDescriptor() {
+        String localSocksFile = new File(getApplicationContext().getFilesDir(), "sock_path").getAbsolutePath();
+        FileDescriptor tunFd = vpnInterface.getFileDescriptor();
+        new Thread(() -> {
+            boolean isSendFDSuccess = false;
+            for (int sendFDTries = 0; sendFDTries < 5; sendFDTries++) {
+                try {
+                    Thread.sleep(50L * sendFDTries);
+                    LocalSocket clientLocalSocket = new LocalSocket();
+                    clientLocalSocket.connect(new LocalSocketAddress(localSocksFile, LocalSocketAddress.Namespace.FILESYSTEM));
+                    if (!clientLocalSocket.isConnected()) {
+                        Log.i("SOCK_FILE", "Unable to connect to localSocksFile [" + localSocksFile + "]");
+                    } else {
+                        Log.i("SOCK_FILE", "connected to sock file [" + localSocksFile + "]");
+                    }
+                    OutputStream clientOutStream = clientLocalSocket.getOutputStream();
+                    clientLocalSocket.setFileDescriptorsForSend(new FileDescriptor[]{tunFd});
+                    clientOutStream.write(42);
+                    clientLocalSocket.shutdownOutput();
+                    clientLocalSocket.close();
+                    isSendFDSuccess = true;
+                    break;
+                } catch (Exception ignore) {
+                }
+            }
+            if (!isSendFDSuccess) {
+                Log.w("SendFDFailed", "Couldn't send file descriptor !");
+            }
+        }, "sendFd_Thread").start();
+    }
+
 
     /**
      * Using Host address and Port provided from VpnSettings, the VpnService builder will create
@@ -259,6 +306,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener {
         Builder builder = this.new Builder();
         builder.setSession("SSV Interface");
         builder.addAddress(VpnSettings.iFaceAddress, VpnSettings.iFacePrefix);
+        builder.addDnsServer("26.26.26.2");
         builder.addRoute("0.0.0.0", 0);
 
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(this);
@@ -300,7 +348,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        initNotifButtonIntents();
+        initNotificationButtonIntents();
 
         notificationBuilder.setContentIntent(pendingIntent);
         notificationBuilder.setSmallIcon(R.mipmap.ic_launcher); //notification icon
@@ -338,7 +386,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener {
         }
     }
 
-    private void initNotifButtonIntents() {
+    private void initNotificationButtonIntents() {
         Intent startIntent = new Intent(this, NotificationBroadcastReceiver.class);
         startIntent.setAction(START_VPN_ACTION);
         startIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
@@ -483,6 +531,11 @@ public class SSVpnService extends VpnService implements V2rayServicesListener {
     public void stopService() {
 
     }
+
+    @Override
+    public void OnTun2SocksHasMassage(V2rayConstants.CORE_STATES tun2SocksState, String newMessage) {
+        System.out.println("FUCKING MESSAGE:" + newMessage);
+    }
 //    V2rayServicesListener implementations
 
     public class VpnServiceBinder extends Binder {
@@ -511,3 +564,4 @@ public class SSVpnService extends VpnService implements V2rayServicesListener {
     }
 
 }
+

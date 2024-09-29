@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import dev.dev7.lib.v2ray.core.Tun2SocksExecutor;
+import dev.dev7.lib.v2ray.utils.V2rayConfigs;
+
 
 public class Tun2SocksManager {
 
@@ -29,6 +32,7 @@ public class Tun2SocksManager {
             return;
         }
         thread = new Thread(() -> {
+            // check 20 times if tun2socks can start
             for (int i = 0; i < 20; i++) {
                 if (Tun2SocksJni.canStart() == 0) {
                     try {
@@ -40,13 +44,15 @@ public class Tun2SocksManager {
                 }
             }
             isRunning = true;
+            System.out.println("motherfuck" + V2rayConfigs.currentConfig.enableLocalTunneledDNS);
             Tun2SocksJni.runTun2Socks(vpnInterface.getFd(),
                     VpnSettings.interfaceMtu,
                     VpnSettings.iFaceAddress,
                     VpnSettings.iFaceSubnetMask,
                     "127.0.0.1" + ":" + VpnSettings.socksPort,
-                    "127.0.0.1" + ":" + 10853,
-                    1, -1);
+                    "127.0.0.1" + ":" + VpnSettings.localDnsPort,
+                    1,
+                    1);
             isRunning = false;
             t2SListener.onTun2SocksStopped();
         }, "Tun2Socks-Starting-Thread");
