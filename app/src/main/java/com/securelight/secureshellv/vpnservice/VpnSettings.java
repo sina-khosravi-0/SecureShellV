@@ -15,6 +15,7 @@ public class VpnSettings implements Serializable {
     public static boolean proxySharing;
     public static boolean localDnsEnabled;
     public static boolean fakeDnsEnabled;
+    public static boolean trafficStatsEnabled;
 
     static {
         iFaceAddress = "26.26.26.1";
@@ -28,6 +29,6 @@ public class VpnSettings implements Serializable {
         proxySharing = false;
         localDnsEnabled = true;
         fakeDnsEnabled = true;
-
+        trafficStatsEnabled = true;
     }
 }

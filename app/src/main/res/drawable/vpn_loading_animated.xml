@@ -8,13 +8,8 @@
             android:height="169dp"
             android:viewportWidth="169"
             android:viewportHeight="169"
-            android:tint="?attr/colorOnPrimary">
-            <path
-                android:name="path_2"
-                android:pathData="M 169 84.5 C 169 131.17 131.17 169 84.5 169 C 37.83 169 0 131.17 0 84.5 C 0 37.83 37.83 0 84.5 0 C 131.17 0 169 37.83 169 84.5 Z M 2.52 84.5 C 2.52 129.77 39.22 166.48 84.5 166.48 C 129.78 166.48 166.48 129.78 166.48 84.5 C 166.48 39.22 129.77 2.52 84.5 2.52 C 39.23 2.52 2.52 39.23 2.52 84.5 Z"
-                android:fillColor="#000"
-                android:fillAlpha="0.18"
-                android:strokeWidth="1"/>
+            android:tint="?attr/colorTertiary">
+
             <group
                 android:name="group"
                 android:pivotX="84.5"
@@ -27,13 +22,13 @@
             </group>
         </vector>
     </aapt:attr>
-    <target android:name="group">
+    <target android:name="path_3">
         <aapt:attr name="android:animation">
             <objectAnimator
-                android:propertyName="rotation"
+                android:propertyName="fillAlpha"
                 android:duration="1000"
-                android:valueFrom="0"
-                android:valueTo="360"
+                android:valueFrom="0.1"
+                android:valueTo="1"
                 android:valueType="floatType"
                 android:interpolator="@android:anim/decelerate_interpolator"/>
         </aapt:attr>

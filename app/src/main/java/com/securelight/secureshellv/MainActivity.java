@@ -22,6 +22,7 @@ import android.net.VpnService;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Process;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
@@ -53,7 +54,6 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
-import com.securelight.secureshellv.backend.V2rayConfig;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
@@ -61,9 +61,6 @@ import com.securelight.secureshellv.ui.login.LoginActivity;
 import com.securelight.secureshellv.utility.CustomExceptionHandler;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
-import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
-
-import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,12 +68,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import dev.dev7.lib.v2ray.V2rayController;
-import dev.dev7.lib.v2ray.utils.Utilities;
-import dev.dev7.lib.v2ray.utils.V2rayConfigs;
-import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXIT_APP_ACTION = "com.securelight.secureshellv.EXIT_APP";
@@ -84,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String VPN_SERVICE_ACTION = "android.net.VpnService";
     public static final String CONNECTION_INFO_PREF = "CONNECTION_INFO";
     public static final String UPDATE_USER_DATA_INTENT = "UPDATE_USER_DATA";
-    public static boolean started = false;
+    public static boolean isTrafficProgressBarAnimated = false;
     public static int colorPrimary;
     public static int colorOnPrimary;
     public static int colorSecondary;
@@ -156,11 +149,22 @@ public class MainActivity extends AppCompatActivity {
     private final BroadcastReceiver disconnectedBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            started = true;
+            isTrafficProgressBarAnimated = true;
             performDisconnectedAction();
         }
     };
     private SSVpnService.VpnServiceBinder vpnServiceBinder;
+    private final BroadcastReceiver stopBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            vpnServiceBinder.getService().stopVpnService(
+                    intent.getBooleanExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, false),
+                    intent.getBooleanExtra(Constants.CREDIT_EXPIRED_CODE_STRING, false));
+            performDisconnectedAction();
+            System.out.println("hello");
+            Log.i("MainActivity", "VPN service stopped");
+        }
+    };
     private final ServiceConnection vpnServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
@@ -296,7 +300,8 @@ public class MainActivity extends AppCompatActivity {
         initUIComponents();
 
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-        lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.START_VPN_ACTION));
+        lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.START_VPN_SERVICE_ACTION));
+        lbm.registerReceiver(stopBr, new IntentFilter(SSVpnService.STOP_VPN_SERVICE_ACTION));
         lbm.registerReceiver(exitBr, new IntentFilter(EXIT_APP_ACTION));
         lbm.registerReceiver(connectedBr, new IntentFilter(SSVpnService.CONNECTED_ACTION));
         lbm.registerReceiver(connectingBr, new IntentFilter(SSVpnService.CONNECTING_ACTION));
@@ -319,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
 
         startButtonFrame.setOnClickListener(v -> {
             updateUserData();
-            if (vpnServiceBinder.getConnectionState().equals(ConnectionState.DISCONNECTED)) {
+            if (!vpnServiceBinder.getService().isServiceActive()) {
                 startVpnService();
             } else {
                 stopVpnService();
@@ -328,7 +333,6 @@ public class MainActivity extends AppCompatActivity {
 
         resubscribeButton.setOnClickListener(v -> {
 //            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
-            vpnServiceBinder.getService().yes();
         });
 
         bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
@@ -513,7 +517,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onCheckClicked(View view) {
-        SharedPreferences preferences = getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
+        SharedPreferences preferences = getSharedPreferences(Constants.API_CACHE_PREFERENCE_GROUP, Activity.MODE_PRIVATE);
         String accessToken = preferences.getString("access", "");
         String refreshToken = preferences.getString("refresh", "");
         ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -680,6 +684,7 @@ public class MainActivity extends AppCompatActivity {
         animation.setInterpolator(new AccelerateDecelerateInterpolator());
 
         trafficProgressIndicator.startAnimation(animation);
+        isTrafficProgressBarAnimated = true;
     }
 
     private void performConnectingAction() {
@@ -697,6 +702,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         vectorDrawable.start();
+        isTrafficProgressBarAnimated = true;
     }
 
     private void performDisconnectedAction() {
@@ -719,18 +725,17 @@ public class MainActivity extends AppCompatActivity {
                         dataManager.getRemainingTrafficGB() * interpolatedTime;
                 buttonText.setText(String.format("%.2f", traffic) + "\nGB");
                 trafficProgressIndicator.setProgress((int) value);
-
             }
-
         };
         animation.setDuration(1000);
         animation.setInterpolator(new DecelerateInterpolator());
-        if (started) {
+        if (isTrafficProgressBarAnimated) {
             trafficProgressIndicator.startAnimation(animation);
         }
     }
 
     private void updateUserData() {
+
         new Thread(() -> {
             DatabaseHandlerSingleton.getInstance(this).fetchUserData();
         }).start();

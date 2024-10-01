@@ -7,11 +7,11 @@
     <string name="disconnected">Disconnected</string>
     <string name="connected">Connected</string>
     <string name="connecting">Connecting…</string>
-    <string name="full_internet_access">World Wide Internet</string>
-    <string name="restricted_internet_access">Iran Access Internet</string>
-    <string name="no_internet_access">No Internet</string>
+    <string name="full_internet_access">Has Access</string>
+    <string name="restricted_internet_access">Iran Intranet Access</string>
+    <string name="no_internet_access">No Access</string>
     <string name="network_unavailable">Please Connect to a Network.</string>
-    <string name="internet_access_state">State</string>
+    <string name="internet_access_state">Internet State</string>
     <string name="direct_ssh">Direct</string>
     <string name="tls_ssh">Dual-Hop TLS</string>
     <string name="dual_hop_ssh">Dual-Hop</string>

@@ -17,8 +17,8 @@ public class SharedPreferencesSingleton {
     private final SharedPreferences apiCachePreferences;
 
     private SharedPreferencesSingleton(Context context) {
-        userSettingsPreferences = context.getSharedPreferences(Constants.USER_SETTINGS_PREFERENCES_NAME, Context.MODE_PRIVATE);
-        apiCachePreferences = context.getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Context.MODE_PRIVATE);
+        userSettingsPreferences = context.getSharedPreferences(Constants.USER_SETTINGS_PREFERENCE_GROUP, Context.MODE_PRIVATE);
+        apiCachePreferences = context.getSharedPreferences(Constants.API_CACHE_PREFERENCE_GROUP, Context.MODE_PRIVATE);
     }
 
     public static synchronized SharedPreferencesSingleton getInstance(Context context) {
@@ -29,11 +29,11 @@ public class SharedPreferencesSingleton {
     }
 
     public void setServerLocation(String code) {
-        userSettingsPreferences.edit().putString(Constants.SERVER_LOCATION_PREFERENCES_NAME, code).apply();
+        userSettingsPreferences.edit().putString(Constants.SERVER_LOCATION_PREF_NAME, code).apply();
     }
 
     public String getSelectedServerLocationForDropDown() {
-        return userSettingsPreferences.getString(Constants.SERVER_LOCATION_PREFERENCES_NAME, Constants.SERVER_LOCATION_DEFAULT);
+        return userSettingsPreferences.getString(Constants.SERVER_LOCATION_PREF_NAME, Constants.SERVER_LOCATION_DEFAULT);
     }
 
     public String getSelectedServerLocation() {
@@ -66,7 +66,7 @@ public class SharedPreferencesSingleton {
     }
 
     public Constants.AppFilterMode getAppFilterMode() {
-        switch (userSettingsPreferences.getInt(Constants.APP_FILTER_MODE_NAME, Constants.AppFilterMode.OFF.value)) {
+        switch (userSettingsPreferences.getInt(Constants.APP_FILTER_MODE_PREF_NAME, Constants.AppFilterMode.OFF.value)) {
             default: // off
                 return Constants.AppFilterMode.OFF;
             case 1: // exclude
@@ -77,7 +77,7 @@ public class SharedPreferencesSingleton {
     }
 
     public void setAppFilterMode(Constants.AppFilterMode mode) {
-        userSettingsPreferences.edit().putInt(Constants.APP_FILTER_MODE_NAME, mode.value).apply();
+        userSettingsPreferences.edit().putInt(Constants.APP_FILTER_MODE_PREF_NAME, mode.value).apply();
     }
 
     public String getAppLanguage() {
@@ -104,6 +104,14 @@ public class SharedPreferencesSingleton {
 
     public String getRefreshToken() {
         return apiCachePreferences.getString(Constants.REFRESH_TOKEN_PREF_NAME, "27831891");
+    }
+
+    public boolean isPersistentNotification() {
+        return userSettingsPreferences.getBoolean(Constants.PERSISTENT_NOTIFICATION_PREF_NAME, false);
+    }
+
+    public void setPersistentNotification(boolean isPersistent) {
+        userSettingsPreferences.edit().putBoolean(Constants.PERSISTENT_NOTIFICATION_PREF_NAME, isPersistent).apply();
     }
 
     public void clearTokens() {

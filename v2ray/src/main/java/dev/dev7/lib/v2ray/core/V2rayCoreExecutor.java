@@ -157,6 +157,14 @@ public class V2rayCoreExecutor {
         return coreState;
     }
 
+    public int getCurrentServerDelay() {
+        try {
+            return (int) v2RayPoint.measureDelay("");
+        } catch (Exception ignored) {
+            return -1;
+        }
+    }
+
     public void broadCastCurrentServerDelay() {
         try {
             if (v2rayServicesListener != null) {

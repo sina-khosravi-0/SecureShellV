@@ -313,6 +313,7 @@ public class DataManager {
     }
 
     public List<V2rayConfig> updateV2rayConfigs(String location) throws JSONException {
+        getTargetServers();
         JSONArray jsonArray = DatabaseHandlerSingleton.getInstance(null).fetchConfigs(location);
         for (int i = 0; i < jsonArray.length(); i++) {
             V2rayConfig v2rayConfig = new V2rayConfig();

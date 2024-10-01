@@ -6,10 +6,10 @@ import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 
 import java.util.TimerTask;
 
-public class APIHeartbeatHandler extends TimerTask {
+public class APIHeartbeatTask extends TimerTask {
     private final DatabaseHandlerSingleton databaseHandler;
 
-    public APIHeartbeatHandler(Context context) {
+    public APIHeartbeatTask(Context context) {
         databaseHandler = DatabaseHandlerSingleton.getInstance(context);
     }
 

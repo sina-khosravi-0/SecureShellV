@@ -55,6 +55,7 @@ public class SettingsFragment extends Fragment {
         MaterialButton appRestartButton = view.findViewById(R.id.restart_app_button);
 
         MaterialSwitch persistentSwitch = view.findViewById(R.id.persistent_notification_switch);
+        persistentSwitch.setChecked(preferences.isPersistentNotification());
 
         switch (preferences.getAppFilterMode()) {
             case OFF:
@@ -68,11 +69,11 @@ public class SettingsFragment extends Fragment {
                 break;
         }
 
-        switch(preferences.getAppLanguage()) {
-            case "en" :
+        switch (preferences.getAppLanguage()) {
+            case "en":
                 appLanguageRadioGroup.check(R.id.english_radio);
                 break;
-            case "fa" :
+            case "fa":
                 appLanguageRadioGroup.check(R.id.persian_radio);
                 break;
         }
@@ -105,7 +106,7 @@ public class SettingsFragment extends Fragment {
 
         appLanguageRadioGroup.setOnCheckedChangeListener(((group, checkedId) -> {
             RadioButton radioButton = group.findViewById(checkedId);
-            switch(group.indexOfChild(radioButton)) {
+            switch (group.indexOfChild(radioButton)) {
                 case 0:
                     preferences.setAppLanguage("en");
                     break;
@@ -125,6 +126,7 @@ public class SettingsFragment extends Fragment {
                     .setTitle(R.string.notice)
                     .setMessage(R.string.persistent_notification_switch_hint)
                     .setNeutralButton(R.string.ok, null).show();
+            SharedPreferencesSingleton.getInstance(getContext()).setPersistentNotification(isChecked);
         }));
     }
 }

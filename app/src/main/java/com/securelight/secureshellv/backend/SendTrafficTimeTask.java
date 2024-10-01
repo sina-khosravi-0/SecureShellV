@@ -3,26 +3,30 @@ package com.securelight.secureshellv.backend;
 import android.content.Context;
 
 import com.securelight.secureshellv.tun2socks.Tun2SocksJni;
+import com.securelight.secureshellv.vpnservice.StatsHandler;
 
 import java.util.TimerTask;
 
 public class SendTrafficTimeTask extends TimerTask {
-    private final Context context;
+    private final StatsHandler statsHandler;
+    DatabaseHandlerSingleton databaseHandlerSingleton;
 
-    public SendTrafficTimeTask(Context context) {
-        this.context = context.getApplicationContext();
+    public SendTrafficTimeTask(StatsHandler statsHandler,
+                               DatabaseHandlerSingleton databaseHandlerSingleton) {
+        this.statsHandler = statsHandler;
+        this.databaseHandlerSingleton = databaseHandlerSingleton;
     }
 
     @Override
     public void run() {
-        DatabaseHandlerSingleton.getInstance(context).sendTrafficIncrement(calcBytes());
+        sendIncrement();
     }
 
-    public long calcBytes() {
-        try {
-            return Tun2SocksJni.getRxBytes() + Tun2SocksJni.getTxBytes() + Tun2SocksJni.getUDPBytes();
-        } finally {
-            Tun2SocksJni.resetBytes();
-        }
+    public void sendIncrement() {
+        databaseHandlerSingleton.sendTrafficIncrement(calcBytes());
+    }
+
+    private long calcBytes() {
+        return statsHandler.getBytesDownloaded() + statsHandler.getBytesUploaded();
     }
 }

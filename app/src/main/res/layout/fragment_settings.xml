@@ -133,7 +133,6 @@
             android:id="@+id/persistent_notification_switch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:checked="true"
             android:hint="@string/persistent_notification_switch_hint"
             android:text="@string/persistent_notification" />
     </LinearLayout>

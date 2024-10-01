@@ -58,6 +58,7 @@ public class StaticsBroadCastService {
                     uploadSpeed = stateListener.getUploadSpeed();
                     totalDownload = totalDownload + downloadSpeed;
                     totalUpload = totalUpload + uploadSpeed;
+
                     if (trafficListener != null) {
                         trafficListener.onTrafficChanged(uploadSpeed, downloadSpeed, totalUpload, totalDownload);
                     }

@@ -117,7 +117,7 @@ public class LoginActivity extends AppCompatActivity {
                 passwordEditText.getText().toString(), true)) {
 
             SharedPreferences preferences = getApplicationContext()
-                    .getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
+                    .getSharedPreferences(Constants.API_CACHE_PREFERENCE_GROUP, Activity.MODE_PRIVATE);
             loadingProgressBar.setVisibility(View.VISIBLE);
             executorService.execute(() -> {
                 loginViewModel.login(usernameEditText.getText().toString(),

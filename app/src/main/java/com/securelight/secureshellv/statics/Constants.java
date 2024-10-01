@@ -8,14 +8,15 @@ public class Constants {
     public static final String APP_LANGUAGE_NAME = "appLanguage";
     public static final String ACCESS_TOKEN_PREF_NAME = "verify";
     public static final String REFRESH_TOKEN_PREF_NAME = "refresh";
-    public static final String APP_FILTER_MODE_NAME = "appFilterMode";
+    public static final String APP_FILTER_MODE_PREF_NAME = "appFilterMode";
+    public static final String SERVER_LOCATION_PREF_NAME = "serverLocation";
+    public static final String PERSISTENT_NOTIFICATION_PREF_NAME = "persistentNotification";
     public static final String TOKEN_INVALID_CODE_STRING = "token_not_valid";
     public static final String CREDIT_EXPIRED_CODE_STRING = "credit_expired";
     public static final String OUT_OF_TRAFFIC_CODE_STRING = "data_limit_reached";
-    public static String API_CACHE_PREFERENCES_NAME = "apiCache";
-    public static String SERVER_LOCATION_DEFAULT = "ato";
-    public static String USER_SETTINGS_PREFERENCES_NAME = "userSettings";
-    public static String SERVER_LOCATION_PREFERENCES_NAME = "serverLocation";
+    public static final String SERVER_LOCATION_DEFAULT = "ato";
+    public static final String USER_SETTINGS_PREFERENCE_GROUP = "userSettings";
+    public static final String API_CACHE_PREFERENCE_GROUP = "apiCache";
 
     public enum Protocol {
         DIRECT_SSH("direct"), TLS_SSH("tls"), DUAL_SSH("dual-hop");
@@ -48,6 +49,6 @@ public class Constants {
 
     public static final int sendTrafficPeriod = 10000;
     public static final int apiHeartbeatPeriod = 8000;
-    public static final int socksHeartbeatPeriod = 3000;
-    public static final int internetAccessPeriod = 1000;
+    public static final int socksHeartbeatPeriod = 5000;
+    public static final int internetAccessPeriod = 3000;
 }
