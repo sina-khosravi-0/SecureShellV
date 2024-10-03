@@ -34,6 +34,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -161,8 +162,15 @@ public class MainActivity extends AppCompatActivity {
                     intent.getBooleanExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, false),
                     intent.getBooleanExtra(Constants.CREDIT_EXPIRED_CODE_STRING, false));
             performDisconnectedAction();
-            System.out.println("hello");
             Log.i("MainActivity", "VPN service stopped");
+        }
+    };
+    private final BroadcastReceiver startServiceFailedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            stopVpnService();
+            performDisconnectedAction();
+            Toast.makeText(getApplicationContext(), "failed to connect to server", Toast.LENGTH_SHORT).show();
         }
     };
     private final ServiceConnection vpnServiceConnection = new ServiceConnection() {
@@ -302,6 +310,7 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.START_VPN_SERVICE_ACTION));
         lbm.registerReceiver(stopBr, new IntentFilter(SSVpnService.STOP_VPN_SERVICE_ACTION));
+        lbm.registerReceiver(startServiceFailedBr, new IntentFilter(SSVpnService.START_SERVICE_FAILED_ACTION));
         lbm.registerReceiver(exitBr, new IntentFilter(EXIT_APP_ACTION));
         lbm.registerReceiver(connectedBr, new IntentFilter(SSVpnService.CONNECTED_ACTION));
         lbm.registerReceiver(connectingBr, new IntentFilter(SSVpnService.CONNECTING_ACTION));

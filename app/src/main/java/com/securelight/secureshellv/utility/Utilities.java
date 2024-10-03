@@ -78,6 +78,9 @@ public class Utilities {
     }
 
     public static V2rayConfig getBestV2rayConfig(List<V2rayConfig> configs) {
+        if (configs.size() == 0) {
+            return null;
+        }
         double[] pings = new double[configs.size()];
         int bestConfigIndex = 0;
         double bestPing = Double.MAX_VALUE;

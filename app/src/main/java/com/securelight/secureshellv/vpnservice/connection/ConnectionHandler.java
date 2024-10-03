@@ -87,7 +87,10 @@ public class ConnectionHandler extends Thread {
     @Override
     public void run() {
         updateConnectionStateUI(ConnectionState.CONNECTING);
-        loadV2rayConfig();
+        boolean isLoaded = loadV2rayConfig();
+        if (!isLoaded) {
+           return;
+        }
         startV2rayCore();
         scheduleTasks();
     }
@@ -102,17 +105,22 @@ public class ConnectionHandler extends Thread {
         startStatsHandler();
     }
 
-    private void loadV2rayConfig() {
+    private boolean loadV2rayConfig() {
         V2rayConfig config;
         try {
             String preferredLocation = SharedPreferencesSingleton.getInstance(context).getSelectedServerLocation();
             config = Utilities.getBestV2rayConfig(DataManager.getInstance().updateV2rayConfigs(preferredLocation));
+            if (config == null) {
+                LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(SSVpnService.START_SERVICE_FAILED_ACTION));
+                return false;
+            }
         } catch (JSONException e) {
             Log.e(TAG, "couldn't load v2ray config", e);
             throw new RuntimeException(e);
         }
 //        todo: false if it's unlimited traffic
         Utilities.refillV2rayConfig("BestConfig", config.getJson(), null, true);
+        return true;
     }
 
     private void startStatsHandler() {

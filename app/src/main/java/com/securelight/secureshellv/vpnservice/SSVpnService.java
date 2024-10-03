@@ -62,6 +62,7 @@ import dev.dev7.lib.v2ray.utils.V2rayConstants;
 public class SSVpnService extends VpnService implements V2rayServicesListener, Tun2SocksListener {
     public static final String STOP_VPN_SERVICE_ACTION = "com.securelight.secureshellv.STOP";
     public static final String START_VPN_SERVICE_ACTION = "com.securelight.secureshellv.START";
+    public static final String START_SERVICE_FAILED_ACTION = "com.securelight.secureshellv.VPN_FAILED";
     public static final String CONNECTED_ACTION = "com.securelight.secureshellv.CONNECTED";
     public static final String CONNECTING_ACTION = "com.securelight.secureshellv.CONNECTING";
     public static final String DISCONNECTED_ACTION = "com.securelight.secureshellv.DISCONNECTED";
@@ -72,12 +73,12 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private final int onGoingNotificationID = 1;
     private final AtomicBoolean serviceActive = new AtomicBoolean();
     private final IBinder binder = new VpnServiceBinder();
-    private final BroadcastReceiver v2rayTrafficStatsReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            System.out.println("WHY HELOOO");
-        }
-    };
+//    private final BroadcastReceiver v2rayTrafficStatsReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            System.out.println("WHY HELOOO");
+//        }
+//    };
     private boolean serviceCreated = false;
     private V2rayCoreExecutor v2rayCoreExecutor;
     private Tun2SocksExecutor tun2SocksExecutor;
@@ -141,7 +142,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     public void onCreate() {
         if (!serviceCreated) {
             LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-            lbm.registerReceiver(v2rayTrafficStatsReceiver, new IntentFilter(V2rayConstants.V2RAY_SERVICE_STATICS_BROADCAST_INTENT));
+//            lbm.registerReceiver(v2rayTrafficStatsReceiver, new IntentFilter(V2rayConstants.V2RAY_SERVICE_STATICS_BROADCAST_INTENT));
 
             v2rayCoreExecutor = new V2rayCoreExecutor(this);
             tun2SocksExecutor = new Tun2SocksExecutor(this);
