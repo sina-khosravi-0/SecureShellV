@@ -26,7 +26,6 @@ import java.util.List;
  */
 public class ServerFragment extends Fragment {
 
-    // TODO: Rename and change types and number of parameters
     public static ServerFragment newInstance() {
         return new ServerFragment();
     }
@@ -60,7 +59,7 @@ public class ServerFragment extends Fragment {
         autoComplete.setAdapter(arrayAdapter);
 
         new Thread(() -> {
-            DataManager.getInstance().getServerSelection();
+            DataManager.getInstance().fetchServerSelection();
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> {
                     arrayAdapter.setAutoCompleteItem(autoComplete, preferencesSingleton.getSelectedServerLocationForDropDown());
@@ -78,7 +77,7 @@ public class ServerFragment extends Fragment {
 
     @Override
     public void onResume() {
-        new Thread(() -> DataManager.getInstance().getServerSelection()).start();
+        new Thread(() -> DataManager.getInstance().fetchServerSelection()).start();
         super.onResume();
     }
 }
