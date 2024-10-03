@@ -170,6 +170,7 @@ public class DataManager {
     /**
      * Gets all servers regardless of location
      */
+    // todo: change name to fetchServerSelection
     public List<TargetServer> getServerSelection() {
         List<TargetServer> targetServers = new ArrayList<>();
         if (isFetching) {

@@ -230,9 +230,12 @@ public class ResubscribeServiceActivity extends Activity {
                 }
             });
             runOnUiThread(() -> {
-                selectDurationButton.setText(monthsPopup.getMenu().getItem(0).getTitle());
-                months = 1;
-                loadingView.setVisibility(View.GONE);
+                if (monthsPopup.getMenu().size() != 0) {
+                    selectDurationButton.setText(monthsPopup.getMenu().getItem(0).getTitle());                    
+                    months = 1;
+                    loadingView.setVisibility(View.GONE);
+                }
+                
             });
         }).start();
     }

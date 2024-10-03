@@ -547,6 +547,4 @@ public class DatabaseHandlerSingleton {
         SUCCESS, AUTH_FAIL, NO_CONNECTION, TIMEOUT,
 
     }
-
-
 }

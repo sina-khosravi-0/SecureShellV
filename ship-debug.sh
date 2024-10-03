@@ -1,4 +1,4 @@
-gradle build
+#gradle build
 gradle installDebug
 adb shell am force-stop come.securelight.secureshellv
 adb shell am start -n com.securelight.secureshellv/com.securelight.secureshellv.MainActivity
