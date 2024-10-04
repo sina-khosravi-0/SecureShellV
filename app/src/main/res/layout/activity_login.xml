@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/container"
     android:layout_width="match_parent"
@@ -13,67 +12,124 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.23000002"
-        tools:layout_editor_absoluteX="32dp">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <EditText
-            android:id="@+id/username"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:autofillHints="@string/prompt_email"
-            android:hint="@string/prompt_email"
-            android:inputType="textEmailAddress"
-            android:selectAllOnFocus="true" />
+            android:layout_weight="1"
+            android:autoSizeTextType="uniform"
+            android:gravity="center"
+            android:lines="1"
+            android:text="@string/app_name"
+            android:textColor="?attr/colorOnBackground"
+            android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/password"
+        <LinearLayout
+            android:id="@+id/linearLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:autofillHints="@string/prompt_password"
-            android:hint="@string/prompt_password"
-            android:imeActionLabel="@string/action_sign_in_short"
-            android:imeOptions="actionDone"
-            android:inputType="textPassword"
-            android:selectAllOnFocus="true" />
+            android:layout_marginTop="16dp"
+            android:layout_weight="1.3"
+            android:divider="@drawable/empty_divider"
+            android:orientation="vertical"
+            android:showDividers="middle">
 
-        <Button
-            android:id="@+id/login"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:enabled="false"
-            android:text="@string/action_sign_in_short" />
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.FilledBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/username"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:autofillHints="@string/prompt_email"
+                    android:hint="@string/prompt_email"
+                    android:inputType="textEmailAddress"
+                    android:selectAllOnFocus="true" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.FilledBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/password"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:autofillHints="@string/prompt_password"
+                    android:hint="@string/prompt_password"
+                    android:imeActionLabel="@string/action_sign_in_short"
+                    android:imeOptions="actionDone"
+                    android:inputType="textPassword"
+                    android:selectAllOnFocus="true" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/login"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:enabled="false"
+                android:text="@string/action_sign_in_short" />
+
+        </LinearLayout>
     </LinearLayout>
+
+    <RadioGroup
+        android:id="@+id/app_language_radio_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal">
+
+        <com.google.android.material.radiobutton.MaterialRadioButton
+            android:id="@+id/english_radio"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableEnd="@drawable/flag_uk"
+            android:text="@string/english"
+            android:textAlignment="center" />
+
+        <com.google.android.material.radiobutton.MaterialRadioButton
+            android:id="@+id/persian_radio"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableEnd="@drawable/flag_ir"
+            android:text="@string/persian"
+            android:textAlignment="center" />
+    </RadioGroup>
 
     <LinearLayout
         android:id="@+id/loading"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#4B7E57C2"
+        android:background="?attr/colorPrimaryContainerOpaque"
         android:clickable="true"
         android:gravity="center_vertical"
         android:orientation="vertical"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:visibility="gone">
 
         <ProgressBar
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:indeterminateTint="?attr/colorOnPrimaryContainer" />
 
         <TextView
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="@string/signing_in_loading" />
+            android:text="@string/signing_in_loading"
+            android:textColor="?attr/colorOnPrimaryContainer" />
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

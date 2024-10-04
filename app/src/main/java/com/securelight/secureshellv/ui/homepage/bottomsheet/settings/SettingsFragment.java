@@ -1,4 +1,4 @@
-package com.securelight.secureshellv.ui.bottomsheet.settings;
+package com.securelight.secureshellv.ui.homepage.bottomsheet.settings;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -19,7 +19,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.statics.Constants;
-import com.securelight.secureshellv.ui.bottomsheet.settings.appfilter.InstalledPackageDialogFragment;
+import com.securelight.secureshellv.ui.homepage.bottomsheet.settings.appfilter.InstalledPackageDialogFragment;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 /**

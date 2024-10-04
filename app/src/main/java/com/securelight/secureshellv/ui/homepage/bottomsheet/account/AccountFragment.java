@@ -1,4 +1,4 @@
-package com.securelight.secureshellv.ui.bottomsheet.account;
+package com.securelight.secureshellv.ui.homepage.bottomsheet.account;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -17,7 +17,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputLayout;
-import com.securelight.secureshellv.MainActivity;
+import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.ResubscribeServiceActivity;
 import com.securelight.secureshellv.backend.DataManager;
@@ -75,7 +75,7 @@ public class AccountFragment extends Fragment {
 
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(requireActivity());
         lbm.registerReceiver(updateUserDataBroadcastReceiver,
-                new IntentFilter(MainActivity.UPDATE_USER_DATA_INTENT));
+                new IntentFilter(HomepageActivity.UPDATE_USER_DATA_INTENT));
 
         username = view.findViewById(R.id.account_username_text_field);
         endCreditDate = view.findViewById(R.id.end_credit_date_text_field);

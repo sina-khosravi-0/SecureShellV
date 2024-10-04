@@ -25,9 +25,8 @@ import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.RequestFuture;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.securelight.secureshellv.MainActivity;
+import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
@@ -148,7 +147,7 @@ public class DatabaseHandlerSingleton {
 
                     try {
                         dataManager.parseData(new JSONObject(jsonString));
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(HomepageActivity.UPDATE_USER_DATA_INTENT));
                     } catch (JSONException e) {
                         Log.d("DatabaseHandler", "error parsing userdata", e);
                     }
@@ -515,7 +514,7 @@ public class DatabaseHandlerSingleton {
     }
 
     private void broadcastSignIn() {
-        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(HomepageActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
     }
 
     private TokenResult parseTokenError(VolleyError error) {

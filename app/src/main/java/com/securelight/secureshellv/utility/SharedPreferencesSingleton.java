@@ -114,8 +114,18 @@ public class SharedPreferencesSingleton {
         userSettingsPreferences.edit().putBoolean(Constants.PERSISTENT_NOTIFICATION_PREF_NAME, isPersistent).apply();
     }
 
-    public void clearTokens() {
+    public void clearCredentials() {
         apiCachePreferences.edit().remove(Constants.ACCESS_TOKEN_PREF_NAME).apply();
         apiCachePreferences.edit().remove(Constants.REFRESH_TOKEN_PREF_NAME).apply();
+        setLoggedIn(false);
     }
+
+    public void setLoggedIn(boolean loggedIn) {
+        userSettingsPreferences.edit().putBoolean(Constants.LOGGED_IN_PREF_NAME, loggedIn).apply();
+    }
+
+    public boolean isLoggedIn() {
+        return userSettingsPreferences.getBoolean(Constants.LOGGED_IN_PREF_NAME, false);
+    }
+
 }

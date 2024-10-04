@@ -1,4 +1,4 @@
-package com.securelight.secureshellv.ui.bottomsheet.settings.appfilter;
+package com.securelight.secureshellv.ui.homepage.bottomsheet.settings.appfilter;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;

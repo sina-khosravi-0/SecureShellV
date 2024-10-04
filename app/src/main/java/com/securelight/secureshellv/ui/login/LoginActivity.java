@@ -1,15 +1,19 @@
 package com.securelight.secureshellv.ui.login;
 
 import android.app.Activity;
-import android.content.SharedPreferences;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -18,9 +22,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.databinding.ActivityLoginBinding;
+import com.securelight.secureshellv.ui.homepage.HomepageActivity;
+import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,7 +50,30 @@ public class LoginActivity extends AppCompatActivity {
         final EditText usernameEditText = binding.username;
         final EditText passwordEditText = binding.password;
         final Button loginButton = binding.login;
-        final LinearLayout loadingProgressBar = (LinearLayout) binding.loading;
+        final LinearLayout loadingProgressBar = binding.loading;
+
+        RadioGroup appLanguageRadioGroup = findViewById(R.id.app_language_radio_group);
+        SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(this);
+        switch (preferences.getAppLanguage()) {
+            case "en":
+                appLanguageRadioGroup.check(R.id.english_radio);
+                break;
+            case "fa":
+                appLanguageRadioGroup.check(R.id.persian_radio);
+                break;
+        }
+
+        appLanguageRadioGroup.setOnCheckedChangeListener(((group, checkedId) -> {
+            RadioButton radioButton = group.findViewById(checkedId);
+            switch (group.indexOfChild(radioButton)) {
+                case 0:
+                    preferences.setAppLanguage("en");
+                    break;
+                case 1:
+                    preferences.setAppLanguage("fa");
+                    break;
+            }
+        }));
 
         loginViewModel.getLoginFormState().observe(this, loginFormState -> {
             if (loginFormState == null) {
@@ -70,15 +98,14 @@ public class LoginActivity extends AppCompatActivity {
                     showLoginFailed(loginResult.getError());
                 }
                 if (loginResult.getSuccess() != null) {
-
                     updateUiWithUser(loginResult.getSuccess());
                     setResult(Activity.RESULT_OK);
+                    // set user as logged in and start homepage activity
+                    SharedPreferencesSingleton.getInstance(getApplicationContext()).setLoggedIn(true);
+                    startActivity(new Intent(getApplicationContext(), HomepageActivity.class));
                     finish();
                 }
                 loadingProgressBar.setVisibility(View.GONE);
-
-                //Complete and destroy login activity once successful
-
             }
         });
 
@@ -108,6 +135,9 @@ public class LoginActivity extends AppCompatActivity {
             return false;
         });
         loginButton.setOnClickListener(v -> {
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(passwordEditText.getWindowToken(), 0);
+            imm.hideSoftInputFromWindow(usernameEditText.getWindowToken(), 0);
             performLogin(usernameEditText, passwordEditText, loadingProgressBar);
         });
     }
@@ -116,8 +146,6 @@ public class LoginActivity extends AppCompatActivity {
         if (loginViewModel.loginDataChanged(usernameEditText.getText().toString(),
                 passwordEditText.getText().toString(), true)) {
 
-            SharedPreferences preferences = getApplicationContext()
-                    .getSharedPreferences(Constants.API_CACHE_PREFERENCE_GROUP, Activity.MODE_PRIVATE);
             loadingProgressBar.setVisibility(View.VISIBLE);
             executorService.execute(() -> {
                 loginViewModel.login(usernameEditText.getText().toString(),
@@ -127,9 +155,12 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-
+    /**
+     * this method is called when login is successful
+     * */
     private void updateUiWithUser(LoggedInUserView model) {
-        String welcome = getString(R.string.welcome) + model.getDisplayName();
+        String welcome = getString(R.string.welcome) + " " + model.getDisplayName();
+
         // TODO : initiate successful logged in experience
         Toast.makeText(getApplicationContext(), welcome, Toast.LENGTH_LONG).show();
     }

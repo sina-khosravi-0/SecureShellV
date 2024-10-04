@@ -1,4 +1,4 @@
-package com.securelight.secureshellv.ui.bottomsheet.serversettings;
+package com.securelight.secureshellv.ui.homepage.bottomsheet.serversettings;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;

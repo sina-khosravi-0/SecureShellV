@@ -1,6 +1,5 @@
-package com.securelight.secureshellv.ui.bottomsheet.more;
+package com.securelight.secureshellv.ui.homepage.bottomsheet.more;
 
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -15,7 +14,7 @@ import android.view.ViewGroup;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.securelight.secureshellv.MainActivity;
+import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
@@ -55,9 +54,11 @@ public class MoreFragment extends Fragment {
             new MaterialAlertDialogBuilder(getActivity())
                     .setTitle(R.string.confirmation).setMessage(R.string.are_you_sure_about_logging_out)
                     .setPositiveButton(R.string.yes, ((dialog, which) -> {
-                        preferences.clearTokens();
-                        LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(
-                                new Intent(MainActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+                        preferences.clearCredentials();
+                        LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(getActivity());
+                        localBroadcastManager.sendBroadcast(
+                                new Intent(HomepageActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+                        localBroadcastManager.sendBroadcast(new Intent(HomepageActivity.KILL_HOMEPAGE_ACTIVITY));
                     }))
                     .setNegativeButton(R.string.no, null)
                     .show();

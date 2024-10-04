@@ -1,11 +1,11 @@
 package com.securelight.secureshellv.statics;
 
 public class Constants {
-//    private String endPoint = "http://192.168.128.71:8000/";
-//    public static final String apiEndPoint = "https://api.weary.tech/";
-    public static final String apiAddress = "http://192.168.23.90:8000/";
+    public static final String apiEndPoint = "https://api.masterelite.shop/";
+//    public static final String apiAddress = "http://192.168.23.90:8000/";
     public static final String APP_FILTER_PACKAGES = "appFilterPackages";
     public static final String APP_LANGUAGE_NAME = "appLanguage";
+    public static final String LOGGED_IN_PREF_NAME = "loginState";
     public static final String ACCESS_TOKEN_PREF_NAME = "verify";
     public static final String REFRESH_TOKEN_PREF_NAME = "refresh";
     public static final String APP_FILTER_MODE_PREF_NAME = "appFilterMode";

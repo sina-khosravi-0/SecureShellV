@@ -7,10 +7,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.LocalSocket;
@@ -32,7 +30,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.securelight.secureshellv.MainActivity;
+import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
@@ -86,7 +84,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private NotificationCompat.Builder notificationBuilder;
     private NotificationManager notificationManager;
     private final NotificationListener notificationListener = (networkState, connectionState) -> {
-        if (!MainActivity.isAppClosing()) {
+        if (!HomepageActivity.isAppClosing()) {
             NotificationCompat.Builder builder = getNotificationBuilder();
             builder.setContentTitle(connectionState.value);
             if (networkState != null) {
@@ -315,7 +313,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
     private void setupNotification() {
         notificationBuilder = new NotificationCompat.Builder(this, notificationChannelID);
-        Intent notificationIntent = new Intent(this, MainActivity.class);
+        Intent notificationIntent = new Intent(this, HomepageActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
         initNotificationButtonIntents();
@@ -370,7 +368,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
                 this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE);
 
         Intent quitIntent = new Intent(this, NotificationBroadcastReceiver.class);
-        quitIntent.setAction(MainActivity.EXIT_APP_ACTION);
+        quitIntent.setAction(HomepageActivity.EXIT_APP_ACTION);
         quitIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         quitPendingIntent = PendingIntent.getBroadcast(
                 this, 0, quitIntent, PendingIntent.FLAG_IMMUTABLE);

@@ -19,7 +19,7 @@
     <string name="prompt_password">رمز</string>
     <string name="action_sign_in">ورود یا ثبت نام</string>
     <string name="action_sign_in_short">ورود</string>
-    <string name="welcome">! خوش آمدید</string>
+    <string name="welcome">خوش آمدید</string>
     <string name="invalid_username">نام کاربری معتبر نیست</string>
     <string name="invalid_password">رمز باید ۴ حرف یا بیشتر باشد</string>
     <string name="login_failed">ورود ناموفق بود</string>

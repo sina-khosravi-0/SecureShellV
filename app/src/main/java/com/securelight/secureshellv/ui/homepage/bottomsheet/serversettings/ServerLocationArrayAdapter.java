@@ -1,4 +1,4 @@
-package com.securelight.secureshellv.ui.bottomsheet.serversettings;
+package com.securelight.secureshellv.ui.homepage.bottomsheet.serversettings;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
