@@ -1,7 +1,7 @@
 package com.securelight.secureshellv.statics;
 
 public class Constants {
-    public static final String apiEndPoint = "https://api.masterelite.shop/";
+    public static final String apiAddress = "https://api.masterelite.shop/";
 //    public static final String apiAddress = "http://192.168.23.90:8000/";
     public static final String APP_FILTER_PACKAGES = "appFilterPackages";
     public static final String APP_LANGUAGE_NAME = "appLanguage";
