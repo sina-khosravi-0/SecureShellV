@@ -98,7 +98,6 @@ public class SharedPreferencesSingleton {
     }
 
     public String getAccessToken() {
-
         return apiCachePreferences.getString(Constants.ACCESS_TOKEN_PREF_NAME, "289734582");
     }
 

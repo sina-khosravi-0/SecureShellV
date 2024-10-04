@@ -417,9 +417,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             notificationBuilder.clearActions().addAction(notifStartAction);
             notificationBuilder.addAction(notifQuitAction);
             notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
-            if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
-                stopForeground(STOP_FOREGROUND_REMOVE);
-            }
+
             notificationListener.updateNotification(null, ConnectionState.DISCONNECTED);
             tun2SocksExecutor.stopTun2Socks();
             try {
@@ -430,6 +428,9 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             Log.e(TAG, "Fuck Null", e);
         } finally {
             LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(STOP_VPN_SERVICE_ACTION));
+            if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
+                stopForeground(STOP_FOREGROUND_REMOVE);
+            }
         }
     }
 
