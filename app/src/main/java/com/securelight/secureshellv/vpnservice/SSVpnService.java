@@ -430,6 +430,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(STOP_VPN_SERVICE_ACTION));
             if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
                 stopForeground(STOP_FOREGROUND_REMOVE);
+                notificationManager.cancelAll();
             }
         }
     }
