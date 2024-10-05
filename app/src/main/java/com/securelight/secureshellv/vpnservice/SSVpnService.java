@@ -71,12 +71,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private final int onGoingNotificationID = 1;
     private final AtomicBoolean serviceActive = new AtomicBoolean();
     private final IBinder binder = new VpnServiceBinder();
-//    private final BroadcastReceiver v2rayTrafficStatsReceiver = new BroadcastReceiver() {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            System.out.println("WHY HELOOO");
-//        }
-//    };
     private boolean serviceCreated = false;
     private V2rayCoreExecutor v2rayCoreExecutor;
     private Tun2SocksExecutor tun2SocksExecutor;
@@ -139,12 +133,10 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     @Override
     public void onCreate() {
         if (!serviceCreated) {
-            LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-//            lbm.registerReceiver(v2rayTrafficStatsReceiver, new IntentFilter(V2rayConstants.V2RAY_SERVICE_STATICS_BROADCAST_INTENT));
-
             v2rayCoreExecutor = new V2rayCoreExecutor(this);
             tun2SocksExecutor = new Tun2SocksExecutor(this);
             statsHandler = new StatsHandler(v2rayCoreExecutor);
+            serviceCreated = true;
         }
     }
 
@@ -296,7 +288,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
                     break;
             }
         } catch (PackageManager.NameNotFoundException e) {
-            Log.e(TAG, "name not found exception");
+            Log.e(TAG, "name not found exception", e);
         }
 
 
@@ -424,8 +416,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
                 vpnInterface.close();
             } catch (IOException ignored) {
             }
-        } catch (NullPointerException e) {
-            Log.e(TAG, "Fuck Null", e);
         } finally {
             LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(STOP_VPN_SERVICE_ACTION));
             if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
