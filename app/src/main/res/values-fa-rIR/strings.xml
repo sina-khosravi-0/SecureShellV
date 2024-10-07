@@ -83,9 +83,9 @@
     <string name="credit_expired">اتمام اشتراک</string>
     <string name="credit_time_has_run_out">مهلت اشتراک به اتمام رسیده است.</string>
     <string name="renew">تمدید سرویس</string>
-    <string name="amount">مقدار(تومان):</string>
+    <string name="amount">هزینه(تومان):</string>
     <string name="card_number">شماره کارت:</string>
-    <string name="renew_credit_description">جهت تمدید اشتراک، لطفا ابتدا بسته مورد نظر خود را انتخاب کنید و سپس مقدار مشخص شده را به شماره کارت زیر واریز نمایید و رسید آن را از همین صفحه ارسال کنید.</string>
+    <string name="renew_credit_description">جهت تمدید اشتراک، لطفا ابتدا بسته مورد نظر خود را انتخاب کنید و سپس مقدار مشخص شده را به شماره کارت واریز نمایید و رسید آن را از همین صفحه ارسال کنید.</string>
     <string name="select_receipt">انتخاب رسید</string>
     <string name="submit">ارسال</string>
     <plurals name="months" tools:ignore="MissingQuantity">
@@ -105,7 +105,7 @@
     <string name="please_select">لطفا انتخاب کنید</string>
     <string name="duration">مدت:</string>
     <string name="plan">بسته:</string>
-    <string name="gold_plans">پلن طلایی</string>
+    <string name="gold_plans">پلن ویژه</string>
     <string name="processing_data">در حال پردازش اطلاعات</string>
     <string name="unlimited">نامحدود</string>
     <string name="what_is_gold_plan">پلن ویژه چیست؟</string>
