@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
@@ -57,8 +58,8 @@ public class MoreFragment extends Fragment {
                         preferences.clearCredentials();
                         LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(getActivity());
                         localBroadcastManager.sendBroadcast(
-                                new Intent(HomepageActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                        localBroadcastManager.sendBroadcast(new Intent(HomepageActivity.KILL_HOMEPAGE_ACTIVITY));
+                                new Intent(Intents.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+                        localBroadcastManager.sendBroadcast(new Intent(Intents.KILL_HOMEPAGE_ACTIVITY));
                     }))
                     .setNegativeButton(R.string.no, null)
                     .show();

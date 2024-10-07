@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,6 +18,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputLayout;
+import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.ResubscribeServiceActivity;
@@ -25,6 +27,7 @@ import com.securelight.secureshellv.backend.DataManager;
 public class AccountFragment extends Fragment {
     private TextInputLayout username;
     private TextInputLayout endCreditDate;
+    private LinearLayout dataLimitBlock;
     private TextInputLayout remainingTr;
     private TextInputLayout usedTr;
     private TextInputLayout totalTr;
@@ -32,18 +35,25 @@ public class AccountFragment extends Fragment {
     private MaterialCheckBox unlimitedTraffic;
     private TextInputLayout connectedIps;
     private TextInputLayout serverMessage;
-    private MaterialButton resubscribeButton;
-
     private final BroadcastReceiver updateUserDataBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             DataManager dataManager = DataManager.getInstance();
             try {
                 username.getEditText().setText(String.valueOf(dataManager.getUserName()));
-                endCreditDate.getEditText().setText(String.valueOf(dataManager.getJalaliEndCreditDate()));
-                remainingTr.getEditText().setText(String.valueOf(dataManager.getRemainingTrafficGB()));
-                usedTr.getEditText().setText(String.valueOf(dataManager.getUsedTrafficGB()));
-                totalTr.getEditText().setText(String.valueOf(dataManager.getTotalTrafficGB()));
+                if (dataManager.isUnlimitedCreditTime()) {
+                    endCreditDate.setVisibility(View.GONE);
+                } else {
+                    endCreditDate.getEditText().setText(String.valueOf(dataManager.getJalaliEndCreditDate()));
+                }
+                if (dataManager.isUnlimitedTraffic()) {
+                    dataLimitBlock.setVisibility(View.GONE);
+                } else {
+                    dataLimitBlock.setVisibility(View.VISIBLE);
+                    remainingTr.getEditText().setText(String.valueOf(dataManager.getRemainingTrafficGB()));
+                    usedTr.getEditText().setText(String.valueOf(dataManager.getUsedTrafficGB()));
+                    totalTr.getEditText().setText(String.valueOf(dataManager.getTotalTrafficGB()));
+                }
                 unlimitedTime.setChecked(dataManager.isUnlimitedCreditTime());
                 unlimitedTraffic.setChecked(dataManager.isUnlimitedTraffic());
                 connectedIps.getEditText().setText(String.valueOf(dataManager.getConnectedIps()));
@@ -54,6 +64,7 @@ public class AccountFragment extends Fragment {
             }
         }
     };
+    private MaterialButton resubscribeButton;
 
     public static AccountFragment newInstance() {
         return new AccountFragment();
@@ -73,12 +84,13 @@ public class AccountFragment extends Fragment {
             return true;
         });
 
-        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(requireActivity());
-        lbm.registerReceiver(updateUserDataBroadcastReceiver,
-                new IntentFilter(HomepageActivity.UPDATE_USER_DATA_INTENT));
+        LocalBroadcastManager.getInstance(requireActivity())
+                .registerReceiver(updateUserDataBroadcastReceiver,
+                        new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
 
         username = view.findViewById(R.id.account_username_text_field);
         endCreditDate = view.findViewById(R.id.end_credit_date_text_field);
+        dataLimitBlock = view.findViewById(R.id.data_limit_block);
         remainingTr = view.findViewById(R.id.remaining_tr_text_field);
         usedTr = view.findViewById(R.id.used_tr_text_field);
         totalTr = view.findViewById(R.id.total_tr_text_field);
@@ -102,12 +114,10 @@ public class AccountFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-//        System.out.println("RESUME");
     }
 
     @Override
     public void onPause() {
         super.onPause();
-//        System.out.println("PAUSE");
     }
 }

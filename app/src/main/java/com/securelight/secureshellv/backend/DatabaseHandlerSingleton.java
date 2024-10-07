@@ -26,6 +26,7 @@ import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.toolbox.Volley;
+import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
@@ -38,6 +39,7 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,7 +149,7 @@ public class DatabaseHandlerSingleton {
 
                     try {
                         dataManager.parseData(new JSONObject(jsonString));
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(HomepageActivity.UPDATE_USER_DATA_INTENT));
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.UPDATE_USER_DATA_INTENT));
                     } catch (JSONException e) {
                         Log.d("DatabaseHandler", "error parsing userdata", e);
                     }
@@ -166,17 +168,21 @@ public class DatabaseHandlerSingleton {
      */
     private void handleAuthFailureError(VolleyError error) {
         // refresh tokens and fetch user data again
-        String data = new String(error.networkResponse.data);
-        System.out.println(data);
-        if (data.contains("token_not_valid")) {
+        String errorData = new String(error.networkResponse.data);
+        if (errorData.contains(Constants.TOKEN_INVALID_CODE_STRING)) {
             new Thread(() -> {
                 if (requestTokenRefresh()) {
                     fetchUserData();
                 }
             }).start();
-        } else if (data.contains("password_changed") || data.contains("user_inactive")) {
+        } else if (errorData.contains("password_changed") || errorData.contains("user_inactive")) {
             broadcastSignIn();
+        } else if (errorData.contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {
+            broadcastTrafficUsageLimit();
+        } else if (errorData.contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
+            broadcastCreditExpired();
         }
+        System.out.println(errorData);
     }
 
     public void verifyToken(String token, Response.Listener<JSONObject> responseListener,
@@ -247,10 +253,7 @@ public class DatabaseHandlerSingleton {
 
         } catch (ExecutionException e) {
             if (e.getCause() instanceof AuthFailureError) {
-                if (new String(((AuthFailureError) e.getCause()).networkResponse.data).contains("token_not_valid")) {
-                    broadcastSignIn();
-                    return false;
-                }
+                handleAuthFailureError((VolleyError) e.getCause());
             }
         }
         return true;
@@ -310,12 +313,12 @@ public class DatabaseHandlerSingleton {
                 if (networkResponse.statusCode == 403) {
                     if (new String(networkResponse.data).contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {
                         LocalBroadcastManager.getInstance(context).sendBroadcast(
-                                new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION)
+                                new Intent(Intents.STOP_VPN_SERVICE_ACTION)
                                         .putExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, true));
                     }
                     if (new String(networkResponse.data).contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
                         LocalBroadcastManager.getInstance(context).sendBroadcast(
-                                new Intent(SSVpnService.STOP_VPN_SERVICE_ACTION)
+                                new Intent(Intents.STOP_VPN_SERVICE_ACTION)
                                         .putExtra(Constants.CREDIT_EXPIRED_CODE_STRING, true));
                     }
                 }
@@ -327,7 +330,9 @@ public class DatabaseHandlerSingleton {
     public void sendHeartbeat() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = apiAddress + "api/heartbeat/";
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, null, error -> {
+            System.out.println("hello error?" + error);
+        }) {
             @Override
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
@@ -515,7 +520,24 @@ public class DatabaseHandlerSingleton {
     }
 
     private void broadcastSignIn() {
-        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(HomepageActivity.SIGN_IN_ACTION).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+        LocalBroadcastManager.getInstance(context)
+                .sendBroadcast(new Intent(Intents.SIGN_IN_ACTION)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+    }
+
+    private void broadcastCreditExpired() {
+        LocalBroadcastManager.getInstance(context)
+                .sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION)
+                        .putExtra(Constants.CREDIT_EXPIRED_CODE_STRING, true));
+    }
+
+    private void broadcastTrafficUsageLimit() {
+        LocalBroadcastManager.getInstance(context)
+                .sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION)
+                        .putExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, true));
+    }
+
+    private void broadcastIpLimit() {
     }
 
     private TokenResult parseTokenError(VolleyError error) {

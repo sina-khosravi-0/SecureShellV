@@ -58,12 +58,6 @@ import dev.dev7.lib.v2ray.interfaces.V2rayServicesListener;
 import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
 public class SSVpnService extends VpnService implements V2rayServicesListener, Tun2SocksListener {
-    public static final String STOP_VPN_SERVICE_ACTION = "com.securelight.secureshellv.STOP";
-    public static final String START_VPN_SERVICE_ACTION = "com.securelight.secureshellv.START";
-    public static final String START_SERVICE_FAILED_ACTION = "com.securelight.secureshellv.VPN_FAILED";
-    public static final String CONNECTED_ACTION = "com.securelight.secureshellv.CONNECTED";
-    public static final String CONNECTING_ACTION = "com.securelight.secureshellv.CONNECTING";
-    public static final String DISCONNECTED_ACTION = "com.securelight.secureshellv.DISCONNECTED";
     static final String vpnServiceAction = "android.net.VpnService";
     private final String TAG = this.getClass().getSimpleName();
     private final String notificationChannelID = "onGoing_001";
@@ -348,19 +342,19 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
     private void initNotificationButtonIntents() {
         Intent startIntent = new Intent(this, NotificationBroadcastReceiver.class);
-        startIntent.setAction(START_VPN_SERVICE_ACTION);
+        startIntent.setAction(Intents.START_VPN_SERVICE_ACTION);
         startIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         startPendingIntent = PendingIntent.getBroadcast(
                 this, 0, startIntent, PendingIntent.FLAG_IMMUTABLE);
 
         Intent stopIntent = new Intent(this, NotificationBroadcastReceiver.class);
-        stopIntent.setAction(STOP_VPN_SERVICE_ACTION);
+        stopIntent.setAction(Intents.STOP_VPN_SERVICE_ACTION);
         stopIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         stopPendingIntent = PendingIntent.getBroadcast(
                 this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE);
 
         Intent quitIntent = new Intent(this, NotificationBroadcastReceiver.class);
-        quitIntent.setAction(HomepageActivity.EXIT_APP_ACTION);
+        quitIntent.setAction(Intents.EXIT_APP_ACTION);
         quitIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         quitPendingIntent = PendingIntent.getBroadcast(
                 this, 0, quitIntent, PendingIntent.FLAG_IMMUTABLE);
@@ -391,42 +385,26 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         stopSelf();
     }
 
-    public void stopVpnService(boolean insufficient_traffic, boolean credit_expired) {
+    public void stopVpnService() {
         if (!this.isServiceActive()) {
             return;
         }
-        if (insufficient_traffic) {
-            LocalBroadcastManager.getInstance(this).sendBroadcast(
-                    new Intent(Intents.INSUFFICIENT_TRAFFIC_INTENT));
-        }
-        if (credit_expired) {
-            LocalBroadcastManager.getInstance(this).sendBroadcast(
-                    new Intent(Intents.CREDIT_EXPIRED_INTENT));
-        }
+        serviceActive.set(false);
+        connectionHandler.interrupt();
+        notificationBuilder.clearActions().addAction(notifStartAction);
+        notificationBuilder.addAction(notifQuitAction);
+        notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
+        notificationListener.updateNotification(null, ConnectionState.DISCONNECTED);
+        tun2SocksExecutor.stopTun2Socks();
         try {
-            serviceActive.set(false);
-            connectionHandler.interrupt();
-            notificationBuilder.clearActions().addAction(notifStartAction);
-            notificationBuilder.addAction(notifQuitAction);
-            notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
-
-            notificationListener.updateNotification(null, ConnectionState.DISCONNECTED);
-            tun2SocksExecutor.stopTun2Socks();
-            try {
-                vpnInterface.close();
-            } catch (IOException ignored) {
-            }
-        } finally {
-            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(STOP_VPN_SERVICE_ACTION));
-            if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
-                stopForeground(STOP_FOREGROUND_REMOVE);
-                notificationManager.cancelAll();
-            }
+            vpnInterface.close();
+        } catch (IOException ignored) {
         }
-    }
-
-    public void stopVpnService() {
-        stopVpnService(false, false);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION));
+        if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+            notificationManager.cancelAll();
+        }
     }
 
     public void no() {

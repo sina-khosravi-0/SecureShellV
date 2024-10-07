@@ -75,12 +75,6 @@ import java.util.concurrent.Executors;
 import dev.dev7.lib.v2ray.V2rayController;
 
 public class HomepageActivity extends AppCompatActivity {
-    public static final String EXIT_APP_ACTION = "com.securelight.secureshellv.EXIT_APP";
-    public static final String SIGN_IN_ACTION = "com.securelight.secureshellv.DO_SIGN_IN";
-    public static final String KILL_HOMEPAGE_ACTIVITY = "com.securelight.secureshellv.KILL_HOMEPAGE_ACTIVITY";
-    public static final String VPN_SERVICE_ACTION = "android.net.VpnService";
-    public static final String CONNECTION_INFO_PREF = "CONNECTION_INFO";
-    public static final String UPDATE_USER_DATA_INTENT = "UPDATE_USER_DATA";
     public static boolean isTrafficProgressBarAnimated = false;
     public static int colorPrimary;
     public static int colorOnPrimary;
@@ -115,11 +109,17 @@ public class HomepageActivity extends AppCompatActivity {
     private final BroadcastReceiver creditExpiredBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-
             new MaterialAlertDialogBuilder(HomepageActivity.this)
                     .setTitle(R.string.credit_expired)
                     .setMessage(R.string.credit_time_has_run_out)
                     .setNeutralButton(R.string.ok, null).show();
+        }
+    };
+    private final BroadcastReceiver killActivityBr = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            finish();
         }
     };
     private Intent vpnServiceIntent;
@@ -129,9 +129,7 @@ public class HomepageActivity extends AppCompatActivity {
             startVpnService();
         }
     };
-    private LinearLayout bottomSheetLayout;
     private BottomSheetBehavior<View> bottomSheetBehavior;
-    private FrameLayout startButtonFrame;
     private ImageView buttonImage;
     private TextView buttonText;
     private TextView mainConnectText;
@@ -158,16 +156,6 @@ public class HomepageActivity extends AppCompatActivity {
         }
     };
     private SSVpnService.VpnServiceBinder vpnServiceBinder;
-    private final BroadcastReceiver stopBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            vpnServiceBinder.getService().stopVpnService(
-                    intent.getBooleanExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, false),
-                    intent.getBooleanExtra(Constants.CREDIT_EXPIRED_CODE_STRING, false));
-            performDisconnectedAction();
-            Log.i("MainActivity", "VPN service stopped");
-        }
-    };
     private final BroadcastReceiver startServiceFailedBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -176,11 +164,24 @@ public class HomepageActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "failed to connect to server", Toast.LENGTH_SHORT).show();
         }
     };
-    private final BroadcastReceiver killActivityBr = new BroadcastReceiver() {
-
+    private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            finish();
+            vpnServiceBinder.getService().stopVpnService();
+            performDisconnectedAction();
+            if (intent.getBooleanExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, false)) {
+                new MaterialAlertDialogBuilder(HomepageActivity.this)
+                        .setTitle(R.string.insufficient_data)
+                        .setMessage(R.string.data_limit_reached)
+                        .setNeutralButton(R.string.ok, null).show();
+            }
+            if (intent.getBooleanExtra(Constants.CREDIT_EXPIRED_CODE_STRING, false)) {
+                new MaterialAlertDialogBuilder(HomepageActivity.this)
+                        .setTitle(R.string.credit_expired)
+                        .setMessage(R.string.credit_time_has_run_out)
+                        .setNeutralButton(R.string.ok, null).show();
+            }
+            Log.i("MainActivity", "VPN service stopped");
         }
     };
     private final ServiceConnection vpnServiceConnection = new ServiceConnection() {
@@ -220,24 +221,29 @@ public class HomepageActivity extends AppCompatActivity {
             if (vpnServiceBinder != null && vpnServiceBinder.getService().isServiceActive()) {
                 trafficProgressIndicator.setProgress(dataManager.getRemainingPercent(), true);
             }
-            long remainingDays = dataManager.getRemainingDays();
-            if (remainingDays <= 3 && remainingDays > 1) {
-                remainingTimeText.setTextColor(colorWarning);
-            } else if (remainingDays <= 1) {
-                remainingTimeText.setTextColor(colorAlert);
-                resubscribeButton.setVisibility(View.VISIBLE);
-            } else {
+            if (dataManager.isUnlimitedCreditTime()) {
                 remainingTimeText.setTextColor(colorOk);
-                resubscribeButton.setVisibility(View.GONE);
-            }
-            if (remainingDays == 0) {
-                long[] timeLeft = dataManager.getRemainingTime();
-                remainingTimeText.setText(getResources().getQuantityString(R.plurals.hours,
-                        (int) timeLeft[0], (int) timeLeft[0]) + " " + getResources().getQuantityString(R.plurals.minutes,
-                        (int) timeLeft[1], (int) timeLeft[1]) + " " + getResources().getString(R.string.left));
+                remainingTimeText.setText(R.string.unlimited_time);
             } else {
-                remainingTimeText.setText(getResources().getQuantityString(R.plurals.days_left,
-                        (int) remainingDays, (int) remainingDays));
+                long remainingDays = dataManager.getRemainingDays();
+                if (remainingDays <= 3 && remainingDays > 1) {
+                    remainingTimeText.setTextColor(colorWarning);
+                } else if (remainingDays <= 1) {
+                    remainingTimeText.setTextColor(colorAlert);
+                    resubscribeButton.setVisibility(View.VISIBLE);
+                } else {
+                    remainingTimeText.setTextColor(colorOk);
+                    resubscribeButton.setVisibility(View.GONE);
+                }
+                if (remainingDays == 0) {
+                    long[] timeLeft = dataManager.getRemainingTime();
+                    remainingTimeText.setText(getResources().getQuantityString(R.plurals.hours,
+                            (int) timeLeft[0], (int) timeLeft[0]) + " " + getResources().getQuantityString(R.plurals.minutes,
+                            (int) timeLeft[1], (int) timeLeft[1]) + " " + getResources().getString(R.string.left));
+                } else {
+                    remainingTimeText.setText(getResources().getQuantityString(R.plurals.days_left,
+                            (int) remainingDays, (int) remainingDays));
+                }
             }
         }
     };
@@ -309,7 +315,7 @@ public class HomepageActivity extends AppCompatActivity {
         DatabaseHandlerSingleton.getInstance(this);
         SharedPreferencesSingleton.getInstance(this);
         // set vpn intent
-        vpnServiceIntent = new Intent(this, SSVpnService.class).setAction(VPN_SERVICE_ACTION)
+        vpnServiceIntent = new Intent(this, SSVpnService.class).setAction(Intents.VPN_SERVICE_ACTION)
                 .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
                         Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setPackage(getPackageName());
@@ -318,23 +324,22 @@ public class HomepageActivity extends AppCompatActivity {
         initUIComponents();
 
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-        lbm.registerReceiver(startBr, new IntentFilter(SSVpnService.START_VPN_SERVICE_ACTION));
-        lbm.registerReceiver(stopBr, new IntentFilter(SSVpnService.STOP_VPN_SERVICE_ACTION));
-        lbm.registerReceiver(startServiceFailedBr, new IntentFilter(SSVpnService.START_SERVICE_FAILED_ACTION));
-        lbm.registerReceiver(exitBr, new IntentFilter(EXIT_APP_ACTION));
-        lbm.registerReceiver(connectedBr, new IntentFilter(SSVpnService.CONNECTED_ACTION));
-        lbm.registerReceiver(connectingBr, new IntentFilter(SSVpnService.CONNECTING_ACTION));
-        lbm.registerReceiver(disconnectedBr, new IntentFilter(SSVpnService.DISCONNECTED_ACTION));
-        lbm.registerReceiver(signInBr, new IntentFilter(SIGN_IN_ACTION));
-        lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(UPDATE_USER_DATA_INTENT));
+        lbm.registerReceiver(startBr, new IntentFilter(Intents.START_VPN_SERVICE_ACTION));
+        lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
+        lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
+        lbm.registerReceiver(exitBr, new IntentFilter(Intents.EXIT_APP_ACTION));
+        lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
+        lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
+        lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
+        lbm.registerReceiver(signInBr, new IntentFilter(Intents.SIGN_IN_ACTION));
+        lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
         lbm.registerReceiver(insufficientTrafficBr, new IntentFilter(Intents.INSUFFICIENT_TRAFFIC_INTENT));
         lbm.registerReceiver(creditExpiredBr, new IntentFilter(Intents.CREDIT_EXPIRED_INTENT));
-        lbm.registerReceiver(killActivityBr, new IntentFilter(KILL_HOMEPAGE_ACTIVITY));
-
+        lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY));
     }
 
     private void initUIComponents() {
-        startButtonFrame = findViewById(R.id.vpn_toggle_frame);
+        FrameLayout startButtonFrame = findViewById(R.id.vpn_toggle_frame);
         buttonImage = startButtonFrame.findViewById(R.id.vpn_toggle_img);
         buttonText = startButtonFrame.findViewById(R.id.vpn_toggle_txt);
         trafficProgressIndicator = startButtonFrame.findViewById(R.id.traffic_progress);
@@ -355,7 +360,7 @@ public class HomepageActivity extends AppCompatActivity {
 //            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
         });
 
-        bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
+        LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         CoordinatorLayout rootLayout = (CoordinatorLayout) bottomSheetLayout.getParent();
@@ -671,6 +676,19 @@ public class HomepageActivity extends AppCompatActivity {
         if (vpnServiceBinder != null) {
             unbindService(vpnServiceConnection);
         }
+        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
+        lbm.unregisterReceiver(startBr);
+        lbm.unregisterReceiver(stopBr);
+        lbm.unregisterReceiver(startServiceFailedBr);
+        lbm.unregisterReceiver(exitBr);
+        lbm.unregisterReceiver(connectedBr);
+        lbm.unregisterReceiver(connectingBr);
+        lbm.unregisterReceiver(disconnectedBr);
+        lbm.unregisterReceiver(signInBr);
+        lbm.unregisterReceiver(updateUserDataUIBr);
+        lbm.unregisterReceiver(insufficientTrafficBr);
+        lbm.unregisterReceiver(creditExpiredBr);
+        lbm.unregisterReceiver(killActivityBr);
     }
 
     @Override
@@ -712,7 +730,13 @@ public class HomepageActivity extends AppCompatActivity {
         buttonImage.setVisibility(View.VISIBLE);
         buttonText.setVisibility(View.GONE);
         mainConnectText.setText(R.string.connecting);
-        trafficProgressIndicator.setIndeterminate(true);
+        new Thread(() -> {
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+            }
+            runOnUiThread(() -> trafficProgressIndicator.setIndeterminate(true));
+        }).start();
 
         AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
         vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
@@ -788,5 +812,6 @@ public class HomepageActivity extends AppCompatActivity {
         getTheme().resolveAttribute(R.attr.alert, typedValue, true);
         colorAlert = typedValue.data;
     }
+
 
 }

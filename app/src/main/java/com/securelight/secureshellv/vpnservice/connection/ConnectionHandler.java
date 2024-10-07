@@ -17,6 +17,7 @@ import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.SendTrafficTimeTask;
 import com.securelight.secureshellv.backend.V2rayConfig;
 import com.securelight.secureshellv.statics.Constants;
+import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.utility.Utilities;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
@@ -111,7 +112,7 @@ public class ConnectionHandler extends Thread {
             String preferredLocation = SharedPreferencesSingleton.getInstance(context).getSelectedServerLocation();
             config = Utilities.getBestV2rayConfig(DataManager.getInstance().updateV2rayConfigs(preferredLocation));
             if (config == null) {
-                LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(SSVpnService.START_SERVICE_FAILED_ACTION));
+                LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.START_SERVICE_FAILED_ACTION));
                 return false;
             }
         } catch (JSONException e) {
@@ -394,15 +395,15 @@ public class ConnectionHandler extends Thread {
             switch (state) {
                 case CONNECTED:
                     LocalBroadcastManager.getInstance(context).sendBroadcast(
-                            new Intent(SSVpnService.CONNECTED_ACTION));
+                            new Intent(Intents.CONNECTED_ACTION));
                     break;
                 case CONNECTING:
                     LocalBroadcastManager.getInstance(context).sendBroadcast(
-                            new Intent(SSVpnService.CONNECTING_ACTION));
+                            new Intent(Intents.CONNECTING_ACTION));
                     break;
                 case DISCONNECTED:
                     LocalBroadcastManager.getInstance(context).sendBroadcast(
-                            new Intent(SSVpnService.DISCONNECTED_ACTION));
+                            new Intent(Intents.DISCONNECTED_ACTION));
                     networkState = NetworkState.NONE;
                     break;
             }
