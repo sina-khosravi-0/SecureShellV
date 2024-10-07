@@ -108,10 +108,10 @@
     <string name="gold_plans">پلن طلایی</string>
     <string name="processing_data">در حال پردازش اطلاعات</string>
     <string name="unlimited">نامحدود</string>
-    <string name="what_is_gold_plan">پلن طلایی چیست؟</string>
-    <string name="gold_plan_alert_info">در پلن های طلایی، برنامه برای اتصال، از سرور های داخل ایران استفاده میکند که باعث بهبود کیفیت اتصال میشود. پلن های طلایی به دلیل قیمت بالای سرور های ایرانی و حجمی بودن آنها، گران تر هستند.</string>
-    <string name="silver_plans">پلن نقره ای</string>
-    <string name="silver_plan_alert">لطفا توجه داشته باشید که پلن های نقره ای روی همراه اول و ایرانسل احتمال اتصال بیشتری دارند. درصورتی که اپراتور اینترنت شما بجز این دو است احتمال متصل نشدن وجود دارد و توصیه میشود از پلن طلایی استفاده کنید.</string>
+    <string name="what_is_gold_plan">پلن ویژه چیست؟</string>
+    <string name="gold_plan_alert_info">پلن ویژه ضمانت کیفیت و سرعت اتصال دارد. \nبسته های پلن حجمی هستند.</string>
+    <string name="silver_plans">پلن عادی</string>
+    <string name="silver_plan_alert">لطفا توجه داشته باشید که در پلن عادی به دلیل اتصال مستقیم به سرور وی پی ان، امکان اختلال بیشتر است.(بدون تانل)</string>
     <string name="submit_successful">ارسال موفق بود</string>
     <string name="please_select_a_plan_first">لطفا ابتدا یک بسته را انتخاب کنید</string>
     <string name="already_requested_renewal">شما قبلا درخواست داده اید. لطفا صبر کنید.</string>
