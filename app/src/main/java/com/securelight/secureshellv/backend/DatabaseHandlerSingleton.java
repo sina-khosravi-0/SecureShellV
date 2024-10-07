@@ -439,6 +439,7 @@ public class DatabaseHandlerSingleton {
             for (int i = 0; i < response.length(); i++) {
                 durations.add(response.getJSONObject(i).getInt("months"));
             }
+            System.out.println(durations);
             return durations;
 //            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
         } catch (InterruptedException | ExecutionException | TimeoutException ex) {
