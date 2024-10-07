@@ -23,6 +23,8 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
+import android.os.Parcel;
+import android.os.RemoteException; 
 import android.util.Log;
 import android.widget.Toast;
 
@@ -180,8 +182,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
             PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                     "SecureShellV::VpnService");
-            wakeLock.acquire(20 * 60 * 1000L /*10 minutes*/);
-            serviceActive.set(true);
 
             setupNotification();
             // set notification action buttons
@@ -372,11 +372,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     }
 
     @Override
-    public void onRevoke() {
-        stopVpnService();
-    }
-
-    @Override
     public void onLowMemory() {
         System.out.println("LOW MEMORY");
     }
@@ -417,6 +412,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             } catch (IOException ignored) {
             }
         } finally {
+            // make sure UI is updated accordingly
             LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(STOP_VPN_SERVICE_ACTION));
             if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
                 stopForeground(STOP_FOREGROUND_REMOVE);
@@ -503,6 +499,25 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         public void stopService() {
             finalizeAndStop();
         }
+
+        @Override
+        public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
+        throws RemoteException
+        {
+            // see Implementation of android.net.VpnService.Callback.onTransact()
+            if ( code == IBinder.LAST_CALL_TRANSACTION )
+            {
+                onRevoke();
+                return true;
+            }
+            return super.onTransact( code, data, reply, flags );
+        }
+    
+        private void onRevoke()
+        {
+            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(STOP_VPN_SERVICE_ACTION));
+        }
+
 
         public ConnectionState getConnectionState() {
             try {

@@ -161,6 +161,7 @@ public class HomepageActivity extends AppCompatActivity {
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            System.out.println("WTF is going on man?");
             vpnServiceBinder.getService().stopVpnService(
                     intent.getBooleanExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, false),
                     intent.getBooleanExtra(Constants.CREDIT_EXPIRED_CODE_STRING, false));
@@ -600,7 +601,7 @@ public class HomepageActivity extends AppCompatActivity {
     }
 
     /**
-     * REMOVE.
+     * TODO: REMOVE.
      * only for debugging.
      */
     public void onDestroyClicked(View view) {
@@ -789,4 +790,27 @@ public class HomepageActivity extends AppCompatActivity {
         colorAlert = typedValue.data;
     }
 
+//    public void captureLogcat() {
+//        try {
+//            Process process = Runtime.getRuntime().exec("logcat -d");
+//            BufferedReader bufferedReader = new BufferedReader(
+//                    new InputStreamReader(process.getInputStream()));
+//            StringBuilder log = new StringBuilder();
+//            String line;
+//            while ((line = bufferedReader.readLine()) != null) {
+//                log.append(line).append("\n");
+//            }
+//            saveLogToFile(log.toString());
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//    
+//    private void saveLogToFile(String log) {
+//        try (FileOutputStream fos = openFileOutput("app_logcat.txt", Context.MODE_PRIVATE)) {
+//            fos.write(log.getBytes());
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 }
