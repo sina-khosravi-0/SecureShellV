@@ -496,7 +496,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
         private void onRevoke()
         {
-            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(STOP_VPN_SERVICE_ACTION));
+            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION));
         }
 
 
