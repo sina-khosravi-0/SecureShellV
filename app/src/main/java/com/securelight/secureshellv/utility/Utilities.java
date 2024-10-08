@@ -87,10 +87,9 @@ public class Utilities {
         List<Thread> threads = new ArrayList<>();
         for (int i = 0; i < configs.size(); i++) {
             int index  = i;
-            V2rayConfig config = configs.get(i);
             Thread thread = new Thread(() -> {
                 try {
-                    pings[index] = config.calculateBestPing();
+                    pings[index] = configs.get(index).calculateBestPing();
                 } catch (JSONException ignore) {
                 }
             });

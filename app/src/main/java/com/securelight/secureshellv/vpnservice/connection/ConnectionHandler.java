@@ -119,7 +119,7 @@ public class ConnectionHandler extends Thread {
             Log.e(TAG, "couldn't load v2ray config", e);
             throw new RuntimeException(e);
         }
-//        todo: false if it's unlimited traffic
+
         Utilities.refillV2rayConfig("BestConfig", config.getJson(), null, true);
         return true;
     }

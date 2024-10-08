@@ -19,9 +19,8 @@ public class V2rayConfig {
     }
 
     public double calculateBestPing() throws JSONException {
-
         JSONObject alteredJson = new JSONObject(json.toString());
-        double bestPing = -1;
+        double bestPing = Double.MAX_VALUE;
         for (int i = 0; i < ips.length(); i++) {
             String ip = ips.getJSONObject(i).getString("ip");
             alteredJson.getJSONArray("outbounds")
@@ -31,13 +30,12 @@ public class V2rayConfig {
                     .getJSONObject(0)
                     .put("address", ip);
             double ping = V2rayController.getV2rayServerDelay(alteredJson.toString());
-            if (ping > bestPing) {
+            if (ping < bestPing) {
                 bestPing = ping;
                 this.bestIpIndex = i;
                 json = alteredJson;
             }
         }
-
         return bestPing;
     }
 

@@ -366,11 +366,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     }
 
     @Override
-    public void onRevoke() {
-        stopVpnService();
-    }
-
-    @Override
     public void onLowMemory() {
         System.out.println("LOW MEMORY");
     }
@@ -389,21 +384,24 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         if (!this.isServiceActive()) {
             return;
         }
-        serviceActive.set(false);
-        connectionHandler.interrupt();
-        notificationBuilder.clearActions().addAction(notifStartAction);
-        notificationBuilder.addAction(notifQuitAction);
-        notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
-        notificationListener.updateNotification(null, ConnectionState.DISCONNECTED);
-        tun2SocksExecutor.stopTun2Socks();
         try {
-            vpnInterface.close();
-        } catch (IOException ignored) {
-        }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION));
-        if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
-            stopForeground(STOP_FOREGROUND_REMOVE);
-            notificationManager.cancelAll();
+            serviceActive.set(false);
+            connectionHandler.interrupt();
+            notificationBuilder.clearActions().addAction(notifStartAction);
+            notificationBuilder.addAction(notifQuitAction);
+            notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
+            notificationListener.updateNotification(null, ConnectionState.DISCONNECTED);
+            tun2SocksExecutor.stopTun2Socks();
+            try {
+                vpnInterface.close();
+            } catch (IOException ignored) {
+            }
+            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION));
+            if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
+                stopForeground(STOP_FOREGROUND_REMOVE);
+                notificationManager.cancelAll();
+            }
+        } catch (NullPointerException ignored) {
         }
     }
 
