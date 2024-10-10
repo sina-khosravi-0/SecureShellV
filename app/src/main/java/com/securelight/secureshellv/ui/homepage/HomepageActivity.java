@@ -123,6 +123,16 @@ public class HomepageActivity extends AppCompatActivity {
             finish();
         }
     };
+    private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            new MaterialAlertDialogBuilder(HomepageActivity.this)
+                    .setTitle(R.string.fail_to_connect_to_server)
+                    .setMessage(R.string.couldn_t_send_stats_to_server)
+                    .setNeutralButton(R.string.ok, null).show();
+            stopVpnService();
+        }
+    };
     private Intent vpnServiceIntent;
     private final BroadcastReceiver startBr = new BroadcastReceiver() {
         @Override
@@ -339,7 +349,8 @@ public class HomepageActivity extends AppCompatActivity {
         lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
         lbm.registerReceiver(insufficientTrafficBr, new IntentFilter(Intents.INSUFFICIENT_TRAFFIC_INTENT));
         lbm.registerReceiver(creditExpiredBr, new IntentFilter(Intents.CREDIT_EXPIRED_INTENT));
-        lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY));
+        lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
+        lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
         Runtime.getRuntime().addShutdownHook(
                 new Thread(() -> {
                     lbm.unregisterReceiver(startBr);
@@ -354,6 +365,7 @@ public class HomepageActivity extends AppCompatActivity {
                     lbm.unregisterReceiver(insufficientTrafficBr);
                     lbm.unregisterReceiver(creditExpiredBr);
                     lbm.unregisterReceiver(killActivityBr);
+                    lbm.unregisterReceiver(sendStatsFailBr);
                 }));
     }
 
@@ -650,17 +662,18 @@ public class HomepageActivity extends AppCompatActivity {
                 Thread.sleep(200);
             } catch (InterruptedException ignored) {
             }
-            runOnUiThread(() -> trafficProgressIndicator.setIndeterminate(true));
-        }).start();
-
-        AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
-        vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
-            @Override
-            public void onAnimationEnd(Drawable drawable) {
+            runOnUiThread(() -> {
+                AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
+                vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
+                    @Override
+                    public void onAnimationEnd(Drawable drawable) {
+                        vectorDrawable.start();
+                    }
+                });
                 vectorDrawable.start();
-            }
-        });
-        vectorDrawable.start();
+            });
+        }).start();
+        trafficProgressIndicator.setIndeterminate(true);
         isTrafficProgressBarAnimated = true;
     }
 

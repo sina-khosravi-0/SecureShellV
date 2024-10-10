@@ -136,4 +136,6 @@
     <string name="confirmation">Confirmation</string>
     <string name="no">No</string>
     <string name="yes">Yes</string>
+    <string name="fail_to_connect_to_server">Fail To Connect To Server</string>
+    <string name="couldn_t_send_stats_to_server">Couldn\'t send stats to server.</string>
 </resources>

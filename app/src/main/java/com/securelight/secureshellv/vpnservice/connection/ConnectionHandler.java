@@ -152,7 +152,7 @@ public class ConnectionHandler extends Thread {
     }
 
     private void scheduleSendTrafficTask() {
-        sendTrafficTask = new SendTrafficTimeTask(statsHandler, DatabaseHandlerSingleton.getInstance(context));
+        sendTrafficTask = new SendTrafficTimeTask(statsHandler, DatabaseHandlerSingleton.getInstance(context), context);
         sendTrafficTimer.schedule(sendTrafficTask, 0, Constants.sendTrafficPeriod);
     }
 
