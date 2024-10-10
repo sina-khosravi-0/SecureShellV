@@ -52,8 +52,8 @@ public class ConnectionHandler extends Thread {
     private final StatsHandler statsHandler;
     private boolean tasksScheduled = false;
     private boolean statsStarted = false;
-    private Timer sendTrafficTimer;
-    private Timer apiHeartbeatTimer;
+    private final Timer sendTrafficTimer;
+    private final Timer apiHeartbeatTimer;
     private SendTrafficTimeTask sendTrafficTask;
     private APIHeartbeatTask apiHeartbeatTask;
     private SocksHeartbeatTask socksHeartbeatTask;

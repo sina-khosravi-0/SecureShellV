@@ -34,14 +34,12 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
-import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
 import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionHandler;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
-import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 
 import java.io.File;
@@ -49,7 +47,6 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -60,7 +57,6 @@ import dev.dev7.lib.v2ray.interfaces.V2rayServicesListener;
 import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
 public class SSVpnService extends VpnService implements V2rayServicesListener, Tun2SocksListener {
-    static final String vpnServiceAction = "android.net.VpnService";
     private final String TAG = this.getClass().getSimpleName();
     private final String notificationChannelID = "onGoing_001";
     private final Set<String> packages = new HashSet<>();
@@ -124,7 +120,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private PendingIntent startPendingIntent;
     private PendingIntent stopPendingIntent;
     private PendingIntent quitPendingIntent;
-    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
 
     @Override
     public void onCreate() {
@@ -200,8 +195,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
         vpnInterface = establishVPNInterface();
         serviceActive.set(true);
-//        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(vpnServiceAction)
-//                .putExtra("vpn_interface", vpnInterface));
 
         connectionHandler = new ConnectionHandler(vpnInterface,
                 this,
@@ -406,16 +399,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         }
     }
 
-    public void no() {
-        connectionHandler.no();
-//        NotificationCompat.BigTextStyle bigText = new NotificationCompat.BigTextStyle();
-//        bigText.bigText("notificationsTextDetailMode"); //detail mode is the "expanded" notification
-//        bigText.setBigContentTitle("notificationTitleDetailMode");
-//        bigText.setSummaryText("usuallyAppVersionOrNumberOfNotifications"); //small text under notification
-//        mBuilder.setStyle(bigText);
-//        mNotificationManager.notify(1, mBuilder.build());
-    }
-
     public NotificationManager getNotificationManager() {
         return notificationManager;
     }
@@ -428,20 +411,8 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         return onGoingNotificationID;
     }
 
-    public String getNotificationChannelID() {
-        return notificationChannelID;
-    }
-
     public boolean isServiceActive() {
         return serviceActive.get();
-    }
-
-    public Constants.Protocol getConnectionMethod() {
-        return connectionMethod;
-    }
-
-    public void setConnectionMethod(Constants.Protocol connectionMethod) {
-        this.connectionMethod = connectionMethod;
     }
 
     //    V2rayServicesListener implementations
@@ -483,19 +454,16 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
         @Override
         public boolean onTransact(int code, Parcel data, Parcel reply, int flags)
-        throws RemoteException
-        {
+                throws RemoteException {
             // see Implementation of android.net.VpnService.Callback.onTransact()
-            if ( code == IBinder.LAST_CALL_TRANSACTION )
-            {
+            if (code == IBinder.LAST_CALL_TRANSACTION) {
                 onRevoke();
                 return true;
             }
-            return super.onTransact( code, data, reply, flags );
+            return super.onTransact(code, data, reply, flags);
         }
 
-        private void onRevoke()
-        {
+        private void onRevoke() {
             LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION));
         }
 
@@ -506,14 +474,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             } catch (NullPointerException e) {
                 return ConnectionState.DISCONNECTED;
             }
-
-        }
-
-        public NetworkState getNetworkState() {
-            return Objects.requireNonNullElse(connectionHandler.getNetworkState(),
-                    NetworkState.NONE);
         }
     }
-
 }
 
