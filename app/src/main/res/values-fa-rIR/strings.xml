@@ -120,4 +120,6 @@
     <string name="confirmation">تاییدیه</string>
     <string name="no">خیر</string>
     <string name="yes">بله</string>
+    <string name="fail_to_connect_to_server">اتصال به سرور قطع شد</string>
+    <string name="couldn_t_send_stats_to_server">مشکل در ارسال داده به سرور</string>
 </resources>

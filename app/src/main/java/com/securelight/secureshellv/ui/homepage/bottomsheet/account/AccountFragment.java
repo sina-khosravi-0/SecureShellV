@@ -24,6 +24,8 @@ import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.ResubscribeServiceActivity;
 import com.securelight.secureshellv.backend.DataManager;
 
+import java.util.Objects;
+
 public class AccountFragment extends Fragment {
     private TextInputLayout username;
     private TextInputLayout endCreditDate;
@@ -40,30 +42,31 @@ public class AccountFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             DataManager dataManager = DataManager.getInstance();
             try {
-                username.getEditText().setText(String.valueOf(dataManager.getUserName()));
+                Objects.requireNonNull(username.getEditText()).setText(String.valueOf(dataManager.getUserName()));
                 if (dataManager.isUnlimitedCreditTime()) {
                     endCreditDate.setVisibility(View.GONE);
                 } else {
-                    endCreditDate.getEditText().setText(String.valueOf(dataManager.getJalaliEndCreditDate()));
+                    Objects.requireNonNull(endCreditDate.getEditText()).setText(String.valueOf(dataManager.getJalaliEndCreditDate()));
                 }
                 if (dataManager.isUnlimitedTraffic()) {
                     dataLimitBlock.setVisibility(View.GONE);
                 } else {
                     dataLimitBlock.setVisibility(View.VISIBLE);
-                    remainingTr.getEditText().setText(String.valueOf(dataManager.getRemainingTrafficGB()));
-                    usedTr.getEditText().setText(String.valueOf(dataManager.getUsedTrafficGB()));
-                    totalTr.getEditText().setText(String.valueOf(dataManager.getTotalTrafficGB()));
+                    Objects.requireNonNull(remainingTr.getEditText()).setText(String.valueOf(dataManager.getRemainingTrafficGB()));
+                    Objects.requireNonNull(usedTr.getEditText()).setText(String.valueOf(dataManager.getUsedTrafficGB()));
+                    Objects.requireNonNull(totalTr.getEditText()).setText(String.valueOf(dataManager.getTotalTrafficGB()));
                 }
                 unlimitedTime.setChecked(dataManager.isUnlimitedCreditTime());
                 unlimitedTraffic.setChecked(dataManager.isUnlimitedTraffic());
-                connectedIps.getEditText().setText(String.valueOf(dataManager.getConnectedIps()));
-                serverMessage.getEditText().setText(String.valueOf(dataManager.getMessage()));
+                Objects.requireNonNull(connectedIps.getEditText()).setText(String.valueOf(dataManager.getConnectedIps()));
+                Objects.requireNonNull(serverMessage.getEditText()).setText(String.valueOf(dataManager.getMessage()));
                 serverMessage.setHelperText(String.valueOf(dataManager.getMessageDateTimeString()));
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     };
+    /** @noinspection FieldCanBeLocal*/
     private MaterialButton resubscribeButton;
 
     public static AccountFragment newInstance() {

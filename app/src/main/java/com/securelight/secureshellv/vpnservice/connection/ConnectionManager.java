@@ -50,10 +50,10 @@ public class ConnectionManager {
     private final Timer socksTimer;
     private final V2rayCoreExecutor v2rayCoreExecutor;
     private final StatsHandler statsHandler;
+    private final Timer sendTrafficTimer;
+    private final Timer apiHeartbeatTimer;
     private boolean tasksScheduled = false;
     private boolean statsStarted = false;
-    private Timer sendTrafficTimer;
-    private Timer apiHeartbeatTimer;
     private SendTrafficTimeTask sendTrafficTask;
     private APIHeartbeatTask apiHeartbeatTask;
     private SocksHeartbeatTask socksHeartbeatTask;
@@ -66,7 +66,7 @@ public class ConnectionManager {
     //    private boolean running;
     private boolean interrupted = false;
 
-    public ConnectionHandler(ParcelFileDescriptor vpnInterface, Context context,
+    public ConnectionManager(ParcelFileDescriptor vpnInterface, Context context,
                              NotificationListener notificationListener,
                              V2rayCoreExecutor v2rayCoreExecutor,
                              StatsHandler statsHandler) {
@@ -88,7 +88,7 @@ public class ConnectionManager {
         updateConnectionStateUI(ConnectionState.CONNECTING);
         boolean isLoaded = loadV2rayConfig();
         if (!isLoaded) {
-           return;
+            return;
         }
         startV2rayCore();
         scheduleTasks();
@@ -101,7 +101,6 @@ public class ConnectionManager {
             v2rayCoreExecutor.stopCore(false);
         }
         v2rayCoreExecutor.startCore(V2rayConfigs.currentConfig);
-        startStatsHandler();
     }
 
     private boolean loadV2rayConfig() {
@@ -120,6 +119,12 @@ public class ConnectionManager {
 
         Utilities.refillV2rayConfig("BestConfig", config.getJson(), null, true);
         return true;
+    }
+
+    private void restartCore() {
+        stopStatsHandler();
+        loadV2rayConfig();
+        startV2rayCore();
     }
 
     private void startStatsHandler() {
@@ -150,7 +155,7 @@ public class ConnectionManager {
     }
 
     private void scheduleSendTrafficTask() {
-        sendTrafficTask = new SendTrafficTimeTask(statsHandler, DatabaseHandlerSingleton.getInstance(context));
+        sendTrafficTask = new SendTrafficTimeTask(statsHandler, DatabaseHandlerSingleton.getInstance(context), context);
         sendTrafficTimer.schedule(sendTrafficTask, 0, Constants.sendTrafficPeriod);
     }
 
@@ -168,18 +173,21 @@ public class ConnectionManager {
                 new SocksStateListener() {
                     @Override
                     public void onSocksDown() {
-                        stopStatsHandler();
                         switch (Utilities.checkAndGetAccessType(networkInterfaceAvailable.get())) {
                             case RESTRICTED:
                             case WORLD_WIDE:
-                                loadV2rayConfig();
-                                startV2rayCore();
+                                restartCore();
                                 break;
                             case NONE:
                             case UNAVAILABLE:
                             case NO_ACCESS:
                                 break;
                         }
+                    }
+
+                    @Override
+                    public void onSocksUp() {
+                        startStatsHandler();
                     }
                 }, v2rayCoreExecutor);
         socksTimer.schedule(socksHeartbeatTask, 0, Constants.socksHeartbeatPeriod);
@@ -339,13 +347,6 @@ public class ConnectionManager {
 //                        DataManager.getInstance().getBestServer().getPingPort(),
 //                        Constants.Protocol.DUAL_SSH));
 //    }
-    @Override
-    public void interrupt() {
-        interrupted = true;
-        cancelTasks();
-        stopStatsHandler();
-        v2rayCoreExecutor.stopCore(false);
-    }
 
 //    @Override
 //    public void interrupt() {
@@ -448,7 +449,6 @@ public class ConnectionManager {
             internetAccessTask.wakeup();
         }
         scheduleTasks();
-        startStatsHandler();
     }
 
     public void onNetworkLost() {

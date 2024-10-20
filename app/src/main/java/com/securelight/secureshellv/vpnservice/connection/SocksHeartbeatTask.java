@@ -34,6 +34,7 @@ public class SocksHeartbeatTask extends TimerTask {
         if (v2rayCoreExecutor.getCurrentServerDelay() >= 1) {
             counter = 0;
             connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTED);
+            socksStateListener.onSocksUp();
             Log.d(TAG, "SOCKS UP");
         } else {
             Log.d(TAG, "SOCKS DOWN");

@@ -1,7 +1,10 @@
 package com.securelight.secureshellv.utility;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -11,12 +14,13 @@ import java.io.Writer;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 
 public class CustomExceptionHandler implements UncaughtExceptionHandler {
 
-    private UncaughtExceptionHandler defaultUEH;
-    private String localPath;
-    private Context context;
+    private final UncaughtExceptionHandler defaultUEH;
+    private final String localPath;
+    private final Context context;
 
     public CustomExceptionHandler(String localPath, Context context) {
         this.localPath = localPath;
@@ -26,7 +30,7 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler {
         this.context = context.getApplicationContext();
     }
 
-    public void uncaughtException(Thread t, Throwable e) {
+    public void uncaughtException(@NonNull Thread t, Throwable e) {
 
         //Write a printable representation of this Throwable
         //The StringWriter gives the lock used to synchronize access to this writer.
@@ -56,7 +60,7 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler {
                 System.out.println(dir.mkdirs());
             }
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat(
+            @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat(
                     "yyyy_MM_dd_HH_mm_ss");
             Date date = new Date();
             String filename = dateFormat.format(date) + ".STACKTRACE";
@@ -68,7 +72,7 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler {
             fileWriter.flush();
             fileWriter.close();
         } catch (Exception e) {
-            Log.e("ExceptionHandler", e.getMessage());
+            Log.e("ExceptionHandler", Objects.requireNonNull(e.getMessage()));
         }
     }
 

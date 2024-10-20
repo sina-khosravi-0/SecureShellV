@@ -4,20 +4,17 @@ import android.Manifest;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Animatable2;
 import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.Drawable;
-import android.net.TrafficStats;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -69,8 +66,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Objects;
 
 import dev.dev7.lib.v2ray.V2rayController;
 
@@ -78,7 +74,13 @@ public class HomepageActivity extends AppCompatActivity {
     public static boolean isTrafficProgressBarAnimated = false;
     public static int colorPrimary;
     public static int colorOnPrimary;
+    /**
+     * @noinspection unused
+     */
     public static int colorSecondary;
+    /**
+     * @noinspection unused
+     */
     public static int colorOnSecondary;
     public static int colorSecondaryContainer;
     public static int colorOnSecondaryContainer;
@@ -89,7 +91,6 @@ public class HomepageActivity extends AppCompatActivity {
     public static int colorOk;
     public static int colorWarning;
     public static int colorAlert;
-    static long bytes = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileRxBytes();
     private static boolean appClosing = false;
     private final BroadcastReceiver signInBr = new BroadcastReceiver() {
         @Override
@@ -122,6 +123,16 @@ public class HomepageActivity extends AppCompatActivity {
             finish();
         }
     };
+    private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            new MaterialAlertDialogBuilder(HomepageActivity.this)
+                    .setTitle(R.string.fail_to_connect_to_server)
+                    .setMessage(R.string.couldn_t_send_stats_to_server)
+                    .setNeutralButton(R.string.ok, null).show();
+            stopVpnService();
+        }
+    };
     private Intent vpnServiceIntent;
     private final BroadcastReceiver startBr = new BroadcastReceiver() {
         @Override
@@ -129,6 +140,7 @@ public class HomepageActivity extends AppCompatActivity {
             startVpnService();
         }
     };
+    private CoordinatorLayout rootLayout;
     private BottomSheetBehavior<View> bottomSheetBehavior;
     private ImageView buttonImage;
     private TextView buttonText;
@@ -252,11 +264,13 @@ public class HomepageActivity extends AppCompatActivity {
         return appClosing;
     }
 
+    /**
+     * @noinspection CommentedOutCode
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         V2rayController.init(this, R.drawable.ic_launcher_foreground, "V2ray Android");
-
 //        SpeedTestSocket speedTestSocket = new SpeedTestSocket();
 //
 //// add a listener to wait for speedtest completion and progress
@@ -335,10 +349,28 @@ public class HomepageActivity extends AppCompatActivity {
         lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
         lbm.registerReceiver(insufficientTrafficBr, new IntentFilter(Intents.INSUFFICIENT_TRAFFIC_INTENT));
         lbm.registerReceiver(creditExpiredBr, new IntentFilter(Intents.CREDIT_EXPIRED_INTENT));
-        lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY));
+        lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
+        lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(() -> {
+                    lbm.unregisterReceiver(startBr);
+                    lbm.unregisterReceiver(stopBr);
+                    lbm.unregisterReceiver(startServiceFailedBr);
+                    lbm.unregisterReceiver(exitBr);
+                    lbm.unregisterReceiver(connectedBr);
+                    lbm.unregisterReceiver(connectingBr);
+                    lbm.unregisterReceiver(disconnectedBr);
+                    lbm.unregisterReceiver(signInBr);
+                    lbm.unregisterReceiver(updateUserDataUIBr);
+                    lbm.unregisterReceiver(insufficientTrafficBr);
+                    lbm.unregisterReceiver(creditExpiredBr);
+                    lbm.unregisterReceiver(killActivityBr);
+                    lbm.unregisterReceiver(sendStatsFailBr);
+                }));
     }
 
     private void initUIComponents() {
+        rootLayout = findViewById(R.id.root);
         FrameLayout startButtonFrame = findViewById(R.id.vpn_toggle_frame);
         buttonImage = startButtonFrame.findViewById(R.id.vpn_toggle_img);
         buttonText = startButtonFrame.findViewById(R.id.vpn_toggle_txt);
@@ -363,7 +395,6 @@ public class HomepageActivity extends AppCompatActivity {
         LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-        CoordinatorLayout rootLayout = (CoordinatorLayout) bottomSheetLayout.getParent();
 
         int NUMBER_OF_TABS = 5;
         TabLayout tabLayout = findViewById(R.id.bottom_sheet_menu_tab_layout);
@@ -382,14 +413,13 @@ public class HomepageActivity extends AppCompatActivity {
                     if (tab.getPosition() == 0) {
                         updateUserData();
                     }
-                    if (tab.getPosition() == 3) {
-                    }
 
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                     bottomSheetBehavior.setDraggable(true);
                 }
 
                 View view = tab.getCustomView();
+                assert view != null;
                 TextView textView = view.findViewById(R.id.text_view);
                 ImageView imageView = view.findViewById(R.id.image_view);
                 ViewPropertyAnimator textAnimator = textView.animate();
@@ -415,6 +445,7 @@ public class HomepageActivity extends AppCompatActivity {
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {
                 View view = tab.getCustomView();
+                assert view != null;
                 TextView textView = view.findViewById(R.id.text_view);
                 ImageView imageView = view.findViewById(R.id.image_view);
 
@@ -478,7 +509,7 @@ public class HomepageActivity extends AppCompatActivity {
                     break;
             }
         }).attach();
-        tabLayout.getTabAt(2).select();
+        Objects.requireNonNull(tabLayout.getTabAt(2)).select();
 
         viewPager.setUserInputEnabled(false);
         viewPager.setOffscreenPageLimit(NUMBER_OF_TABS);
@@ -486,20 +517,13 @@ public class HomepageActivity extends AppCompatActivity {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    tabLayout.getTabAt(2).select();
+                    Objects.requireNonNull(tabLayout.getTabAt(2)).select();
                 }
             }
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
 
-//                float progress = Math.abs(slideOffset); // Get the absolute slide offset value
-//
-//                // Calculate the interpolated progress for the animation
-//                float interpolatedProgress = Math.min(0.5f, progress);
-//                System.out.println(slideOffset);
-//                // Apply the interpolated progress to the views
-//                constraintLayout.setScaleX(interpolatedProgress + 1);
             }
         });
     }
@@ -541,31 +565,9 @@ public class HomepageActivity extends AppCompatActivity {
         }
     }
 
-    public void onCheckClicked(View view) {
-        SharedPreferences preferences = getSharedPreferences(Constants.API_CACHE_PREFERENCE_GROUP, Activity.MODE_PRIVATE);
-        String accessToken = preferences.getString("access", "");
-        String refreshToken = preferences.getString("refresh", "");
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-//        executorService.execute(() -> {
-//            System.out.println(DatabaseHandlerSingleton.getInstance(this).
-//                    verifyToken(accessToken));
-//        });
-//        System.out.println(DatabaseHandlerSingleton.verifyToken(refreshToken));
-
-//        Toast myToast = Toast.makeText(this, "connected", Toast.LENGTH_SHORT);
-//        System.out.println(getPreferences(MODE_PRIVATE).getString("ConnectProtocol", "N/A"));
-//        String urlString = "https://checkip.amazonaws.com/";
-//        URL url = new URL(urlString);
-//        new Thread(() -> {
-//            try (BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()))) {
-//                myToast.setText(br.readLine());
-//                myToast.show();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }).start();
-    }
-
+    /**
+     * @noinspection deprecation
+     */
     public void startVpnService() {
         Intent intent = VpnService.prepare(HomepageActivity.this);
         if (intent != null) {
@@ -580,20 +582,6 @@ public class HomepageActivity extends AppCompatActivity {
         if (result == RESULT_OK) {
             startService(vpnServiceIntent);
         }
-//        new Thread(() -> {
-//            while (true) {
-//                try {
-//                    Thread.sleep(500);
-//                } catch (InterruptedException e) {
-//                    throw new RuntimeException(e);
-//                }
-//                runOnUiThread(() -> {
-//                    buttonText.setText(String.format("%.3f\n%.3f", getBytes() / (1000000000d),
-//                            (TrafficStats.getMobileRxBytes() + TrafficStats.getMobileRxBytes() - bytes) / 1000000000d));
-//                });
-//                System.out.println(getBytes());
-//            }
-//        }).start();
         super.onActivityResult(request, result, data);
     }
 
@@ -604,62 +592,13 @@ public class HomepageActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * TODO: REMOVE.
-     * only for debugging.
-     */
-    public void onDestroyClicked(View view) {
-        exitApp();
-    }
-
     // TODO: implement app exit sequence
     private void exitApp() {
         appClosing = true;
         vpnServiceBinder.stopService();
         finishAndRemoveTask();
-//        finishActivity(0);
-//        finish();
-//        finishAffinity();
         Process.sendSignal(Process.myPid(), Process.SIGNAL_KILL);
         System.exit(0);
-    }
-
-    public void onYesClicked(View view) {
-//        SharedPreferences preferences = this.getSharedPreferences(Constants.API_CACHE_PREFERENCES_NAME, Activity.MODE_PRIVATE);
-//        String accessToken = preferences.getString("refresh", "N/A");
-//        DatabaseHandlerSingleton instance = DatabaseHandlerSingleton.getInstance(this);
-//
-//        String url = "http://192.168.19.71:8000/api/token/verify/";
-//        JSONObject object;
-//        object = new JSONObject();
-//        try {
-//            object.put("token", accessToken);
-//        } catch (JSONException ignored) {
-//        }
-//        JsonObjectRequest jsonArrayRequest = new JsonObjectRequest
-//                (Request.Method.POST, url, object, aResponse -> {
-//                    System.out.println(aResponse.toString());
-//                }, error -> {
-//                    System.out.println("error.toString() = " + error.toString());
-//                }) {
-//            @Override
-//            public Map<String, String> getHeaders() {
-//                Map<String, String> params = new HashMap<>();
-//                params.put("Authorization", "Bearer " + accessToken);
-//                return params;
-//            }
-//        };
-//        instance.addToRequestQueue(jsonArrayRequest);
-//        startActivity(new Intent(getApplicationContext(), LoginActivity.class));
-
-    }
-
-    public void onNoClicked(View view) {
-        vpnServiceBinder.getService().no();
-//        ExecutorService executorService = Executors.newSingleThreadExecutor();
-//        executorService.execute(DatabaseHandlerSingleton::fetchUserData);
-//        executorService.execute(DatabaseHandlerSingleton::doRefreshToken);
-//        DatabaseHandlerSingleton.doRefreshToken();
     }
 
     //todo: implement on low memory
@@ -676,19 +615,6 @@ public class HomepageActivity extends AppCompatActivity {
         if (vpnServiceBinder != null) {
             unbindService(vpnServiceConnection);
         }
-        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-        lbm.unregisterReceiver(startBr);
-        lbm.unregisterReceiver(stopBr);
-        lbm.unregisterReceiver(startServiceFailedBr);
-        lbm.unregisterReceiver(exitBr);
-        lbm.unregisterReceiver(connectedBr);
-        lbm.unregisterReceiver(connectingBr);
-        lbm.unregisterReceiver(disconnectedBr);
-        lbm.unregisterReceiver(signInBr);
-        lbm.unregisterReceiver(updateUserDataUIBr);
-        lbm.unregisterReceiver(insufficientTrafficBr);
-        lbm.unregisterReceiver(creditExpiredBr);
-        lbm.unregisterReceiver(killActivityBr);
     }
 
     @Override
@@ -706,6 +632,7 @@ public class HomepageActivity extends AppCompatActivity {
         mainConnectText.setText(R.string.connected);
         trafficProgressIndicator.setIndeterminate(false);
         Animation animation = new Animation() {
+            @SuppressLint({"DefaultLocale", "SetTextI18n"})
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
                 super.applyTransformation(interpolatedTime, t);
@@ -733,19 +660,20 @@ public class HomepageActivity extends AppCompatActivity {
         new Thread(() -> {
             try {
                 Thread.sleep(200);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignored) {
             }
-            runOnUiThread(() -> trafficProgressIndicator.setIndeterminate(true));
-        }).start();
-
-        AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
-        vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
-            @Override
-            public void onAnimationEnd(Drawable drawable) {
+            runOnUiThread(() -> {
+                AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
+                vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
+                    @Override
+                    public void onAnimationEnd(Drawable drawable) {
+                        vectorDrawable.start();
+                    }
+                });
                 vectorDrawable.start();
-            }
-        });
-        vectorDrawable.start();
+            });
+        }).start();
+        trafficProgressIndicator.setIndeterminate(true);
         isTrafficProgressBarAnimated = true;
     }
 
@@ -757,6 +685,7 @@ public class HomepageActivity extends AppCompatActivity {
         trafficProgressIndicator.setIndeterminate(false);
 
         Animation animation = new Animation() {
+            @SuppressLint({"DefaultLocale", "SetTextI18n"})
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
                 super.applyTransformation(interpolatedTime, t);
@@ -812,28 +741,4 @@ public class HomepageActivity extends AppCompatActivity {
         getTheme().resolveAttribute(R.attr.alert, typedValue, true);
         colorAlert = typedValue.data;
     }
-
-//    public void captureLogcat() {
-//        try {
-//            Process process = Runtime.getRuntime().exec("logcat -d");
-//            BufferedReader bufferedReader = new BufferedReader(
-//                    new InputStreamReader(process.getInputStream()));
-//            StringBuilder log = new StringBuilder();
-//            String line;
-//            while ((line = bufferedReader.readLine()) != null) {
-//                log.append(line).append("\n");
-//            }
-//            saveLogToFile(log.toString());
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
-//
-//    private void saveLogToFile(String log) {
-//        try (FileOutputStream fos = openFileOutput("app_logcat.txt", Context.MODE_PRIVATE)) {
-//            fos.write(log.getBytes());
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
 }

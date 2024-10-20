@@ -1,7 +1,9 @@
 package com.securelight.secureshellv.ui.homepage.bottomsheet.serversettings;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -42,6 +44,7 @@ public class ServerFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_server, container, false);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         SharedPreferencesSingleton preferencesSingleton = SharedPreferencesSingleton.getInstance(getActivity());
@@ -50,11 +53,8 @@ public class ServerFragment extends Fragment {
         items.add("ato");
         items.addAll(DataManager.getInstance().getAvailableServerLocations());
 
-        if (getActivity() == null) {
-            return;
-        }
         ServerLocationArrayAdapter arrayAdapter = new ServerLocationArrayAdapter(
-                getActivity(), R.layout.dropdown_item, items);
+                requireActivity(), R.layout.dropdown_item, items);
         MaterialAutoCompleteTextView autoComplete = textInputLayout.findViewById(R.id.server_location_auto_complete);
         autoComplete.setAdapter(arrayAdapter);
 

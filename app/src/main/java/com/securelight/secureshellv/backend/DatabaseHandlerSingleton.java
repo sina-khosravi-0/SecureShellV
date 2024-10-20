@@ -259,9 +259,9 @@ public class DatabaseHandlerSingleton {
         return true;
     }
 
-    public void sendTrafficIncrement(long trafficBytes) {
+    public boolean sendTrafficIncrement(long trafficBytes) {
         if (trafficBytes == 0) {
-            return;
+            return true;
         }
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = apiAddress + "api/account/increment_datausage/";
@@ -271,8 +271,9 @@ public class DatabaseHandlerSingleton {
             object.put("used_data_b", trafficBytes);
         } catch (JSONException ignored) {
         }
+        RequestFuture<JSONObject> future = RequestFuture.newFuture();
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.PUT, url, object,
-                null, null) {
+                future, future) {
             @Override
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
@@ -282,6 +283,12 @@ public class DatabaseHandlerSingleton {
         };
 
         instance.addToRequestQueue(jsonObjectRequest);
+        try {
+            future.get(10, TimeUnit.SECONDS);
+            return true;
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            return false;
+        }
     }
 
     public String retrievePassword(int serverId, boolean reset) {
@@ -330,9 +337,7 @@ public class DatabaseHandlerSingleton {
     public void sendHeartbeat() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = apiAddress + "api/heartbeat/";
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, null, error -> {
-            System.out.println("hello error?" + error);
-        }) {
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
             @Override
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
