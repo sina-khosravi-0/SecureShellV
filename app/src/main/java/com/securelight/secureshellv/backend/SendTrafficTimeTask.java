@@ -37,6 +37,8 @@ public class SendTrafficTimeTask extends TimerTask {
             counter ++;
             if (counter >= 3) {
                 LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.SEND_STATS_FAIL_INTENT));
+            } else {
+                counter = 0;
             }
         }
     }

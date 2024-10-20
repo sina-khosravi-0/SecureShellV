@@ -50,10 +50,10 @@ public class ConnectionHandler extends Thread {
     private final Timer socksTimer;
     private final V2rayCoreExecutor v2rayCoreExecutor;
     private final StatsHandler statsHandler;
-    private boolean tasksScheduled = false;
-    private boolean statsStarted = false;
     private final Timer sendTrafficTimer;
     private final Timer apiHeartbeatTimer;
+    private boolean tasksScheduled = false;
+    private boolean statsStarted = false;
     private SendTrafficTimeTask sendTrafficTask;
     private APIHeartbeatTask apiHeartbeatTask;
     private SocksHeartbeatTask socksHeartbeatTask;
@@ -90,7 +90,7 @@ public class ConnectionHandler extends Thread {
         updateConnectionStateUI(ConnectionState.CONNECTING);
         boolean isLoaded = loadV2rayConfig();
         if (!isLoaded) {
-           return;
+            return;
         }
         startV2rayCore();
         scheduleTasks();
@@ -103,7 +103,6 @@ public class ConnectionHandler extends Thread {
             v2rayCoreExecutor.stopCore(false);
         }
         v2rayCoreExecutor.startCore(V2rayConfigs.currentConfig);
-        startStatsHandler();
     }
 
     private boolean loadV2rayConfig() {
@@ -122,6 +121,12 @@ public class ConnectionHandler extends Thread {
 
         Utilities.refillV2rayConfig("BestConfig", config.getJson(), null, true);
         return true;
+    }
+
+    private void restartCore() {
+        stopStatsHandler();
+        loadV2rayConfig();
+        startV2rayCore();
     }
 
     private void startStatsHandler() {
@@ -170,18 +175,21 @@ public class ConnectionHandler extends Thread {
                 new SocksStateListener() {
                     @Override
                     public void onSocksDown() {
-                        stopStatsHandler();
                         switch (Utilities.checkAndGetAccessType(networkInterfaceAvailable.get())) {
                             case RESTRICTED:
                             case WORLD_WIDE:
-                                loadV2rayConfig();
-                                startV2rayCore();
+                                restartCore();
                                 break;
                             case NONE:
                             case UNAVAILABLE:
                             case NO_ACCESS:
                                 break;
                         }
+                    }
+
+                    @Override
+                    public void onSocksUp() {
+                        startStatsHandler();
                     }
                 }, v2rayCoreExecutor);
         socksTimer.schedule(socksHeartbeatTask, 0, Constants.socksHeartbeatPeriod);
@@ -450,7 +458,6 @@ public class ConnectionHandler extends Thread {
             internetAccessTask.wakeup();
         }
         scheduleTasks();
-        startStatsHandler();
     }
 
     public void onNetworkLost() {
