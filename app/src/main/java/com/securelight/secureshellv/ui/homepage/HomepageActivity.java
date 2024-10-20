@@ -52,6 +52,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.BottomSheetTabAdapter;
 import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.ResubscribeServiceActivity;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.statics.Constants;
@@ -389,7 +390,7 @@ public class HomepageActivity extends AppCompatActivity {
         });
 
         resubscribeButton.setOnClickListener(v -> {
-//            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
+            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
         });
 
         LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);

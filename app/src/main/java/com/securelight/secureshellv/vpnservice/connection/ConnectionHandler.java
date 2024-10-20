@@ -20,7 +20,6 @@ import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.utility.Utilities;
-import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.StatsHandler;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import com.securelight.secureshellv.vpnservice.listeners.SocksStateListener;
@@ -63,7 +62,7 @@ public class ConnectionHandler extends Thread {
 //    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
     private ConnectionState connectionState = ConnectionState.DISCONNECTED;
     private NetworkState networkState = NetworkState.NO_ACCESS;
-    //    private boolean running;
+    private boolean running;
     private boolean interrupted = false;
 
     public ConnectionHandler(ParcelFileDescriptor vpnInterface, Context context,
@@ -92,17 +91,31 @@ public class ConnectionHandler extends Thread {
         if (!isLoaded) {
             return;
         }
-        startV2rayCore();
-        scheduleTasks();
+        startV2ray();
     }
 
-    private void startV2rayCore() {
+    private void startV2ray() {
         boolean restart = v2rayCoreExecutor.getCoreState() == V2rayConstants.CORE_STATES.IDLE ||
                 v2rayCoreExecutor.getCoreState() == V2rayConstants.CORE_STATES.RUNNING;
         if (restart) {
             v2rayCoreExecutor.stopCore(false);
         }
         v2rayCoreExecutor.startCore(V2rayConfigs.currentConfig);
+        stopStatsHandler();
+        startStatsHandler();
+        cancelTasks();
+        scheduleTasks();
+    }
+
+    private void stopV2ray() {
+        v2rayCoreExecutor.stopCore(false);
+        stopStatsHandler();
+        cancelTasks();
+    }
+
+    private void restartV2ray() {
+        loadV2rayConfig();
+        startV2ray();
     }
 
     private boolean loadV2rayConfig() {
@@ -121,12 +134,6 @@ public class ConnectionHandler extends Thread {
 
         Utilities.refillV2rayConfig("BestConfig", config.getJson(), null, true);
         return true;
-    }
-
-    private void restartCore() {
-        stopStatsHandler();
-        loadV2rayConfig();
-        startV2rayCore();
     }
 
     private void startStatsHandler() {
@@ -178,18 +185,19 @@ public class ConnectionHandler extends Thread {
                         switch (Utilities.checkAndGetAccessType(networkInterfaceAvailable.get())) {
                             case RESTRICTED:
                             case WORLD_WIDE:
-                                restartCore();
+                                restartV2ray();
                                 break;
                             case NONE:
                             case UNAVAILABLE:
                             case NO_ACCESS:
+                                stopV2ray();
                                 break;
                         }
                     }
 
                     @Override
                     public void onSocksUp() {
-                        startStatsHandler();
+                        startV2ray();
                     }
                 }, v2rayCoreExecutor);
         socksTimer.schedule(socksHeartbeatTask, 0, Constants.socksHeartbeatPeriod);
@@ -349,13 +357,7 @@ public class ConnectionHandler extends Thread {
 //                        DataManager.getInstance().getBestServer().getPingPort(),
 //                        Constants.Protocol.DUAL_SSH));
 //    }
-    @Override
-    public void interrupt() {
-        interrupted = true;
-        cancelTasks();
-        stopStatsHandler();
-        v2rayCoreExecutor.stopCore(false);
-    }
+
 
 //    @Override
 //    public void interrupt() {
@@ -464,6 +466,7 @@ public class ConnectionHandler extends Thread {
         internetAccessTask.setNetworkIFaceAvailable(false);
         stopStatsHandler();
         cancelTasks();
+        restartV2ray();
         updateConnectionStateUI(ConnectionState.CONNECTING);
         tasksScheduled = false;
     }

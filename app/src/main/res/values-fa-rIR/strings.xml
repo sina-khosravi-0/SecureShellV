@@ -85,7 +85,7 @@
     <string name="renew">تمدید سرویس</string>
     <string name="amount">هزینه(تومان):</string>
     <string name="card_number">شماره کارت:</string>
-    <string name="renew_credit_description">جهت تمدید اشتراک، لطفا ابتدا بسته مورد نظر خود را انتخاب کنید و سپس مقدار مشخص شده را به شماره کارت واریز نمایید و رسید آن را از همین صفحه ارسال کنید.</string>
+    <string name="renew_credit_description">جهت تمدید اشتراک، لطفا ابتدا بسته مورد نظر خود را انتخاب کنید و هزینه آن را به شماره کارت واریز نمایید و سپس عکس رسید آن را از همین صفحه ارسال کنید.</string>
     <string name="select_receipt">انتخاب رسید</string>
     <string name="submit">ارسال</string>
     <plurals name="months" tools:ignore="MissingQuantity">
