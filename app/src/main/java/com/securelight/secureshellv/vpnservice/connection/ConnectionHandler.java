@@ -37,7 +37,7 @@ import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
 import dev.dev7.lib.v2ray.utils.V2rayConfigs;
 import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
-public class ConnectionHandler extends Thread {
+public class ConnectionManager {
 
     private final String TAG = getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
@@ -70,7 +70,6 @@ public class ConnectionHandler extends Thread {
                              NotificationListener notificationListener,
                              V2rayCoreExecutor v2rayCoreExecutor,
                              StatsHandler statsHandler) {
-        setName("conn-handler");
         this.vpnInterface = vpnInterface;
         this.context = context.getApplicationContext();
         this.notificationListener = notificationListener;
@@ -85,7 +84,6 @@ public class ConnectionHandler extends Thread {
         apiHeartbeatTimer = new Timer();
     }
 
-    @Override
     public void run() {
         updateConnectionStateUI(ConnectionState.CONNECTING);
         boolean isLoaded = loadV2rayConfig();
