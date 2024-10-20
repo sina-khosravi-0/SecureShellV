@@ -20,6 +20,7 @@ import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.utility.Utilities;
+import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.StatsHandler;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import com.securelight.secureshellv.vpnservice.listeners.SocksStateListener;
@@ -36,7 +37,7 @@ import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
 import dev.dev7.lib.v2ray.utils.V2rayConfigs;
 import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
-public class ConnectionHandler extends Thread {
+public class ConnectionManager {
 
     private final String TAG = getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
@@ -62,14 +63,13 @@ public class ConnectionHandler extends Thread {
 //    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
     private ConnectionState connectionState = ConnectionState.DISCONNECTED;
     private NetworkState networkState = NetworkState.NO_ACCESS;
-    private boolean running;
+    //    private boolean running;
     private boolean interrupted = false;
 
-    public ConnectionHandler(ParcelFileDescriptor vpnInterface, Context context,
+    public ConnectionManager(ParcelFileDescriptor vpnInterface, Context context,
                              NotificationListener notificationListener,
                              V2rayCoreExecutor v2rayCoreExecutor,
                              StatsHandler statsHandler) {
-        setName("conn-handler");
         this.vpnInterface = vpnInterface;
         this.context = context.getApplicationContext();
         this.notificationListener = notificationListener;
@@ -84,7 +84,6 @@ public class ConnectionHandler extends Thread {
         apiHeartbeatTimer = new Timer();
     }
 
-    @Override
     public void run() {
         updateConnectionStateUI(ConnectionState.CONNECTING);
         boolean isLoaded = loadV2rayConfig();
@@ -190,7 +189,6 @@ public class ConnectionHandler extends Thread {
                             case NONE:
                             case UNAVAILABLE:
                             case NO_ACCESS:
-                                stopV2ray();
                                 break;
                         }
                     }
@@ -466,7 +464,6 @@ public class ConnectionHandler extends Thread {
         internetAccessTask.setNetworkIFaceAvailable(false);
         stopStatsHandler();
         cancelTasks();
-        restartV2ray();
         updateConnectionStateUI(ConnectionState.CONNECTING);
         tasksScheduled = false;
     }

@@ -38,7 +38,7 @@ import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
 import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
-import com.securelight.secureshellv.vpnservice.connection.ConnectionHandler;
+import com.securelight.secureshellv.vpnservice.connection.ConnectionManager;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 
@@ -84,32 +84,32 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             builder.setSilent(true);
         }
     };
-    private ConnectionHandler connectionHandler;
+    private ConnectionManager connectionManager;
     private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
         @Override
         public void onAvailable(@NonNull Network network) {
             super.onAvailable(network);
-            if (connectionHandler != null) {
-                connectionHandler.setNetworkIFaceAvailable(true);
-                connectionHandler.onNetworkAvailable();
+            if (connectionManager != null) {
+                connectionManager.setNetworkIFaceAvailable(true);
+                connectionManager.onNetworkAvailable();
             }
         }
 
         @Override
         public void onLost(@NonNull Network network) {
             super.onLost(network);
-            if (connectionHandler != null) {
-                connectionHandler.setNetworkIFaceAvailable(false);
-                connectionHandler.onNetworkLost();
+            if (connectionManager != null) {
+                connectionManager.setNetworkIFaceAvailable(false);
+                connectionManager.onNetworkLost();
             }
         }
 
         @Override
         public void onUnavailable() {
             super.onUnavailable();
-            if (connectionHandler != null) {
-                connectionHandler.setNetworkIFaceAvailable(false);
-                connectionHandler.onNetworkLost();
+            if (connectionManager != null) {
+                connectionManager.setNetworkIFaceAvailable(false);
+                connectionManager.onNetworkLost();
             }
         }
     };
@@ -196,13 +196,13 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         vpnInterface = establishVPNInterface();
         serviceActive.set(true);
 
-        connectionHandler = new ConnectionHandler(vpnInterface,
+        connectionManager = new ConnnectionManager(vpnInterface,
                 this,
                 notificationListener,
                 v2rayCoreExecutor,
                 statsHandler);
 
-        connectionHandler.start();
+        connectionManager.start();
 
         tun2SocksExecutor.run(this,
                 VpnSettings.socksPort,
@@ -380,7 +380,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         }
         try {
             serviceActive.set(false);
-            connectionHandler.interrupt();
+            connectionManager.interrupt();
             notificationBuilder.clearActions().addAction(notifStartAction);
             notificationBuilder.addAction(notifQuitAction);
             notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
@@ -399,7 +399,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         }
     }
 
-    public NotificationManager getNotificationManager() {
+   public NotificationManager getNotificationManager() {
         return notificationManager;
     }
 
@@ -470,11 +470,11 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
         public ConnectionState getConnectionState() {
             try {
-                return connectionHandler.getConnectionState();
+                return connectionManager.getConnectionState();
             } catch (NullPointerException e) {
                 return ConnectionState.DISCONNECTED;
             }
-        }
+       }
     }
 }
 
