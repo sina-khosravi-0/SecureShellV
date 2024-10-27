@@ -33,17 +33,17 @@ public class Tun2SocksExecutor {
         return tun2SocksProcess != null;
     }
 
-    public void run(final Context context, final int socksPort, final int localDnsPort) {
+    public void run(final Context context, final int socksPort, final int localDnsPort, final int mtu) {
         ArrayList<String> tun2SocksCommands = new ArrayList<>(Arrays.asList(new File(context.getApplicationInfo().nativeLibraryDir, "libtun2socks.so").getAbsolutePath(),
                 "--netif-ipaddr", "26.26.26.2",
                 "--netif-netmask", "255.255.255.252",
                 "--socks-server-addr", "127.0.0.1:" + socksPort,
-                "--tunmtu", "1500",
+                "--tunmtu", String.valueOf(mtu),
                 "--sock-path", "sock_path",
                 "--enable-udprelay",
                 "--loglevel", "debug"));
-            tun2SocksCommands.add("--dnsgw");
-            tun2SocksCommands.add("127.0.0.1:" + localDnsPort);
+        tun2SocksCommands.add("--dnsgw");
+        tun2SocksCommands.add("127.0.0.1:" + localDnsPort);
         tun2SocksListener.OnTun2SocksHasMassage(V2rayConstants.CORE_STATES.IDLE, "T2S Start Commands => " + tun2SocksCommands);
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(tun2SocksCommands);
@@ -77,6 +77,10 @@ public class Tun2SocksExecutor {
             tun2SocksProcess.destroy();
             tun2SocksProcess = null;
         }
+    }
+
+    public void run(final Context context, final int socksPort, final int localDnsPort) {
+        run(context, socksPort, localDnsPort, 1500);
     }
 
 }

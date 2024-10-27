@@ -36,6 +36,7 @@ public class StatsHandler {
         if (!running) {
             return;
         }
+        running = false;
         scheduler.shutdown();
         resetStats();
     }

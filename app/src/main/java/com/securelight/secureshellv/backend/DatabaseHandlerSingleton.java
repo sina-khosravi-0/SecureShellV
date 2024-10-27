@@ -182,7 +182,6 @@ public class DatabaseHandlerSingleton {
         } else if (errorData.contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
             broadcastCreditExpired();
         }
-        System.out.println(errorData);
     }
 
     public void verifyToken(String token, Response.Listener<JSONObject> responseListener,
@@ -449,7 +448,6 @@ public class DatabaseHandlerSingleton {
             for (int i = 0; i < response.length(); i++) {
                 durations.add(response.getJSONObject(i).getInt("months"));
             }
-            System.out.println(durations);
             return durations;
 //            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
         } catch (InterruptedException | ExecutionException | TimeoutException ex) {

@@ -169,7 +169,6 @@ public class V2rayCoreExecutor {
         try {
             if (v2rayServicesListener != null) {
                 int serverDelay = (int) v2RayPoint.measureDelay("");
-                System.out.println(serverDelay);
                 Intent serverDelayBroadcast = new Intent(V2RAY_SERVICE_CURRENT_CONFIG_DELAY_BROADCAST_INTENT);
                 serverDelayBroadcast.setPackage(v2rayServicesListener.getService().getPackageName());
                 serverDelayBroadcast.putExtra(V2RAY_SERVICE_CURRENT_CONFIG_DELAY_BROADCAST_EXTRA, serverDelay);

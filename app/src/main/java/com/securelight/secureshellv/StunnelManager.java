@@ -27,7 +27,7 @@ public class StunnelManager {
                     .apply()
                     .start();
         } catch (IOException e) {
-            throw new RuntimeException("couldn't start stunnel");
+            throw new RuntimeException("couldn't run stunnel");
         }
     }
 

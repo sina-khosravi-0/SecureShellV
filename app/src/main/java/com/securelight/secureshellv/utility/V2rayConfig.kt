@@ -451,7 +451,7 @@ data class V2rayConfig(
         return GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
-            .registerTypeAdapter( // custom serialiser is needed here since JSON by default parse number as Double, core will fail to start
+            .registerTypeAdapter( // custom serialiser is needed here since JSON by default parse number as Double, core will fail to run
                 object : TypeToken<Double>() {}.type,
                 JsonSerializer { src: Double?, _: Type?, _: JsonSerializationContext? ->
                     JsonPrimitive(

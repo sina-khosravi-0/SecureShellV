@@ -306,7 +306,7 @@ public class HomepageActivity extends AppCompatActivity {
 //            } catch (InterruptedException ignored) {
 //            }
 //            speedTestSocket.startDownload("http://speedtest.etisalat.af:8080/speedtest/random2000x2000.JPG", 500);
-//        }).start();
+//        }).run();
 //
 
         checkAndAddPermissions();
@@ -390,7 +390,8 @@ public class HomepageActivity extends AppCompatActivity {
         });
 
         resubscribeButton.setOnClickListener(v -> {
-            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
+//            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
+            vpnServiceBinder.getService().stopTun2socks();
         });
 
         LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);

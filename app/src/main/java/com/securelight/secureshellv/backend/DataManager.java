@@ -367,7 +367,6 @@ public class DataManager {
     public long[] getRemainingTime() {
         long[] time = new long[2];
         time[0] = LocalDateTime.now().until(endCreditDate, ChronoUnit.HOURS);
-        System.out.println(LocalDateTime.now().until(endCreditDate, ChronoUnit.SECONDS) - (time[0] * 60));
         time[1] = LocalDateTime.now().until(endCreditDate, ChronoUnit.MINUTES) - (time[0] * 60);
         return time;
     }

@@ -56,7 +56,6 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler {
             File dir = new File(context.getObbDir(),
                     "Crash_Reports");
             if (!dir.exists()) {
-                System.out.println("MADE???");
                 System.out.println(dir.mkdirs());
             }
 

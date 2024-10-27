@@ -32,7 +32,7 @@ public class Tun2SocksManager {
             return;
         }
         thread = new Thread(() -> {
-            // check 20 times if tun2socks can start
+            // check 20 times if tun2socks can run
             for (int i = 0; i < 20; i++) {
                 if (Tun2SocksJni.canStart() == 0) {
                     try {

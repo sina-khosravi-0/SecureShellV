@@ -20,8 +20,8 @@ import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.utility.Utilities;
-import com.securelight.secureshellv.vpnservice.SSVpnService;
 import com.securelight.secureshellv.vpnservice.StatsHandler;
+import com.securelight.secureshellv.vpnservice.listeners.InterfaceErrorListener;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import com.securelight.secureshellv.vpnservice.listeners.SocksStateListener;
 
@@ -37,7 +37,7 @@ import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
 import dev.dev7.lib.v2ray.utils.V2rayConfigs;
 import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
-public class ConnectionManager {
+public class ConnectionManager extends Thread {
 
     private final String TAG = getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
@@ -46,14 +46,13 @@ public class ConnectionManager {
     private final ReentrantLock lock;
     private final Condition internetAvailableCondition;
     private final NotificationListener notificationListener;
+    private final InterfaceErrorListener interfaceErrorListener;
     private final Timer internetTimer;
     private final Timer socksTimer;
     private final V2rayCoreExecutor v2rayCoreExecutor;
     private final StatsHandler statsHandler;
     private final Timer sendTrafficTimer;
     private final Timer apiHeartbeatTimer;
-    private boolean tasksScheduled = false;
-    private boolean statsStarted = false;
     private SendTrafficTimeTask sendTrafficTask;
     private APIHeartbeatTask apiHeartbeatTask;
     private SocksHeartbeatTask socksHeartbeatTask;
@@ -63,16 +62,20 @@ public class ConnectionManager {
 //    private Constants.Protocol connectionMethod = Constants.Protocol.DIRECT_SSH;
     private ConnectionState connectionState = ConnectionState.DISCONNECTED;
     private NetworkState networkState = NetworkState.NO_ACCESS;
-    //    private boolean running;
-    private boolean interrupted = false;
+    private boolean running;
+    private boolean tasksScheduled = false;
+    private boolean statsStarted = false;
+    private boolean socksDown = false;
 
     public ConnectionManager(ParcelFileDescriptor vpnInterface, Context context,
                              NotificationListener notificationListener,
                              V2rayCoreExecutor v2rayCoreExecutor,
-                             StatsHandler statsHandler) {
+                             StatsHandler statsHandler,
+                             InterfaceErrorListener interfaceErrorListener) {
         this.vpnInterface = vpnInterface;
         this.context = context.getApplicationContext();
         this.notificationListener = notificationListener;
+        this.interfaceErrorListener = interfaceErrorListener;
         this.v2rayCoreExecutor = v2rayCoreExecutor;
         this.statsHandler = statsHandler;
         lock = new ReentrantLock();
@@ -84,7 +87,9 @@ public class ConnectionManager {
         apiHeartbeatTimer = new Timer();
     }
 
+    @Override
     public void run() {
+        running = true;
         updateConnectionStateUI(ConnectionState.CONNECTING);
         boolean isLoaded = loadV2rayConfig();
         if (!isLoaded) {
@@ -94,10 +99,20 @@ public class ConnectionManager {
     }
 
     private void startV2ray() {
+        try {
+            vpnInterface.checkError();
+        } catch (IOException e) {
+            interfaceErrorListener.onFoundInterfaceError();
+            return;
+        }
+
         boolean restart = v2rayCoreExecutor.getCoreState() == V2rayConstants.CORE_STATES.IDLE ||
                 v2rayCoreExecutor.getCoreState() == V2rayConstants.CORE_STATES.RUNNING;
         if (restart) {
             v2rayCoreExecutor.stopCore(false);
+        }
+        if (!running) {
+            return;
         }
         v2rayCoreExecutor.startCore(V2rayConfigs.currentConfig);
         stopStatsHandler();
@@ -184,18 +199,26 @@ public class ConnectionManager {
                         switch (Utilities.checkAndGetAccessType(networkInterfaceAvailable.get())) {
                             case RESTRICTED:
                             case WORLD_WIDE:
-                                restartV2ray();
+                                if (running) {
+                                    restartV2ray();
+                                }
                                 break;
                             case NONE:
                             case UNAVAILABLE:
                             case NO_ACCESS:
+                                stopV2ray();
                                 break;
                         }
+                        socksDown = true;
                     }
 
                     @Override
                     public void onSocksUp() {
-                        startV2ray();
+//                        if (running && socksDown) {
+//                            System.out.println("hello");
+//                            startV2ray();
+//                        }
+//                        socksDown = false;
                     }
                 }, v2rayCoreExecutor);
         socksTimer.schedule(socksHeartbeatTask, 0, Constants.socksHeartbeatPeriod);
@@ -207,10 +230,21 @@ public class ConnectionManager {
     }
 
     private void cancelTasks() {
+        if (!tasksScheduled) {
+            return;
+        }
+        tasksScheduled = false;
         internetAccessTask.cancel();
         socksHeartbeatTask.cancel();
         apiHeartbeatTask.cancel();
         sendTrafficTask.cancel();
+    }
+
+    @Override
+    public void interrupt() {
+        running = false;
+        stopV2ray();
+
     }
 
 //    @Override
@@ -218,7 +252,7 @@ public class ConnectionManager {
 //        running = true;
 //        updateConnectionStateUI(ConnectionState.CONNECTING);
 //
-//        // start internet access timer
+//        // run internet access timer
 //        internetTimer.schedule(internetAccessHandler, 0, Constants.internetAccessPeriod);
 //
 //        // calculate the best server and put it in DataManager.bestServer
@@ -245,10 +279,10 @@ public class ConnectionManager {
 //            sshManager.createPortForwarding();
 //            sendTrafficTimer.scheduleAtFixedRate(sendTrafficHandler, 0, Constants.sendTrafficPeriod);
 //        }
-//        tun2SocksManager.start();
+//        tun2SocksManager.run();
 //
 //        SocksHeartbeatHandler socksHeartbeatHandler = new SocksHeartbeatHandler(sshManager);
-//        // start socks heartbeat timer
+//        // run socks heartbeat timer
 //        socksTimer.schedule(socksHeartbeatHandler, 0, Constants.socksHeartbeatPeriod);
 //
 //        // try to keep the connection alive till the thread is interrupted
@@ -377,7 +411,7 @@ public class ConnectionManager {
 //                }
 //            } catch (NullPointerException ignored) {
 //            }
-//        }).start();
+//        }).run();
 //        try {
 //            if (connectionMethod == Constants.Protocol.TLS_SSH) {
 //                stunnelManager.close();
@@ -457,13 +491,12 @@ public class ConnectionManager {
             internetAccessTask.setNetworkIFaceAvailable(true);
             internetAccessTask.wakeup();
         }
-        scheduleTasks();
+        startV2ray();
     }
 
     public void onNetworkLost() {
         internetAccessTask.setNetworkIFaceAvailable(false);
-        stopStatsHandler();
-        cancelTasks();
+        stopV2ray();
         updateConnectionStateUI(ConnectionState.CONNECTING);
         tasksScheduled = false;
     }
@@ -471,10 +504,6 @@ public class ConnectionManager {
 //    public boolean isRunning() {
 //        return running;
 //    }
-
-    public boolean isInterrupted() {
-        return interrupted;
-    }
 
 //    public Constants.Protocol getConnectionMethod() {
 //        return connectionMethod;

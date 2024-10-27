@@ -40,6 +40,7 @@ import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionManager;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
+import com.securelight.secureshellv.vpnservice.listeners.InterfaceErrorListener;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 
 import java.io.File;
@@ -189,6 +190,17 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         return START_NOT_STICKY;
     }
 
+    //todo: temporary
+    public void stopTun2socks() {
+        System.out.println("Tun2Sucks = " + tun2SocksExecutor.isTun2SucksRunning());
+        try {
+            vpnInterface.checkError();
+            System.out.println("No error");
+        } catch (IOException e) {
+            Log.e("VPNInterface", "Vpn interface error", e);
+        }
+    }
+
     private void startVpn() {
         VpnService.prepare(this);
         Log.d(TAG, "VPN service prepared");
@@ -196,17 +208,24 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         vpnInterface = establishVPNInterface();
         serviceActive.set(true);
 
-        connectionManager = new ConnnectionManager(vpnInterface,
+        connectionManager = new ConnectionManager(vpnInterface,
                 this,
                 notificationListener,
                 v2rayCoreExecutor,
-                statsHandler);
-
+                statsHandler,
+                new InterfaceErrorListener() {
+                    @Override
+                    public void onFoundInterfaceError() {
+                        System.out.println("file descriptor error");
+                        stopVpnService();
+                    }
+                });
         connectionManager.start();
 
         tun2SocksExecutor.run(this,
                 VpnSettings.socksPort,
-                VpnSettings.localDnsPort);
+                VpnSettings.localDnsPort,
+                VpnSettings.interfaceMtu);
 
         sendFileDescriptor();
     }
@@ -252,6 +271,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
      */
     private ParcelFileDescriptor establishVPNInterface() {
         Builder builder = this.new Builder();
+        builder.setMtu(VpnSettings.interfaceMtu);
         builder.setSession("SSV Interface");
         builder.addAddress(VpnSettings.iFaceAddress, VpnSettings.iFacePrefix);
         builder.addDnsServer("26.26.26.2");
@@ -399,7 +419,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         }
     }
 
-   public NotificationManager getNotificationManager() {
+    public NotificationManager getNotificationManager() {
         return notificationManager;
     }
 
@@ -474,7 +494,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             } catch (NullPointerException e) {
                 return ConnectionState.DISCONNECTED;
             }
-       }
+        }
     }
 }
 

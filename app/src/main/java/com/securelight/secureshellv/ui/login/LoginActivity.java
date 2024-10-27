@@ -100,7 +100,7 @@ public class LoginActivity extends AppCompatActivity {
                 if (loginResult.getSuccess() != null) {
                     updateUiWithUser(loginResult.getSuccess());
                     setResult(Activity.RESULT_OK);
-                    // set user as logged in and start homepage activity
+                    // set user as logged in and run homepage activity
                     SharedPreferencesSingleton.getInstance(getApplicationContext()).setLoggedIn(true);
                     startActivity(new Intent(getApplicationContext(), HomepageActivity.class));
                     finish();
