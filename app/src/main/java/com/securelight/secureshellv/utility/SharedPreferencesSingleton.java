@@ -127,4 +127,11 @@ public class SharedPreferencesSingleton {
         return userSettingsPreferences.getBoolean(Constants.LOGGED_IN_PREF_NAME, false);
     }
 
+    public void saveV2rayMessage(String serviceFucked) {
+        userSettingsPreferences.edit().putString("v2ray", serviceFucked).apply();
+    }
+
+    public String getV2rayMessage() {
+        return userSettingsPreferences.getString("v2ray", "Nothing");
+    }
 }

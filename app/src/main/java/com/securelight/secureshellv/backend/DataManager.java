@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 public class DataManager {
     private static DataManager dataManager;
+    private final List<V2rayConfig> v2rayConfigs = new ArrayList<>();
     private String userName;
     private List<TargetServer> targetServers = new ArrayList<>();
     private TargetServer bestServer;
@@ -46,8 +47,6 @@ public class DataManager {
     private String message;
     private LocalDateTime messageDate;
     private boolean messagePending;
-    private final List<V2rayConfig> v2rayConfigs = new ArrayList<>();
-
     private boolean isFetching = false;
     private ReentrantLock lock = new ReentrantLock();
     private Condition condition = lock.newCondition();
@@ -401,6 +400,10 @@ public class DataManager {
 
     public String getMessage() {
         return message;
+    }
+
+    public void setMessageSeen() {
+        messagePending = false;
     }
 
     public LocalDateTime getMessageDate() {

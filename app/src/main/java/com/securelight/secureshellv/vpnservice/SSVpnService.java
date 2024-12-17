@@ -32,6 +32,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.statics.Intents;
@@ -448,12 +449,12 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
     @Override
     public void startService() {
-
     }
 
     @Override
     public void stopService() {
-
+        System.out.println("V2ray Called Stop");
+        SharedPreferencesSingleton.getInstance(this).saveV2rayMessage("SERVICE FUCKED");
     }
 
     @Override

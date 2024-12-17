@@ -290,6 +290,28 @@ public class DatabaseHandlerSingleton {
         }
     }
 
+    public void sendMessageReceived() {
+        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
+        String url = apiAddress + "api/account/message_received/";
+
+        JSONObject object = new JSONObject();
+        try {
+            object.put("message_pending", false);
+        } catch (JSONException ignored) {
+        }
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.PUT, url, object,
+                null, null) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "Bearer " + accessToken);
+                return params;
+            }
+        };
+
+        instance.addToRequestQueue(jsonObjectRequest);
+    }
+
     public String retrievePassword(int serverId, boolean reset) {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
 

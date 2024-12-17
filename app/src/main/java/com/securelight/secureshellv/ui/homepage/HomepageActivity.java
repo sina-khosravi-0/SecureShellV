@@ -124,16 +124,6 @@ public class HomepageActivity extends AppCompatActivity {
             finish();
         }
     };
-    private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            new MaterialAlertDialogBuilder(HomepageActivity.this)
-                    .setTitle(R.string.fail_to_connect_to_server)
-                    .setMessage(R.string.couldn_t_send_stats_to_server)
-                    .setNeutralButton(R.string.ok, null).show();
-            stopVpnService();
-        }
-    };
     private Intent vpnServiceIntent;
     private final BroadcastReceiver startBr = new BroadcastReceiver() {
         @Override
@@ -169,6 +159,16 @@ public class HomepageActivity extends AppCompatActivity {
         }
     };
     private SSVpnService.VpnServiceBinder vpnServiceBinder;
+    private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            new MaterialAlertDialogBuilder(HomepageActivity.this)
+                    .setTitle(R.string.fail_to_connect_to_server)
+                    .setMessage(R.string.couldn_t_send_stats_to_server)
+                    .setNeutralButton(R.string.ok, null).show();
+            stopVpnService();
+        }
+    };
     private final BroadcastReceiver startServiceFailedBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -237,6 +237,8 @@ public class HomepageActivity extends AppCompatActivity {
             if (dataManager.isUnlimitedCreditTime()) {
                 remainingTimeText.setTextColor(colorOk);
                 remainingTimeText.setText(R.string.unlimited_time);
+//                TODO: REMOVE THIS
+                resubscribeButton.setVisibility(View.VISIBLE);
             } else {
                 long remainingDays = dataManager.getRemainingDays();
                 if (remainingDays <= 3 && remainingDays > 1) {
@@ -390,8 +392,11 @@ public class HomepageActivity extends AppCompatActivity {
         });
 
         resubscribeButton.setOnClickListener(v -> {
-//            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
-            vpnServiceBinder.getService().stopTun2socks();
+            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
+//            Toast.makeText(this,
+//                    SharedPreferencesSingleton.getInstance(this).getV2rayMessage(),
+//                    Toast.LENGTH_SHORT).show();
+
         });
 
         LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
@@ -710,11 +715,19 @@ public class HomepageActivity extends AppCompatActivity {
     }
 
     private void updateUserData() {
-
         new Thread(() -> {
             DatabaseHandlerSingleton.getInstance(this).fetchUserData();
+            runOnUiThread(() -> {
+                if (DataManager.getInstance().isMessagePending()) {
+                    new MaterialAlertDialogBuilder(this).setTitle(R.string.broadcast_message)
+                            .setMessage(DataManager.getInstance().getMessage())
+                            .setNeutralButton(R.string.ok, null)
+                            .show();
+                    DataManager.getInstance().setMessageSeen();
+                    DatabaseHandlerSingleton.getInstance(null).sendMessageReceived();
+                }
+            });
         }).start();
-
     }
 
     private void initColors() {
