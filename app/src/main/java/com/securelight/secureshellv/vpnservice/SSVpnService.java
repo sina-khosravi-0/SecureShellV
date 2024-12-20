@@ -2,13 +2,16 @@ package com.securelight.secureshellv.vpnservice;
 
 import static androidx.core.app.NotificationCompat.EXTRA_NOTIFICATION_ID;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.LocalSocket;
@@ -32,6 +35,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
@@ -46,8 +50,11 @@ import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,6 +72,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private final int onGoingNotificationID = 1;
     private final AtomicBoolean serviceActive = new AtomicBoolean();
     private final IBinder binder = new VpnServiceBinder();
+    private boolean isReceiverRegistered = false;
     private boolean serviceCreated = false;
     private V2rayCoreExecutor v2rayCoreExecutor;
     private Tun2SocksExecutor tun2SocksExecutor;
@@ -123,6 +131,36 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private PendingIntent stopPendingIntent;
     private PendingIntent quitPendingIntent;
 
+    private final BroadcastReceiver startBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            startVpn();
+        }
+    };
+
+    private final BroadcastReceiver stopBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            stopVpnService();
+            Log.i("MainActivity", "VPN service stopped");
+        }
+    };
+
+    private final BroadcastReceiver startServiceFailedBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            stopVpnService();
+            Toast.makeText(getApplicationContext(), "failed to connect to server", Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            stopVpnService();
+        }
+    };
+
     @Override
     public void onCreate() {
         if (!serviceCreated) {
@@ -130,6 +168,21 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             tun2SocksExecutor = new Tun2SocksExecutor(this);
             statsHandler = new StatsHandler(v2rayCoreExecutor);
             serviceCreated = true;
+        }
+        if (!isReceiverRegistered) {
+            LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
+            lbm.registerReceiver(startBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
+            lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
+            lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
+            lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
+            isReceiverRegistered = true;
+            Runtime.getRuntime().addShutdownHook(
+                    new Thread(() -> {
+                        lbm.unregisterReceiver(startBr);
+                        lbm.unregisterReceiver(stopBr);
+                        lbm.unregisterReceiver(startServiceFailedBr);
+                        lbm.unregisterReceiver(sendStatsFailBr);
+                    }));
         }
     }
 
@@ -377,12 +430,47 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
     @Override
     public void onDestroy() {
+        File dir = new File(getObbDir(),
+                "Destroy_Reports");
+        if (!dir.exists()) {
+            System.out.println(dir.mkdirs());
+        }
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "yyyy_MM_dd_HH_mm_ss");
+        Date date = new Date();
+        String filename = dateFormat.format(date) + ".DESTROYED";
+        File reportFile = new File(dir, filename);
+        try {
+            FileWriter fileWriter = new FileWriter(reportFile);
+            fileWriter.append("SHITE mate");
+            fileWriter.flush();
+            fileWriter.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         stopVpnService();
     }
 
     @Override
     public void onLowMemory() {
-        System.out.println("LOW MEMORY");
+        File dir = new File(getObbDir(),
+                "LowMemory_Reports");
+        if (!dir.exists()) {
+            System.out.println(dir.mkdirs());
+        }
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "yyyy_MM_dd_HH_mm_ss");
+        Date date = new Date();
+        String filename = dateFormat.format(date) + ".DESTROYED";
+        File reportFile = new File(dir, filename);
+        try {
+            FileWriter fileWriter = new FileWriter(reportFile);
+            fileWriter.append("SHITE mate");
+            fileWriter.flush();
+            fileWriter.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -398,6 +486,9 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     public void stopVpnService() {
         if (!this.isServiceActive()) {
             return;
+        }
+        if (isReceiverRegistered) {
+            isReceiverRegistered = false;
         }
         try {
             serviceActive.set(false);

@@ -19,7 +19,6 @@ import android.net.VpnService;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Process;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
@@ -37,7 +36,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.os.LocaleListCompat;
 import androidx.core.widget.ImageViewCompat;
@@ -99,24 +97,6 @@ public class HomepageActivity extends AppCompatActivity {
             startActivity(new Intent(getApplicationContext(), LoginActivity.class));
         }
     };
-    private final BroadcastReceiver insufficientTrafficBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            new MaterialAlertDialogBuilder(HomepageActivity.this)
-                    .setTitle(R.string.insufficient_data)
-                    .setMessage(R.string.data_limit_reached)
-                    .setNeutralButton(R.string.ok, null).show();
-        }
-    };
-    private final BroadcastReceiver creditExpiredBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            new MaterialAlertDialogBuilder(HomepageActivity.this)
-                    .setTitle(R.string.credit_expired)
-                    .setMessage(R.string.credit_time_has_run_out)
-                    .setNeutralButton(R.string.ok, null).show();
-        }
-    };
     private final BroadcastReceiver killActivityBr = new BroadcastReceiver() {
 
         @Override
@@ -124,14 +104,17 @@ public class HomepageActivity extends AppCompatActivity {
             finish();
         }
     };
-    private Intent vpnServiceIntent;
-    private final BroadcastReceiver startBr = new BroadcastReceiver() {
+    private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            startVpnService();
+            new MaterialAlertDialogBuilder(HomepageActivity.this)
+                    .setTitle(R.string.fail_to_connect_to_server)
+                    .setMessage(R.string.couldn_t_send_stats_to_server)
+                    .setNeutralButton(R.string.ok, null).show();
         }
     };
-    private CoordinatorLayout rootLayout;
+    private boolean isReceiverRegistered = false;
+    private Intent vpnServiceIntent;
     private BottomSheetBehavior<View> bottomSheetBehavior;
     private ImageView buttonImage;
     private TextView buttonText;
@@ -158,21 +141,9 @@ public class HomepageActivity extends AppCompatActivity {
             performDisconnectedAction();
         }
     };
-    private SSVpnService.VpnServiceBinder vpnServiceBinder;
-    private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            new MaterialAlertDialogBuilder(HomepageActivity.this)
-                    .setTitle(R.string.fail_to_connect_to_server)
-                    .setMessage(R.string.couldn_t_send_stats_to_server)
-                    .setNeutralButton(R.string.ok, null).show();
-            stopVpnService();
-        }
-    };
     private final BroadcastReceiver startServiceFailedBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            stopVpnService();
             performDisconnectedAction();
             Toast.makeText(getApplicationContext(), "failed to connect to server", Toast.LENGTH_SHORT).show();
         }
@@ -180,7 +151,6 @@ public class HomepageActivity extends AppCompatActivity {
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            vpnServiceBinder.getService().stopVpnService();
             performDisconnectedAction();
             if (intent.getBooleanExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, false)) {
                 new MaterialAlertDialogBuilder(HomepageActivity.this)
@@ -194,9 +164,9 @@ public class HomepageActivity extends AppCompatActivity {
                         .setMessage(R.string.credit_time_has_run_out)
                         .setNeutralButton(R.string.ok, null).show();
             }
-            Log.i("MainActivity", "VPN service stopped");
         }
     };
+    private SSVpnService.VpnServiceBinder vpnServiceBinder;
     private final ServiceConnection vpnServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
@@ -339,41 +309,36 @@ public class HomepageActivity extends AppCompatActivity {
 
         updateUserData();
         initUIComponents();
-
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-        lbm.registerReceiver(startBr, new IntentFilter(Intents.START_VPN_SERVICE_ACTION));
-        lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
-        lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
-        lbm.registerReceiver(exitBr, new IntentFilter(Intents.EXIT_APP_ACTION));
-        lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
-        lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
-        lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
-        lbm.registerReceiver(signInBr, new IntentFilter(Intents.SIGN_IN_ACTION));
-        lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
-        lbm.registerReceiver(insufficientTrafficBr, new IntentFilter(Intents.INSUFFICIENT_TRAFFIC_INTENT));
-        lbm.registerReceiver(creditExpiredBr, new IntentFilter(Intents.CREDIT_EXPIRED_INTENT));
-        lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
-        lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
-        Runtime.getRuntime().addShutdownHook(
-                new Thread(() -> {
-                    lbm.unregisterReceiver(startBr);
-                    lbm.unregisterReceiver(stopBr);
-                    lbm.unregisterReceiver(startServiceFailedBr);
-                    lbm.unregisterReceiver(exitBr);
-                    lbm.unregisterReceiver(connectedBr);
-                    lbm.unregisterReceiver(connectingBr);
-                    lbm.unregisterReceiver(disconnectedBr);
-                    lbm.unregisterReceiver(signInBr);
-                    lbm.unregisterReceiver(updateUserDataUIBr);
-                    lbm.unregisterReceiver(insufficientTrafficBr);
-                    lbm.unregisterReceiver(creditExpiredBr);
-                    lbm.unregisterReceiver(killActivityBr);
-                    lbm.unregisterReceiver(sendStatsFailBr);
-                }));
+        if (!isReceiverRegistered) {
+            lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
+            lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
+            lbm.registerReceiver(exitBr, new IntentFilter(Intents.EXIT_APP_ACTION));
+            lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
+            lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
+            lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
+            lbm.registerReceiver(signInBr, new IntentFilter(Intents.SIGN_IN_ACTION));
+            lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
+            lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
+            lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
+            isReceiverRegistered = true;
+            Runtime.getRuntime().addShutdownHook(
+                    new Thread(() -> {
+                        lbm.unregisterReceiver(stopBr);
+                        lbm.unregisterReceiver(startServiceFailedBr);
+                        lbm.unregisterReceiver(exitBr);
+                        lbm.unregisterReceiver(connectedBr);
+                        lbm.unregisterReceiver(connectingBr);
+                        lbm.unregisterReceiver(disconnectedBr);
+                        lbm.unregisterReceiver(signInBr);
+                        lbm.unregisterReceiver(updateUserDataUIBr);
+                        lbm.unregisterReceiver(killActivityBr);
+                        lbm.unregisterReceiver(sendStatsFailBr);
+                    }));
+        }
     }
 
     private void initUIComponents() {
-        rootLayout = findViewById(R.id.root);
         FrameLayout startButtonFrame = findViewById(R.id.vpn_toggle_frame);
         buttonImage = startButtonFrame.findViewById(R.id.vpn_toggle_img);
         buttonText = startButtonFrame.findViewById(R.id.vpn_toggle_txt);
@@ -393,10 +358,6 @@ public class HomepageActivity extends AppCompatActivity {
 
         resubscribeButton.setOnClickListener(v -> {
             startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
-//            Toast.makeText(this,
-//                    SharedPreferencesSingleton.getInstance(this).getV2rayMessage(),
-//                    Toast.LENGTH_SHORT).show();
-
         });
 
         LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
@@ -614,6 +575,53 @@ public class HomepageActivity extends AppCompatActivity {
         super.onResume();
         bindService(vpnServiceIntent, vpnServiceConnection, BIND_AUTO_CREATE);
         updateUserData();
+        if (vpnServiceBinder != null) {
+            switch (vpnServiceBinder.getConnectionState()) {
+                case CONNECTED:
+                    performConnectedAction();
+                    break;
+                case CONNECTING:
+                    performConnectingAction();
+                    break;
+                case DISCONNECTED:
+                    performDisconnectedAction();
+                    break;
+            }
+        }
+
+        if (!isReceiverRegistered) {
+            LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
+            lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
+            lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
+            lbm.registerReceiver(exitBr, new IntentFilter(Intents.EXIT_APP_ACTION));
+            lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
+            lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
+            lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
+            lbm.registerReceiver(signInBr, new IntentFilter(Intents.SIGN_IN_ACTION));
+            lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
+            lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
+            lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
+            isReceiverRegistered = true;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (isReceiverRegistered) {
+            LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
+            lbm.unregisterReceiver(stopBr);
+            lbm.unregisterReceiver(startServiceFailedBr);
+            lbm.unregisterReceiver(exitBr);
+            lbm.unregisterReceiver(connectedBr);
+            lbm.unregisterReceiver(connectingBr);
+            lbm.unregisterReceiver(disconnectedBr);
+            lbm.unregisterReceiver(signInBr);
+            lbm.unregisterReceiver(updateUserDataUIBr);
+            lbm.unregisterReceiver(killActivityBr);
+            lbm.unregisterReceiver(sendStatsFailBr);
+            isReceiverRegistered = false;
+        }
     }
 
     @Override
