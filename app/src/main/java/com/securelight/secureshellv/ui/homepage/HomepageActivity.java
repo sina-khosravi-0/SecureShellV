@@ -19,6 +19,9 @@ import android.net.VpnService;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Process;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
@@ -50,7 +53,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.BottomSheetTabAdapter;
 import com.securelight.secureshellv.R;
-import com.securelight.secureshellv.ResubscribeServiceActivity;
+import com.securelight.secureshellv.resubscribe.CheckoutActivity;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.statics.Constants;
@@ -348,16 +351,23 @@ public class HomepageActivity extends AppCompatActivity {
         resubscribeButton = findViewById(R.id.main_screen_renew_button);
 
         startButtonFrame.setOnClickListener(v -> {
+            ((Vibrator) getSystemService(VIBRATOR_SERVICE))
+                    .vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE));
             updateUserData();
-            if (!vpnServiceBinder.getService().isServiceActive()) {
+            if (vpnServiceBinder == null) {
+                // It's the first time we're starting the service
                 startVpnService();
-            } else {
+                return;
+            }
+            if (vpnServiceBinder.getService().isServiceActive()) {
                 stopVpnService();
+            } else {
+                startVpnService();
             }
         });
 
         resubscribeButton.setOnClickListener(v -> {
-            startActivity(new Intent(getApplicationContext(), ResubscribeServiceActivity.class));
+            startActivity(new Intent(getApplicationContext(), CheckoutActivity.class));
         });
 
         LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
@@ -593,7 +603,6 @@ public class HomepageActivity extends AppCompatActivity {
             LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
             lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
             lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
-            lbm.registerReceiver(exitBr, new IntentFilter(Intents.EXIT_APP_ACTION));
             lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
             lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
             lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
@@ -608,11 +617,13 @@ public class HomepageActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (vpnServiceBinder != null) {
+            unbindService(vpnServiceConnection);
+        }
         if (isReceiverRegistered) {
             LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
             lbm.unregisterReceiver(stopBr);
             lbm.unregisterReceiver(startServiceFailedBr);
-            lbm.unregisterReceiver(exitBr);
             lbm.unregisterReceiver(connectedBr);
             lbm.unregisterReceiver(connectingBr);
             lbm.unregisterReceiver(disconnectedBr);
@@ -621,14 +632,6 @@ public class HomepageActivity extends AppCompatActivity {
             lbm.unregisterReceiver(killActivityBr);
             lbm.unregisterReceiver(sendStatsFailBr);
             isReceiverRegistered = false;
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (vpnServiceBinder != null) {
-            unbindService(vpnServiceConnection);
         }
     }
 
@@ -678,14 +681,19 @@ public class HomepageActivity extends AppCompatActivity {
             } catch (InterruptedException ignored) {
             }
             runOnUiThread(() -> {
-                AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
-                vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
-                    @Override
-                    public void onAnimationEnd(Drawable drawable) {
-                        vectorDrawable.start();
-                    }
-                });
-                vectorDrawable.start();
+                try {
+                    AnimatedVectorDrawable vectorDrawable = (AnimatedVectorDrawable) buttonImage.getDrawable();
+                    vectorDrawable.registerAnimationCallback(new Animatable2.AnimationCallback() {
+                        @Override
+                        public void onAnimationEnd(Drawable drawable) {
+                            vectorDrawable.start();
+                        }
+                    });
+                    vectorDrawable.start();
+                } catch (ClassCastException e) {
+                    Log.e(getLocalClassName(), "Animated vector drawable class cast exception", e);
+                }
+
             });
         }).start();
         trafficProgressIndicator.setIndeterminate(true);

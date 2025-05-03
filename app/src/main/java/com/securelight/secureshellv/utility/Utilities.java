@@ -112,10 +112,7 @@ public class Utilities {
         return configs.get(bestConfigIndex);
     }
 
-    public static NetworkState checkAndGetAccessType(boolean networkIFaceAvailable) {
-        if (!networkIFaceAvailable) {
-            return NetworkState.UNAVAILABLE;
-        }
+    public static NetworkState checkAndGetAccessType() {
         Socket socket = new Socket();
         try {
             socket.connect(new InetSocketAddress("google.com", 443), 2500);

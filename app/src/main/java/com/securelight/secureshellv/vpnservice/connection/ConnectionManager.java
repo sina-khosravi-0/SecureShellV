@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.widget.Toast;
@@ -30,8 +31,6 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
 import dev.dev7.lib.v2ray.utils.V2rayConfigs;
@@ -42,7 +41,6 @@ public class ConnectionManager extends Thread {
     private final String TAG = getClass().getSimpleName();
     private final ParcelFileDescriptor vpnInterface;
     private final Context context;
-    private final AtomicBoolean networkInterfaceAvailable;
     private final NotificationListener notificationListener;
     private final InterfaceErrorListener interfaceErrorListener;
     private final Timer socksTimer;
@@ -50,14 +48,17 @@ public class ConnectionManager extends Thread {
     private final StatsHandler statsHandler;
     private final Timer sendTrafficTimer;
     private final Timer apiHeartbeatTimer;
+    private SetupListener setupListener;
     private SendTrafficTimeTask sendTrafficTask;
     private APIHeartbeatTask apiHeartbeatTask;
     private SocksHeartbeatTask socksHeartbeatTask;
-    private ConnectionState connectionState = ConnectionState.DISCONNECTED;
-    private NetworkState networkState = NetworkState.NO_ACCESS;
+    private ConnectionState connectionState = ConnectionState.CONNECTING;
+    private NetworkState networkState = NetworkState.WORLD_WIDE;
     private AtomicBoolean running = new AtomicBoolean(false);
+    private boolean setupInProgress = false;
     private boolean tasksScheduled = false;
     private boolean statsStarted = false;
+    private boolean stateChanged = true;
 
     public ConnectionManager(ParcelFileDescriptor vpnInterface, Context context,
                              NotificationListener notificationListener,
@@ -70,29 +71,34 @@ public class ConnectionManager extends Thread {
         this.interfaceErrorListener = interfaceErrorListener;
         this.v2rayCoreExecutor = v2rayCoreExecutor;
         this.statsHandler = statsHandler;
-        networkInterfaceAvailable = new AtomicBoolean();
         socksTimer = new Timer();
         sendTrafficTimer = new Timer();
         apiHeartbeatTimer = new Timer();
+        setupListener = () -> {
+        };
+
     }
 
     @Override
     public void run() {
+        setupInProgress = true;
         running.set(true);
-        updateConnectionStateUI(ConnectionState.CONNECTING);
+        updateConnectionStateUI();
         boolean isLoaded = loadV2rayConfig();
         if (!isLoaded) {
             return;
         }
         startV2ray();
         scheduleSocksHeartbeatTask();
+        setupListener.onSetupFinished();
+        setupInProgress = false;
     }
 
     private void startV2ray() {
         try {
             vpnInterface.checkError();
         } catch (IOException e) {
-            updateConnectionStateUI(ConnectionState.DISCONNECTED);
+            updateConnectionStateUI();
             interfaceErrorListener.onFoundInterfaceError();
             return;
         }
@@ -114,6 +120,8 @@ public class ConnectionManager extends Thread {
 
     private void stopV2ray() {
         v2rayCoreExecutor.stopCore(false);
+        connectionState = ConnectionState.DISCONNECTED;
+        updateConnectionStateUI();
         stopStatsHandler();
         cancelTasks();
     }
@@ -176,11 +184,11 @@ public class ConnectionManager extends Thread {
     }
 
     private void scheduleSocksHeartbeatTask() {
-        socksHeartbeatTask = new SocksHeartbeatTask(this::updateConnectionStateUI,
+        socksHeartbeatTask = new SocksHeartbeatTask(running, v2rayCoreExecutor,
                 new SocksStateListener() {
                     @Override
                     public void onSocksDown() {
-                        updateConnectionStateUI(ConnectionState.CONNECTING);
+                        updateConnectionStateUI();
                         stopV2ray();
                         loadV2rayConfig();
                         startV2ray();
@@ -188,11 +196,21 @@ public class ConnectionManager extends Thread {
 
                     @Override
                     public void onSocksUp() {
-                        updateConnectionStateUI(ConnectionState.CONNECTED);
+                        updateConnectionStateUI();
                     }
-                }, v2rayCoreExecutor,
-                networkState -> this.networkState = networkState,
-                running);
+                },
+                networkState -> {
+                    if (this.networkState != networkState) {
+                        stateChanged = true;
+                    }
+                    this.networkState = networkState;
+                },
+                connectionState -> {
+                    if (connectionState != this.connectionState) {
+                        stateChanged = true;
+                    }
+                    this.connectionState = connectionState;
+                });
         socksTimer.schedule(socksHeartbeatTask, 0, Constants.socksHeartbeatPeriod);
     }
 
@@ -203,6 +221,14 @@ public class ConnectionManager extends Thread {
 
     @Override
     public void interrupt() {
+        if (setupInProgress) {
+            setupListener = () -> {
+                running.set(false);
+                stopV2ray();
+                socksHeartbeatTask.cancel();
+            };
+            return;
+        }
         running.set(false);
         stopV2ray();
         socksHeartbeatTask.cancel();
@@ -220,31 +246,27 @@ public class ConnectionManager extends Thread {
         Toast.makeText(context, preferences.getString("died", "N/A"), Toast.LENGTH_SHORT).show();
     }
 
-    private void updateConnectionStateUI(ConnectionState state) {
-        if (state != connectionState) {
-            switch (state) {
-                case CONNECTED:
-                    LocalBroadcastManager.getInstance(context).sendBroadcast(
-                            new Intent(Intents.CONNECTED_ACTION));
-                    break;
-                case CONNECTING:
-                    LocalBroadcastManager.getInstance(context).sendBroadcast(
-                            new Intent(Intents.CONNECTING_ACTION));
-                    break;
-                case DISCONNECTED:
-                    LocalBroadcastManager.getInstance(context).sendBroadcast(
-                            new Intent(Intents.DISCONNECTED_ACTION));
-                    networkState = NetworkState.NONE;
-                    break;
-            }
-            connectionState = state;
-            notificationListener.updateNotification(networkState, state);
+    private void updateConnectionStateUI() {
+        if (!stateChanged) {
+            return;
         }
-    }
-
-    public void setNetworkIFaceAvailable(boolean isAvailable) {
-        networkInterfaceAvailable.set(isAvailable);
-
+        switch (connectionState) {
+            case CONNECTED:
+                LocalBroadcastManager.getInstance(context).sendBroadcast(
+                        new Intent(Intents.CONNECTED_ACTION));
+                break;
+            case CONNECTING:
+                LocalBroadcastManager.getInstance(context).sendBroadcast(
+                        new Intent(Intents.CONNECTING_ACTION));
+                break;
+            case DISCONNECTED:
+                LocalBroadcastManager.getInstance(context).sendBroadcast(
+                        new Intent(Intents.DISCONNECTED_ACTION));
+                networkState = null;
+                break;
+        }
+        stateChanged = false;
+        notificationListener.updateNotification(networkState, connectionState);
     }
 
     public void onNetworkAvailable() {
@@ -255,9 +277,12 @@ public class ConnectionManager extends Thread {
 
     public void onNetworkLost() {
         if (socksHeartbeatTask != null) {
-            socksHeartbeatTask.setNetworkIFaceAvailable(true);
+            socksHeartbeatTask.setNetworkIFaceAvailable(false);
         }
-        updateConnectionStateUI(ConnectionState.CONNECTING);
+        stateChanged = true;
+        connectionState = ConnectionState.CONNECTING;
+        networkState = NetworkState.UNAVAILABLE;
+        updateConnectionStateUI();
     }
 
     public ConnectionState getConnectionState() {
@@ -266,5 +291,9 @@ public class ConnectionManager extends Thread {
 
     public NetworkState getNetworkState() {
         return networkState;
+    }
+
+    private interface SetupListener {
+        void onSetupFinished();
     }
 }

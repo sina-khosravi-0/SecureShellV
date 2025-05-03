@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
@@ -28,10 +29,13 @@ import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
 import android.os.Parcel;
 import android.os.RemoteException;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -45,6 +49,7 @@ import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionManager;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
+import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 import com.securelight.secureshellv.vpnservice.listeners.InterfaceErrorListener;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 
@@ -71,6 +76,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private final Set<String> packages = new HashSet<>();
     private final int onGoingNotificationID = 1;
     private final AtomicBoolean serviceActive = new AtomicBoolean();
+    private final AtomicBoolean startAllowed = new AtomicBoolean(true);
     private final IBinder binder = new VpnServiceBinder();
     private boolean isReceiverRegistered = false;
     private boolean serviceCreated = false;
@@ -82,13 +88,22 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private final NotificationListener notificationListener = (networkState, connectionState) -> {
         if (!HomepageActivity.isAppClosing()) {
             NotificationCompat.Builder builder = getNotificationBuilder();
-            builder.setContentTitle(connectionState.value);
             if (networkState != null) {
-                builder.setContentText(String
-                        .format("%s: %s", Values.INTERNET_ACCESS_STATE_STRING, networkState.value));
-
-            } else {
-                builder.setContentText("");
+                switch (networkState) {
+                    case RESTRICTED:
+                        builder.setContentTitle(connectionState.value);
+                        builder.setContentText(String
+                                .format("%s: %s", Values.INTERNET_ACCESS_STATE_STRING, networkState.value));
+                        break;
+                    case UNAVAILABLE:
+                    case NO_ACCESS:
+                        builder.setContentTitle(getString(R.string.no_internet_access));
+                        break;
+                    case WORLD_WIDE:
+                    case NONE:
+                        builder.setContentTitle(connectionState.value);
+                        builder.setContentText("");
+                }
             }
             getNotificationManager().notify(getOnGoingNotificationID(), builder.build());
             builder.setSilent(true);
@@ -100,7 +115,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         public void onAvailable(@NonNull Network network) {
             super.onAvailable(network);
             if (connectionManager != null) {
-                connectionManager.setNetworkIFaceAvailable(true);
                 connectionManager.onNetworkAvailable();
             }
         }
@@ -109,7 +123,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         public void onLost(@NonNull Network network) {
             super.onLost(network);
             if (connectionManager != null) {
-                connectionManager.setNetworkIFaceAvailable(false);
                 connectionManager.onNetworkLost();
             }
         }
@@ -118,7 +131,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         public void onUnavailable() {
             super.onUnavailable();
             if (connectionManager != null) {
-                connectionManager.setNetworkIFaceAvailable(false);
                 connectionManager.onNetworkLost();
             }
         }
@@ -127,17 +139,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private NotificationCompat.Action notifStartAction;
     private NotificationCompat.Action notifStopAction;
     private NotificationCompat.Action notifQuitAction;
-    private PendingIntent startPendingIntent;
-    private PendingIntent stopPendingIntent;
-    private PendingIntent quitPendingIntent;
-
-    private final BroadcastReceiver startBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            startVpn();
-        }
-    };
-
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -145,19 +146,28 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             Log.i("MainActivity", "VPN service stopped");
         }
     };
-
     private final BroadcastReceiver startServiceFailedBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
             stopVpnService();
             Toast.makeText(getApplicationContext(), "failed to connect to server", Toast.LENGTH_SHORT).show();
         }
     };
-
     private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             stopVpnService();
+        }
+    };
+    private PendingIntent startPendingIntent;
+    private PendingIntent stopPendingIntent;
+    private PendingIntent quitPendingIntent;
+    private final BroadcastReceiver startBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE));
+            setup();
         }
     };
 
@@ -171,7 +181,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         }
         if (!isReceiverRegistered) {
             LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-            lbm.registerReceiver(startBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
+            lbm.registerReceiver(startBr, new IntentFilter(Intents.START_VPN_SERVICE_ACTION));
             lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
             lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
             lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
@@ -193,28 +203,35 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        assert startAllowed.get();
+        final var startRedeliverIntent = setup();
+        if (startRedeliverIntent != null) return startRedeliverIntent;
+        return START_NOT_STICKY;
+    }
+
+    private @Nullable Integer setup() {
         ConnectivityManager connectivityManager = getSystemService(ConnectivityManager.class);
-        boolean allowStart = true;
+        boolean letStart = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Network network = connectivityManager.getActiveNetwork();
             if (network == null) {
-                allowStart = false;
+                letStart = false;
             }
             NetworkCapabilities activeNetwork = connectivityManager.getNetworkCapabilities(network);
             // if active network is null or if active network doesn't have either cellular or wifi
             // wifi transport
             if (!(activeNetwork != null && (activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
                     activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)))) {
-                allowStart = false;
+                letStart = false;
             }
         } else {
             NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
             // if network info is null or networkInfo is disconnected
             if (!(networkInfo != null && networkInfo.isConnected())) {
-                allowStart = false;
+                letStart = false;
             }
         }
-        if (!allowStart) {
+        if (!letStart) {
             Toast.makeText(getApplicationContext(),
                     Values.NETWORK_UNAVAILABLE_STRING,
                     Toast.LENGTH_SHORT).show();
@@ -241,7 +258,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
                     .addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build();
             connectivityManager.requestNetwork(networkRequest, networkCallback);
         }
-        return START_NOT_STICKY;
+        return null;
     }
 
     //todo: temporary
@@ -373,11 +390,11 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         initNotificationButtonIntents();
 
         notificationBuilder.setContentIntent(pendingIntent);
-        notificationBuilder.setSmallIcon(R.mipmap.ic_launcher); //notification icon
+        notificationBuilder.setSmallIcon(R.mipmap.ic_launcher_foreground); //notification icon
         notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         notificationBuilder.setShowWhen(false);
         notificationBuilder.setOngoing(true);
-        notificationBuilder.setCategory(NotificationCompat.CATEGORY_EVENT);
+        notificationBuilder.setSilent(true);
 
         notifStartAction = new NotificationCompat.Action(R.drawable.start_vpn_notification, "Start", startPendingIntent);
         notifStopAction = new NotificationCompat.Action(R.drawable.stop_vpn_notification, "Stop", stopPendingIntent);
@@ -394,9 +411,8 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationChannel channel;
         channel = new NotificationChannel(notificationChannelID,
-                "VPN Ongoing Channel",
-                NotificationManager.IMPORTANCE_HIGH);
-        channel.enableVibration(true);
+                "VPN Ongoing VPN",
+                NotificationManager.IMPORTANCE_DEFAULT);
 
         if (notificationManager != null) {
             notificationManager.createNotificationChannel(channel);
@@ -430,24 +446,6 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
 
     @Override
     public void onDestroy() {
-        File dir = new File(getObbDir(),
-                "Destroy_Reports");
-        if (!dir.exists()) {
-            System.out.println(dir.mkdirs());
-        }
-        @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat(
-                "yyyy_MM_dd_HH_mm_ss");
-        Date date = new Date();
-        String filename = dateFormat.format(date) + ".DESTROYED";
-        File reportFile = new File(dir, filename);
-        try {
-            FileWriter fileWriter = new FileWriter(reportFile);
-            fileWriter.append("SHITE mate");
-            fileWriter.flush();
-            fileWriter.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         stopVpnService();
     }
 
@@ -484,31 +482,37 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     }
 
     public void stopVpnService() {
+        startAllowed.set(false);
         if (!this.isServiceActive()) {
             return;
         }
         if (isReceiverRegistered) {
             isReceiverRegistered = false;
         }
+        serviceActive.set(false);
+        connectionManager.interrupt();
+        notificationBuilder.clearActions().addAction(notifStartAction);
+        notificationBuilder.addAction(notifQuitAction);
+        notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
+        notificationListener.updateNotification(NetworkState.NONE, ConnectionState.DISCONNECTED);
+        tun2SocksExecutor.stopTun2Socks();
         try {
-            serviceActive.set(false);
-            connectionManager.interrupt();
-            notificationBuilder.clearActions().addAction(notifStartAction);
-            notificationBuilder.addAction(notifQuitAction);
-            notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
-            notificationListener.updateNotification(null, ConnectionState.DISCONNECTED);
-            tun2SocksExecutor.stopTun2Socks();
-            try {
-                vpnInterface.close();
-            } catch (IOException ignored) {
-            }
-            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION));
-            if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
-                stopForeground(STOP_FOREGROUND_REMOVE);
-                notificationManager.cancelAll();
-            }
-        } catch (NullPointerException ignored) {
+            vpnInterface.close();
+        } catch (IOException ignored) {
         }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION));
+        if (!SharedPreferencesSingleton.getInstance(this).isPersistentNotification()) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+            notificationManager.cancelAll();
+        }
+        getSystemService(ConnectivityManager.class).unregisterNetworkCallback(networkCallback);
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+                startAllowed.set(true);
+            } catch (InterruptedException e) {
+            }
+        }).start();
     }
 
     public NotificationManager getNotificationManager() {
@@ -579,13 +583,19 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
             LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(Intents.STOP_VPN_SERVICE_ACTION));
         }
 
+        public boolean startAllowed() {
+            return startAllowed.get();
+        }
 
         public ConnectionState getConnectionState() {
-            try {
-                return connectionManager.getConnectionState();
-            } catch (NullPointerException e) {
+            if (connectionManager == null) {
                 return ConnectionState.DISCONNECTED;
             }
+            return connectionManager.getConnectionState();
+        }
+
+        public NetworkState getNetworkState() {
+            return connectionManager.getNetworkState();
         }
     }
 }

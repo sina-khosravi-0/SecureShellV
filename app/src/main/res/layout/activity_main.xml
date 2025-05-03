@@ -2,16 +2,17 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/backgroundDrawable"
-    android:id="@+id/root"
     tools:context=".ui.homepage.HomepageActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/constraintLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:hapticFeedbackEnabled="true"
         android:paddingBottom="100dp">
 
         <FrameLayout
@@ -25,6 +26,8 @@
             android:animateLayoutChanges="true"
             android:background="@drawable/vpn_toggle_animation"
             android:clickable="true"
+            android:hapticFeedbackEnabled="true"
+
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.497"
             app:layout_constraintStart_toStartOf="parent"
@@ -33,6 +36,7 @@
             <ImageButton
                 android:id="@+id/vpn_toggle_img"
                 android:layout_width="match_parent"
+                android:hapticFeedbackEnabled="true"
                 android:layout_height="match_parent"
                 android:background="@null"
                 android:clickable="false"
@@ -59,6 +63,7 @@
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
                 android:fadingEdge="vertical"
+                android:hapticFeedbackEnabled="true"
                 android:rotation="180"
                 app:indicatorSize="205dp"
                 app:trackCornerRadius="100dp"
@@ -171,12 +176,13 @@
                     android:textSize="16sp"
                     tools:text="@string/dash" />
             </LinearLayout>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/main_screen_renew_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:visibility="gone"
-                android:text="@string/renew"/>
+                android:text="@string/renew"
+                android:visibility="gone" />
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -207,8 +213,8 @@
             android:id="@+id/bottom_sheet_view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clickable="true"
-            android:background="?attr/colorSecondaryContainer" />
+            android:background="?attr/colorSecondaryContainer"
+            android:clickable="true" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

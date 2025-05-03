@@ -23,8 +23,10 @@ import libv2ray.V2RayVPNServiceSupportsSet;
 
 public class V2rayCoreExecutor {
 
-    public V2rayServicesListener v2rayServicesListener;
     private V2rayConstants.CORE_STATES coreState;
+    public V2rayServicesListener v2rayServicesListener;
+
+
     public final V2RayPoint v2RayPoint = Libv2ray.newV2RayPoint(new V2RayVPNServiceSupportsSet() {
         @Override
         public long shutdown() {

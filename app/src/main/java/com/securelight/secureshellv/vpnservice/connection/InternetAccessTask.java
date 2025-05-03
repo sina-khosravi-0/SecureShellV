@@ -32,7 +32,7 @@ public class InternetAccessTask extends TimerTask {
 
     @Override
     public void run() {
-        NetworkState tempType = checkAndGetAccessType(networkIFaceAvailable.get());
+        NetworkState tempType = checkAndGetAccessType();
         switch (tempType) {
             case RESTRICTED:
             case WORLD_WIDE:

@@ -1,6 +1,6 @@
 package com.securelight.secureshellv.vpnservice.connection;
 
-import static com.securelight.secureshellv.utility.Utilities.checkAndGetAccessType;
+import com.securelight.secureshellv.utility.Utilities;
 
 import android.util.Log;
 
@@ -15,24 +15,19 @@ import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
 
 public class SocksHeartbeatTask extends TimerTask {
     private final String TAG = getClass().getName();
-    //    private final SshManager sshManager;
     private final ConnectionStateListener connectionStateListener;
     private final SocksStateListener socksStateListener;
     private final AtomicBoolean networkIFaceAvailable = new AtomicBoolean(true);
     private final V2rayCoreExecutor v2rayCoreExecutor;
     private final AccessChangeListener accessChangeListener;
-    private int counter = 0;
     private final AtomicBoolean connectionHandlerRunning;
+    private int counter = 0;
 
-    public interface AccessChangeListener {
-        void onNetworkStateChanged(NetworkState networkState);
-    }
-
-    public SocksHeartbeatTask(ConnectionStateListener connectionStateListener,
-                              SocksStateListener socksStateListener,
+    public SocksHeartbeatTask(AtomicBoolean running,
                               V2rayCoreExecutor v2rayCoreExecutor,
+                              SocksStateListener socksStateListener,
                               AccessChangeListener accessChangeListener,
-                              AtomicBoolean running) {
+                              ConnectionStateListener connectionStateListener) {
         this.connectionStateListener = connectionStateListener;
         this.socksStateListener = socksStateListener;
         this.v2rayCoreExecutor = v2rayCoreExecutor;
@@ -48,22 +43,26 @@ public class SocksHeartbeatTask extends TimerTask {
             this.accessChangeListener.onNetworkStateChanged(NetworkState.NONE);
             return;
         }
+
         if (!networkIFaceAvailable.get()) {
-            this.accessChangeListener.onNetworkStateChanged(NetworkState.NO_ACCESS);
+            connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTING);
+            this.accessChangeListener.onNetworkStateChanged(NetworkState.UNAVAILABLE);
             return;
         }
-        NetworkState tempType = checkAndGetAccessType(networkIFaceAvailable.get());
-        if (tempType == NetworkState.UNAVAILABLE || tempType == NetworkState.NO_ACCESS) {
+
+        NetworkState tempType = Utilities.checkAndGetAccessType();
+        if (tempType == NetworkState.NO_ACCESS) {
             counter = 0;
             this.accessChangeListener.onNetworkStateChanged(NetworkState.NO_ACCESS);
             return;
         }
+
         this.accessChangeListener.onNetworkStateChanged(NetworkState.WORLD_WIDE);
         if (v2rayCoreExecutor.getCurrentServerDelay() >= 1) {
-            counter = 0;
             connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTED);
             socksStateListener.onSocksUp();
             Log.d(TAG, "SOCKS UP");
+            counter = 0;
         } else {
             Log.d(TAG, "SOCKS DOWN");
             if (counter >= 3) {
@@ -77,5 +76,9 @@ public class SocksHeartbeatTask extends TimerTask {
 
     public void setNetworkIFaceAvailable(boolean available) {
         networkIFaceAvailable.set(available);
+    }
+
+    public interface AccessChangeListener {
+        void onNetworkStateChanged(NetworkState networkState);
     }
 }
