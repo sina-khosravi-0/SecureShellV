@@ -1,23 +1,35 @@
 package com.securelight.secureshellv.resubscribe;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.imageview.ShapeableImageView;
+import com.securelight.secureshellv.R;
+import com.securelight.secureshellv.backend.ServicePlan;
 import com.securelight.secureshellv.databinding.FragmentServicePackageItemBinding;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServicePackageRecyclerAdapter.ViewHolder> {
-    private List<ServicePackageItem> items;
-//    private OnItemClickListener onItemClickListener;
+    private List<ServicePlan> items;
+    private boolean unlimited;
+    private AdapterView.OnItemClickListener onItemClickListener;
+    private Context context;
 
-    public ServicePackageRecyclerAdapter(List<ServicePackageItem> items) {
-        this.items = items;
+    public ServicePackageRecyclerAdapter(List<ServicePlan> items,
+                                         boolean unlimited,
+                                         Context context) {
+
+        this.items = new ArrayList<>(items);
+        this.unlimited = unlimited;
+        this.context = context;
     }
 
     @NonNull
@@ -28,9 +40,16 @@ public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServiceP
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.title.setText(items.get(position).title);
-        holder.supportText.setText(items.get(position).supportText);
-        holder.price.setText(items.get(position).price);
+        holder.title.setText(context.getResources().getQuantityString(
+                R.plurals.months, items.get(position).getMonths(), items.get(position).getMonths()));
+        holder.price.setText(String.valueOf(items.get(position).getPrice()));
+        if (unlimited) {
+            holder.supportText.setText(context.getResources().getQuantityString(R.plurals.users,
+                    items.get(position).getUsers(), items.get(position).getUsers()));
+        } else {
+            holder.supportText.setText(context.getResources().getQuantityString(R.plurals.gigs,
+                    items.get(position).getTraffic(), items.get(position).getTraffic()));
+        }
     }
 
     @Override
@@ -38,9 +57,15 @@ public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServiceP
         return items.size();
     }
 
-//    public void setOnItemClickListener(OnItemClickListener listener) {
-//        this.onItemClickListener = listener;
-//    }
+    public void changePackageType(List<ServicePlan> items, boolean unlimited) {
+        this.items = new ArrayList<>(items);
+        this.unlimited = unlimited;
+    }
+
+    public void setOnItemClickListener(AdapterView.OnItemClickListener listener) {
+        this.onItemClickListener = listener;
+    }
+
     public class ViewHolder extends RecyclerView.ViewHolder {
         private ShapeableImageView imageView;
         private TextView title;
@@ -53,9 +78,7 @@ public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServiceP
             supportText = binding.supportText;
             price = binding.price;
             itemView.setOnClickListener(v -> {
-                if (getAdapterPosition() != RecyclerView.NO_POSITION) {
-//                    onItemClickListener.onClick(getAdapterPosition());
-                }
+                onItemClickListener.onItemClick(null, v, getBindingAdapterPosition(), 0);
             });
         }
     }

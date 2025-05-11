@@ -297,8 +297,8 @@ public class DataManager {
         return bestHopServer.get();
     }
 
-    public List<ServicePlan> getServicePlans(boolean gold) {
-        JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServicePlans(gold);
+    public List<ServicePlan> getServicePlans() {
+        JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServicePlans();
         List<ServicePlan> servicePlans = new ArrayList<>();
         for (int i = 0; i < response.length(); i++) {
             ServicePlan servicePlan = new ServicePlan();

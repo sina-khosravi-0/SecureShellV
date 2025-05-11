@@ -105,12 +105,12 @@
     <string name="please_select">لطفا انتخاب کنید</string>
     <string name="duration">مدت:</string>
     <string name="plan">بسته:</string>
-    <string name="gold_plans">پلن ویژه</string>
+    <string name="gold_plans">ویژه</string>
     <string name="processing_data">در حال پردازش اطلاعات</string>
     <string name="unlimited">نامحدود</string>
     <string name="what_is_gold_plan">پلن ویژه چیست؟</string>
     <string name="gold_plan_alert_info">پلن ویژه ضمانت کیفیت و سرعت اتصال دارد. \nبسته های پلن حجمی هستند.</string>
-    <string name="silver_plans">پلن عادی</string>
+    <string name="silver_plans">عادی (نامحدود)</string>
     <string name="silver_plan_alert">لطفا توجه داشته باشید که در پلن عادی به دلیل اتصال مستقیم به سرور وی پی ان، امکان اختلال بیشتر است.(بدون تانل)</string>
     <string name="submit_successful">ارسال موفق بود</string>
     <string name="please_select_a_plan_first">لطفا ابتدا یک بسته را انتخاب کنید</string>
@@ -123,4 +123,8 @@
     <string name="fail_to_connect_to_server">اتصال به سرور قطع شد</string>
     <string name="couldn_t_send_stats_to_server">مشکل در ارسال داده به سرور</string>
     <string name="select_package">بسته را انتخاب کنید</string>
+    <string name="package_type">نوع بسته:</string>
+    <string name="limited">حجمی</string>
+    <string name="rial">ریال</string>
+    <string name="duration_no_colon">مدت</string>
 </resources>

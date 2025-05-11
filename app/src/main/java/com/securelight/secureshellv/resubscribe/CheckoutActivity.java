@@ -194,18 +194,7 @@ public class CheckoutActivity extends Activity {
                 runOnUiThread(() -> cardNumberArea.addView(cardNumberTextView));
             });
 
-            servicePlans = DataManager.getInstance().getServicePlans(gold);
-            List<Integer> durations = DatabaseHandlerSingleton.getInstance(this).fetchPlanDurations();
-
-            durations.forEach(duration -> {
-                if (duration / 12 == 0) {
-                    monthsPopup.getMenu().add(1, duration, duration, getResources().getQuantityString(R.plurals.months, duration, duration));
-                } else {
-                    monthsPopup.getMenu().add(1, duration, duration, getResources().getQuantityString(R.plurals.years, duration / 12,
-                            duration / 12));
-                }
-
-            });
+            servicePlans = DataManager.getInstance().getServicePlans();
             servicePlans.forEach(servicePlan -> {
                 if (gold) {
                     plansPopup.getMenu().add(1, servicePlan.getId(), servicePlan.getId(),

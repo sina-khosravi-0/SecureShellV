@@ -18,6 +18,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputLayout;
+import com.securelight.secureshellv.resubscribe.SelectServiceActivity;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.resubscribe.CheckoutActivity;
@@ -103,7 +104,7 @@ public class AccountFragment extends Fragment {
         resubscribeButton = view.findViewById(R.id.account_fragment_renew_button);
 
         resubscribeButton.setOnClickListener(v -> {
-            startActivity(new Intent(getContext(), CheckoutActivity.class));
+            startActivity(new Intent(getContext(), SelectServiceActivity.class));
         });
     }
 

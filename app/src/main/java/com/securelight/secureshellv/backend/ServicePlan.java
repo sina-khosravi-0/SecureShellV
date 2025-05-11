@@ -10,14 +10,20 @@ public class ServicePlan {
     private int price;
     private int users;
     private int traffic;
-    private boolean unlimitedUsers;
+    private int months;
+    private boolean gold;
 
     public void parseData(JSONObject jsonObject) throws JSONException {
         id = jsonObject.getInt("id");
         price = jsonObject.getInt("price");
         users = jsonObject.getInt("users");
-        traffic = jsonObject.getInt("data_usage");
-        unlimitedUsers = jsonObject.getBoolean("unlimited_users");
+        gold = jsonObject.getBoolean("gold");
+        if (gold){
+            traffic = jsonObject.getInt("traffic");
+        } else {
+            traffic = 0;
+        }
+        months = jsonObject.getInt("months");
     }
 
     public int getId() {
@@ -36,8 +42,8 @@ public class ServicePlan {
         return traffic;
     }
 
-    public boolean isUnlimitedUsers() {
-        return unlimitedUsers;
+    public int getMonths() {
+        return months;
     }
 
     @NonNull
@@ -48,7 +54,11 @@ public class ServicePlan {
                 ", price=" + price +
                 ", users=" + users +
                 ", traffic=" + traffic +
-                ", unlimitedUsers=" + unlimitedUsers +
+                ", months=" + months +
                 '}';
+    }
+
+    public boolean isGold() {
+        return gold;
     }
 }

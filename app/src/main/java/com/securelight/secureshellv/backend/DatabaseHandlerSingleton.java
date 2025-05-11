@@ -424,12 +424,9 @@ public class DatabaseHandlerSingleton {
         }
     }
 
-    public JSONArray fetchServicePlans(boolean gold) {
+    public JSONArray fetchServicePlans() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = apiAddress + "api/account/services/";
-        if (gold) {
-            url += "gold/";
-        }
 
         RequestFuture<JSONArray> future = RequestFuture.newFuture();
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
@@ -450,34 +447,6 @@ public class DatabaseHandlerSingleton {
         }
     }
 
-    public List<Integer> fetchPlanDurations() {
-        String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
-        String url = apiAddress + "api/account/durations/";
-
-        RequestFuture<JSONArray> future = RequestFuture.newFuture();
-        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, future, future) {
-            @Override
-            public Map<String, String> getHeaders() {
-                Map<String, String> params = new HashMap<>();
-                params.put("Authorization", "Bearer " + accessToken);
-                return params;
-            }
-        };
-        instance.addToRequestQueue(request);
-        try {
-            JSONArray response = future.get(20, TimeUnit.SECONDS);
-            List<Integer> durations = new ArrayList<>();
-            for (int i = 0; i < response.length(); i++) {
-                durations.add(response.getJSONObject(i).getInt("months"));
-            }
-            return durations;
-//            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(MainActivity.UPDATE_USER_DATA_INTENT));
-        } catch (InterruptedException | ExecutionException | TimeoutException ex) {
-            Log.d("DatabaseHandler", ex.getMessage(), ex);
-        } catch (JSONException ignored) {
-        }
-        return new ArrayList<>();
-    }
 
     public List<String> fetchCardNumbers() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();

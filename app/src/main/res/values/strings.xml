@@ -89,8 +89,10 @@
     <string name="submit">Submit</string>
     <string name="please_select">Please Select</string>
     <string name="duration">Duration:</string>
+    <string name="duration_no_colon">Duration</string>
+
     <string name="plan">Package:</string>
-    <string name="gold_plans">VIP Plan</string>
+    <string name="gold_plans">Gold</string>
     <string name="processing_data">Processing Data</string>
     <string name="left">left</string>
     <plurals name="days_left">
@@ -121,11 +123,11 @@
         <item quantity="one">%dGB</item>
         <item quantity="other">%dGB</item>
     </plurals>
-    <string name="toman">toman</string>
+    <string name="toman">Toman</string>
     <string name="unlimited">Unlimited</string>
     <string name="what_is_gold_plan">What is VIP plan?</string>
     <string name="gold_plan_alert_info">In the VIP plan, the VPN utilizes servers located in iran to connect to the destination server. This will improve VPN quality and reduce disconnection. \nNote: Packages in the VIP plan have limited data usage.</string>
-    <string name="silver_plans">Normal Plan</string>
+    <string name="silver_plans">Normal(Unlimited)</string>
     <string name="silver_plan_alert">Please note that in the normal plan, the probability of slow connection is higher due to direct connection to VPN servers.(No tunnel)</string>
     <string name="submit_successful">Submit Successful</string>
     <string name="please_select_a_plan_first">Please select a plan first</string>
@@ -139,5 +141,7 @@
     <string name="fail_to_connect_to_server">Fail To Connect To Server</string>
     <string name="couldn_t_send_stats_to_server">Couldn\'t send stats to server.</string>
     <string name="select_package">Select Package</string>
-    <string name="package_type" translatable="false">نوع بسته:</string>
+    <string name="package_type">Package Type:</string>
+    <string name="limited">Limited</string>
+    <string name="rial">Rial</string>
 </resources>

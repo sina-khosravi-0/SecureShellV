@@ -29,6 +29,10 @@
         <activity
             android:name=".resubscribe.CheckoutActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".resubscribe.SelectServiceActivity"
+            android:exported="false" />
         <!-- <activity -->
         <!-- android:name=".MainActivityTest" -->
         <!-- android:exported="true" -->
