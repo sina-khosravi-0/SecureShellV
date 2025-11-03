@@ -99,7 +99,7 @@ UI	                       | Google Material Design 3 Components
 ### Prerequisites
 
 - Android Studio
-- Android 7.0+ (API 24+)
+- Android 8.0+ (API 26+)
 - SSH server account (for tunneling)
 
 ### Installation
