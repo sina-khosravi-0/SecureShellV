@@ -1,6 +1,8 @@
 package com.securelight.secureshellv.resubscribe;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.view.View;
 import android.widget.RadioGroup;
 
@@ -10,10 +12,15 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.radiobutton.MaterialRadioButton;
+import com.google.gson.Gson;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.ServicePlan;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,15 +53,18 @@ public class SelectServiceActivity extends AppCompatActivity {
             typeRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
 
                 recyclerAdapter.changePackageType(servicePlans.stream()
-                        // filter services based on selected type before passing it to the recycler
-                        .filter(servicePlan -> normalRadio.isChecked() ? !servicePlan.isGold() : servicePlan.isGold())
-                        .collect(Collectors.toList()),
+                                // filter services based on selected type before passing it to the recycler
+                                .filter(servicePlan -> normalRadio.isChecked() ? !servicePlan.isGold() : servicePlan.isGold())
+                                .collect(Collectors.toList()),
                         normalRadio.isChecked());
                 recyclerAdapter.notifyDataSetChanged();
             });
 
-            recyclerAdapter.setOnItemClickListener((parent, view, position, id) -> {
-                System.out.println(position);
+            recyclerAdapter.setOnItemClickListener(servicePlan -> {
+                Intent checkoutIntent = new Intent(this, CheckoutActivity.class);
+                Gson gson = new Gson();
+                checkoutIntent.putExtra("service_plan", gson.toJson(servicePlan));
+                startActivity(checkoutIntent);
             });
 
             runOnUiThread(() -> {

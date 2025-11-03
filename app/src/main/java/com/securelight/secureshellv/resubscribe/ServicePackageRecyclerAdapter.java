@@ -20,7 +20,7 @@ import java.util.List;
 public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServicePackageRecyclerAdapter.ViewHolder> {
     private List<ServicePlan> items;
     private boolean unlimited;
-    private AdapterView.OnItemClickListener onItemClickListener;
+    private OnServiceClickListener onItemClickListener;
     private Context context;
 
     public ServicePackageRecyclerAdapter(List<ServicePlan> items,
@@ -62,7 +62,7 @@ public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServiceP
         this.unlimited = unlimited;
     }
 
-    public void setOnItemClickListener(AdapterView.OnItemClickListener listener) {
+    public void setOnItemClickListener(OnServiceClickListener listener) {
         this.onItemClickListener = listener;
     }
 
@@ -78,7 +78,7 @@ public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServiceP
             supportText = binding.supportText;
             price = binding.price;
             itemView.setOnClickListener(v -> {
-                onItemClickListener.onItemClick(null, v, getBindingAdapterPosition(), 0);
+                onItemClickListener.onServiceClicked(items.get(getBindingAdapterPosition()));
             });
         }
     }

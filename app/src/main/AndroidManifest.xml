@@ -28,6 +28,7 @@
         tools:targetApi="33">
         <activity
             android:name=".resubscribe.CheckoutActivity"
+            android:launchMode="singleTask"
             android:exported="false" />
 
         <activity

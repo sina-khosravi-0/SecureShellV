@@ -24,6 +24,7 @@ import androidx.core.app.ActivityCompat;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
+import com.google.gson.Gson;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
@@ -48,21 +49,16 @@ public class CheckoutActivity extends Activity {
     private TextView amountText;
     private MaterialButton selectReceiptButton;
     private MaterialButton submitReceiptButton;
-    private MaterialButton selectDurationButton;
-    private MaterialButton selectPlanButton;
-    private MaterialSwitch goldSwitch;
     private ImageView receiptImageView;
     private LinearLayout loadingView;
     private LinearLayout cardNumberArea;
-    private List<ServicePlan> servicePlans;
-    private int months = 1;
     private ServicePlan selectedServicePlan;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checkout);
-
+        selectedServicePlan = new Gson().fromJson(getIntent().getStringExtra("service_plan"), ServicePlan.class);
         amountText = findViewById(R.id.amount_text);
         selectReceiptButton = findViewById(R.id.select_receipt_image_button);
         submitReceiptButton = findViewById(R.id.submit_receipt_image_button);
@@ -70,63 +66,6 @@ public class CheckoutActivity extends Activity {
         receiptImageView = findViewById(R.id.receipt_image_view);
         loadingView = findViewById(R.id.loading);
         amountText.setClickable(true);
-
-        PopupMenu monthsPopup = new PopupMenu(CheckoutActivity.this, selectDurationButton);
-        PopupMenu plansPopup = new PopupMenu(CheckoutActivity.this, selectPlanButton);
-        fillShitUp(monthsPopup, plansPopup, goldSwitch.isChecked());
-
-        monthsPopup.setOnMenuItemClickListener(item -> {
-            selectDurationButton.setText(item.getTitle());
-            months = item.getItemId();
-            if (selectedServicePlan != null) {
-                amountText.setText(NumberFormat.getInstance().format((long) selectedServicePlan.getPrice() * months));
-            }
-            return true;
-        });
-        plansPopup.setOnMenuItemClickListener(item -> {
-            try {
-                ServicePlan servicePlan = servicePlans.stream()
-                        .filter(plan -> plan.getId() == item.getItemId()).collect(Collectors.toList()).get(0);
-                if (goldSwitch.isChecked()) {
-                    selectPlanButton.setText(String.format("%s - %s",
-                            getResources().getQuantityString(R.plurals.users, servicePlan.getUsers(), servicePlan.getUsers()),
-                            getResources().getQuantityString(R.plurals.gigs, servicePlan.getTraffic(), servicePlan.getTraffic())));
-                } else {
-                    selectPlanButton.setText(String.format("%s - %s",
-                            getResources().getQuantityString(R.plurals.users, servicePlan.getUsers(), servicePlan.getUsers()),
-                            getResources().getString(R.string.unlimited)));
-                }
-                selectedServicePlan = servicePlan;
-                amountText.setText(NumberFormat.getInstance().format((long) servicePlan.getPrice() * months));
-            } catch (IndexOutOfBoundsException ignored) {
-            }
-            return true;
-        });
-
-
-        goldSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!isChecked) {
-                new MaterialAlertDialogBuilder(this)
-                        .setTitle(R.string.silver_plans)
-                        .setMessage(R.string.silver_plan_alert)
-                        .setNeutralButton(R.string.ok, null).show();
-            }
-            selectedServicePlan = null;
-            selectPlanButton.setText(getString(R.string.please_select));
-            amountText.setText("");
-            monthsPopup.getMenu().clear();
-            plansPopup.getMenu().clear();
-            fillShitUp(monthsPopup, plansPopup, isChecked);
-        });
-
-        selectDurationButton.setOnClickListener(v -> {
-            monthsPopup.getMenuInflater().inflate(R.menu.duration_menu, monthsPopup.getMenu());
-            monthsPopup.show();
-        });
-        selectPlanButton.setOnClickListener(v -> {
-            plansPopup.getMenuInflater().inflate(R.menu.duration_menu, plansPopup.getMenu());
-            plansPopup.show();
-        });
 
         selectReceiptButton.setOnClickListener(view -> {
             List<String> requiredPermissions = new ArrayList<>(Arrays.asList(
@@ -158,7 +97,7 @@ public class CheckoutActivity extends Activity {
                         },
                         error -> {
                             Log.e("DatabaseHandlerSingleton", "submit receipt error" + new String(error.networkResponse.data));
-                            if (new String(error.networkResponse.data).contains("renew_pending")){
+                            if (new String(error.networkResponse.data).contains("renew_pending")) {
                                 Toast.makeText(this, R.string.already_requested_renewal, Toast.LENGTH_SHORT).show();
                             }
                             loadingView.setVisibility(View.GONE);
@@ -169,7 +108,7 @@ public class CheckoutActivity extends Activity {
         });
     }
 
-    private void fillShitUp(PopupMenu monthsPopup, PopupMenu plansPopup, boolean gold) {
+    private void fillShitUp(boolean gold) {
         loadingView.setVisibility(View.VISIBLE);
         cardNumberArea.removeAllViews();
         new Thread(() -> {
@@ -194,29 +133,6 @@ public class CheckoutActivity extends Activity {
                 runOnUiThread(() -> cardNumberArea.addView(cardNumberTextView));
             });
 
-            servicePlans = DataManager.getInstance().getServicePlans();
-            servicePlans.forEach(servicePlan -> {
-                if (gold) {
-                    plansPopup.getMenu().add(1, servicePlan.getId(), servicePlan.getId(),
-                            String.format("%s - %s - %s",
-                                    getResources().getQuantityString(R.plurals.users, servicePlan.getUsers(), servicePlan.getUsers()),
-                                    getResources().getQuantityString(R.plurals.gigs, servicePlan.getTraffic(), servicePlan.getTraffic()),
-                                    NumberFormat.getInstance().format(servicePlan.getPrice()) + " " + getResources().getString(R.string.toman)));
-                } else {
-                    plansPopup.getMenu().add(1, servicePlan.getId(), servicePlan.getId(),
-                            String.format("%s - %s",
-                                    getResources().getQuantityString(R.plurals.users, servicePlan.getUsers(), servicePlan.getUsers()),
-                                    NumberFormat.getInstance().format(servicePlan.getPrice()) + " " + getResources().getString(R.string.toman)));
-                }
-            });
-            runOnUiThread(() -> {
-                if (monthsPopup.getMenu().size() != 0) {
-                    selectDurationButton.setText(monthsPopup.getMenu().getItem(0).getTitle());                    
-                    months = 1;
-                    loadingView.setVisibility(View.GONE);
-                }
-                
-            });
         }).start();
     }
 
