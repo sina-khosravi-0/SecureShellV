@@ -92,7 +92,7 @@ VPN                        | Android VpnService, V2ray Core
 Networking                 | HTTPS Backend
 Protocols                  | VMess, VLESS
 Storage                    | SharedPreferences / Local cache
-Architecture	             | MVVM
+Architecture Pattern       | MVC
 UI	                       | Google Material Design 3 Components
 
 ## Getting Started
