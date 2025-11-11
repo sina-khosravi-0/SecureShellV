@@ -1,7 +1,7 @@
 # SecureShellV
 
-SecureShellV is an Android-based VPN solution designed to provide secure, reliable, and configurable network tunneling through SSH.
-It enables users to safely browse the internet—even on untrusted networks—while offering a polished UI, account management, app filtering, server switching, and multi-language support.
+SecureShellV is an Android-based VPN solution designed to provide secure, reliable, and easy to setup network tunneling using v2ray core.
+It enables users to secure their connection with no need for a configuration offering a polished UI, account management, app filtering, server switching, and multi-language support.
 
 This project demonstrates experience in Android networking, VPNService, secure communications, UI/UX, and client–server integration.
 
