@@ -92,7 +92,7 @@
     <string name="duration_no_colon">Duration</string>
 
     <string name="plan">Package:</string>
-    <string name="gold_plans">Gold</string>
+    <string name="gold_plans">Special</string>
     <string name="processing_data">Processing Data</string>
     <string name="left">left</string>
     <plurals name="days_left">
@@ -144,4 +144,6 @@
     <string name="package_type">Package Type:</string>
     <string name="limited">Limited</string>
     <string name="rial">Rial</string>
+    <string name="transfer_the_specified_amount">Transfer the specified amount to the card number below and submit your receipt.\n • Your request will be processed by an operator.</string>
+    <string name="already_submitted">Already Submitted</string>
 </resources>

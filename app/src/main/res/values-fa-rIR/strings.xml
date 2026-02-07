@@ -127,4 +127,6 @@
     <string name="limited">حجمی</string>
     <string name="rial">ریال</string>
     <string name="duration_no_colon">مدت</string>
+    <string name="transfer_the_specified_amount">مقدار تعیین شده را به شماره کارت واریز بفرمایید و رسید آن را ارسال کنید.\n  • درخواست شما توسط اپراتور پیگیری خواهد شد.</string>
+    <string name="already_submitted">قبلا درخواست داده اید</string>
 </resources>

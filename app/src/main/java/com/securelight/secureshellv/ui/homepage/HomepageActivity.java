@@ -56,6 +56,7 @@ import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.resubscribe.CheckoutActivity;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.resubscribe.SelectServiceActivity;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
@@ -367,7 +368,7 @@ public class HomepageActivity extends AppCompatActivity {
         });
 
         resubscribeButton.setOnClickListener(v -> {
-            startActivity(new Intent(getApplicationContext(), CheckoutActivity.class));
+            startActivity(new Intent(getApplicationContext(), SelectServiceActivity.class));
         });
 
         LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);

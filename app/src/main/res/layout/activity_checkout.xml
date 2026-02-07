@@ -24,6 +24,43 @@
             android:showDividers="middle"
             tools:context=".resubscribe.CheckoutActivity">
 
+            <TextView
+                android:id="@+id/month_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                tools:text="1 Month"
+                />
+
+            <TextView
+                android:id="@+id/gig_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                tools:text="50 GB"
+                />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="@drawable/empty_divider"
+                android:gravity="center"
+
+                android:orientation="horizontal"
+                android:showDividers="middle|beginning">
+                <TextView
+                    android:id="@+id/amount_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_container_background"
+                    android:padding="10dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="70,000" />
+
+            </LinearLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -47,31 +84,6 @@
 
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:divider="@drawable/empty_divider"
-                android:gravity="center"
-
-                android:orientation="horizontal"
-                android:showDividers="middle|beginning">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/amount" />
-
-                <TextView
-                    android:id="@+id/amount_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/rounded_container_background"
-                    android:padding="10dp"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    tools:text="70,000" />
-
-            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -97,7 +109,13 @@
                     android:visibility="gone"
                     tools:visibility="visible" />
             </LinearLayout>
-
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:text="@string/transfer_the_specified_amount"
+                />
             <ImageView
                 android:id="@+id/receipt_image_view"
                 android:layout_width="match_parent"

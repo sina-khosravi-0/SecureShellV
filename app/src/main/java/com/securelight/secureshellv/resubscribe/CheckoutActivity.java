@@ -47,19 +47,22 @@ public class CheckoutActivity extends Activity {
     private static final int PICK_IMAGE_REQUEST = 1;
     private Bitmap bitmap;
     private TextView amountText;
+    private TextView monthText;
+    private TextView gigText;
     private MaterialButton selectReceiptButton;
     private MaterialButton submitReceiptButton;
     private ImageView receiptImageView;
     private LinearLayout loadingView;
     private LinearLayout cardNumberArea;
-    private ServicePlan selectedServicePlan;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checkout);
-        selectedServicePlan = new Gson().fromJson(getIntent().getStringExtra("service_plan"), ServicePlan.class);
+
         amountText = findViewById(R.id.amount_text);
+        monthText = findViewById(R.id.month_text);
+        gigText = findViewById(R.id.gig_text);
         selectReceiptButton = findViewById(R.id.select_receipt_image_button);
         submitReceiptButton = findViewById(R.id.submit_receipt_image_button);
         cardNumberArea = findViewById(R.id.card_number_area);
@@ -67,6 +70,8 @@ public class CheckoutActivity extends Activity {
         loadingView = findViewById(R.id.loading);
         amountText.setClickable(true);
 
+        ServicePlan servicePlan = getIntent().getParcelableExtra("service_plan");
+        fillShitUp(servicePlan);
         selectReceiptButton.setOnClickListener(view -> {
             List<String> requiredPermissions = new ArrayList<>(Arrays.asList(
                     Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -86,31 +91,34 @@ public class CheckoutActivity extends Activity {
         });
 
         submitReceiptButton.setOnClickListener(v -> {
-            if (selectedServicePlan != null) {
-                loadingView.setVisibility(View.VISIBLE);
-                DatabaseHandlerSingleton.getInstance(null).sendRenewRequest(bitmap,
-                        selectedServicePlan.getId(),
-                        response -> {
-                            Toast.makeText(this, R.string.submit_successful, Toast.LENGTH_SHORT).show();
-                            loadingView.setVisibility(View.GONE);
-                            finish();
-                        },
-                        error -> {
-                            Log.e("DatabaseHandlerSingleton", "submit receipt error" + new String(error.networkResponse.data));
-                            if (new String(error.networkResponse.data).contains("renew_pending")) {
-                                Toast.makeText(this, R.string.already_requested_renewal, Toast.LENGTH_SHORT).show();
-                            }
-                            loadingView.setVisibility(View.GONE);
-                        });
-            } else {
-                Toast.makeText(this, R.string.please_select_a_plan_first, Toast.LENGTH_SHORT).show();
-            }
+            loadingView.setVisibility(View.VISIBLE);
+            DatabaseHandlerSingleton.getInstance(null).sendRenewRequest(bitmap,
+                    servicePlan.getId(),
+                    response -> {
+                        Toast.makeText(this, R.string.submit_successful, Toast.LENGTH_SHORT).show();
+                        loadingView.setVisibility(View.GONE);
+                        finish();
+                    },
+                    error -> {
+                        Log.e("DatabaseHandlerSingleton", "submit receipt error" + new String(error.networkResponse.data));
+                        if (new String(error.networkResponse.data).contains("renew_pending")) {
+                            Toast.makeText(this, R.string.already_requested_renewal, Toast.LENGTH_SHORT).show();
+                        }
+                        loadingView.setVisibility(View.GONE);
+                    });
         });
     }
 
-    private void fillShitUp(boolean gold) {
+    private void fillShitUp(ServicePlan servicePlan) {
         loadingView.setVisibility(View.VISIBLE);
         cardNumberArea.removeAllViews();
+        amountText.setText(String.valueOf(servicePlan.getPrice()) + getString(R.string.toman));
+        monthText.setText(getResources().getQuantityString(R.plurals.months, servicePlan.getMonths(), servicePlan.getMonths()));
+        if (servicePlan.isGold()) {
+            gigText.setText(getResources().getQuantityString(R.plurals.gigs, servicePlan.getTraffic(), servicePlan.getTraffic()));
+        } else {
+            gigText.setText(getResources().getQuantityString(R.plurals.users, servicePlan.getUsers(), servicePlan.getUsers()));
+        }
         new Thread(() -> {
             List<String> cardNumbers = DatabaseHandlerSingleton.getInstance(this).fetchCardNumbers();
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
@@ -132,7 +140,7 @@ public class CheckoutActivity extends Activity {
                 cardNumberTextView.setForeground(AppCompatResources.getDrawable(this, typedValue.resourceId));
                 runOnUiThread(() -> cardNumberArea.addView(cardNumberTextView));
             });
-
+            runOnUiThread(() ->loadingView.setVisibility(View.GONE));
         }).start();
     }
 

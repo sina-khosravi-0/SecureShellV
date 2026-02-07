@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.Parcelable;
 import android.view.View;
 import android.widget.RadioGroup;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -61,9 +62,12 @@ public class SelectServiceActivity extends AppCompatActivity {
             });
 
             recyclerAdapter.setOnItemClickListener(servicePlan -> {
+                if (DataManager.getInstance().isRenewPending()) {
+                    Toast.makeText(SelectServiceActivity.this, R.string.already_submitted, Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 Intent checkoutIntent = new Intent(this, CheckoutActivity.class);
-                Gson gson = new Gson();
-                checkoutIntent.putExtra("service_plan", gson.toJson(servicePlan));
+                checkoutIntent.putExtra("service_plan", servicePlan);
                 startActivity(checkoutIntent);
             });
 
