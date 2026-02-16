@@ -13,8 +13,6 @@ import java.net.Proxy;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
-import dev.dev7.lib.v2ray.V2rayController;
-
 public class NetTools {
     public static boolean checkInternetAccess() {
         Runtime runtime = Runtime.getRuntime();

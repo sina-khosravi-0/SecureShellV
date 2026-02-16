@@ -1,12 +1,15 @@
 package com.securelight.secureshellv.utility;
 
-import static dev.dev7.lib.v2ray.utils.Utilities.normalizeV2rayFullConfig;
-import static dev.dev7.lib.v2ray.utils.V2rayConfigs.currentConfig;
+
+import static com.securelight.secureshellv.statics.V2rayConstants.DEFAULT_OUT_BOUND_PLACE_IN_FULL_JSON_CONFIG;
 
 import android.content.res.Resources;
 import android.util.Log;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.securelight.secureshellv.backend.V2rayConfig;
+import com.securelight.secureshellv.backend.V2rayConfigModel;
+import com.securelight.secureshellv.statics.V2rayConstants;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 
 import org.json.JSONArray;
@@ -23,7 +26,15 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
+import libv2ray.Libv2ray;
+
 public class Utilities {
+
+    public static V2rayConstants.CONNECTION_STATES connectionState = V2rayConstants.CONNECTION_STATES.DISCONNECTED;
+    public static V2rayConstants.SERVICE_MODES serviceMode = V2rayConstants.SERVICE_MODES.VPN_MODE;
+    public static V2rayConfigModel currentConfig = new V2rayConfigModel();
+
+
     public static boolean containsIgnoreCase(String str, String searchStr) {
         if (str == null || searchStr == null) return false;
 
@@ -72,13 +83,13 @@ public class Utilities {
         }
     }
 
-    public static int convertDPtoPX(Resources resources, int dp){
+    public static int convertDPtoPX(Resources resources, int dp) {
         final float scale = resources.getDisplayMetrics().density;
         return (int) (dp * scale + 0.5f);
     }
 
     public static V2rayConfig getBestV2rayConfig(List<V2rayConfig> configs) {
-        if (configs.size() == 0) {
+        if (configs.isEmpty()) {
             return null;
         }
         double[] pings = new double[configs.size()];
@@ -86,12 +97,9 @@ public class Utilities {
         double bestPing = Double.MAX_VALUE;
         List<Thread> threads = new ArrayList<>();
         for (int i = 0; i < configs.size(); i++) {
-            int index  = i;
+            int index = i;
             Thread thread = new Thread(() -> {
-                try {
-                    pings[index] = configs.get(index).calculateBestPing();
-                } catch (JSONException ignore) {
-                }
+                pings[index] = configs.get(index).calculateBestPing();
             });
             threads.add(thread);
             thread.start();
@@ -136,7 +144,8 @@ public class Utilities {
         currentConfig.remark = remark;
         currentConfig.blockedApplications = blockedApplications;
         try {
-            JSONObject config_json = new JSONObject(normalizeV2rayFullConfig(config));
+            JSONObject config_json =
+                    new JSONObject(/*todo if need uri config*//*normalizeV2rayFullConfig*/(config));
             try {
                 JSONArray inbounds = config_json.getJSONArray("inbounds");
                 for (int i = 0; i < inbounds.length(); i++) {
@@ -156,15 +165,15 @@ public class Utilities {
                     }
                 }
             } catch (Exception e) {
-                Log.w(dev.dev7.lib.v2ray.utils.Utilities.class.getSimpleName(), "startCore warn => can`t find inbound port of socks5 or http.");
+                Log.w("RefillCurrentConfig", "startCore warn => can`t find inbound port of socks5 or http.");
                 return false;
             }
             try {
                 currentConfig.currentServerAddress = config_json.getJSONArray("outbounds").getJSONObject(0).getJSONObject("settings").getJSONArray("vnext").getJSONObject(0).getString("address");
                 currentConfig.currentServerPort = config_json.getJSONArray("outbounds").getJSONObject(0).getJSONObject("settings").getJSONArray("vnext").getJSONObject(0).getInt("port");
             } catch (Exception e) {
-                currentConfig.currentServerAddress = config_json.getJSONArray("outbounds").getJSONObject(0).getJSONObject("settings").getJSONArray("servers").getJSONObject(0).getString("address");
-                currentConfig.currentServerPort = config_json.getJSONArray("outbounds").getJSONObject(0).getJSONObject("settings").getJSONArray("servers").getJSONObject(0).getInt("port");
+                currentConfig.currentServerAddress = config_json.getJSONArray("outbounds").getJSONObject(0).getJSONObject("settings").getString("address");
+                currentConfig.currentServerPort = config_json.getJSONArray("outbounds").getJSONObject(0).getJSONObject("settings").getInt("port");
             }
             try {
                 if (config_json.has("policy")) {
@@ -187,7 +196,7 @@ public class Utilities {
                     config_json.put("policy", policy);
                     config_json.put("stats", new JSONObject());
                 } catch (Exception e) {
-                    Log.e("log is here", e.toString());
+                    Log.e("refillV2rayConfig", e.toString());
                     currentConfig.enableTrafficStatics = false;
                     //ignore
                 }
@@ -253,10 +262,16 @@ public class Utilities {
             currentConfig.fullJsonConfig = config_json.toString();
             return true;
         } catch (Exception e) {
-            Log.e(dev.dev7.lib.v2ray.utils.Utilities.class.getSimpleName(), "parseV2rayJsonFile failed => ", e);
+            Log.e("RefillV2rayConfig", "parseV2rayJsonFile failed => ", e);
             return false;
         }
     }
-
+//    todo: do this if need uri
+//    public static String normalizeV2rayFullConfig(String config) {
+//        if (Libv2ray.isXrayURI(config)) {
+//            return V2rayConstants.DEFAULT_FULL_JSON_CONFIG.replace(DEFAULT_OUT_BOUND_PLACE_IN_FULL_JSON_CONFIG, Libv2ray.getXrayOutboundFromURI(config));
+//        }
+//        return config;
+//    }
 
 }

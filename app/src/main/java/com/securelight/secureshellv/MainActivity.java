@@ -6,6 +6,8 @@ import android.os.PersistableBundle;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.ui.login.LoginActivity;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
@@ -23,7 +25,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             startActivity(new Intent(getApplicationContext(), LoginActivity.class));
         }
-        // finish this activity
         finish();
     }
 }

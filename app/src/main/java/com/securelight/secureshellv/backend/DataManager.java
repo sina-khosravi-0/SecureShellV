@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class DataManager {
     private static DataManager dataManager;
     private final List<V2rayConfig> v2rayConfigs = new ArrayList<>();
+    public String selectedConfig;
     private String userName;
     private List<TargetServer> targetServers = new ArrayList<>();
     private TargetServer bestServer;

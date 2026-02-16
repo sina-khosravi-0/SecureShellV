@@ -6,13 +6,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.SendTrafficTimeTask;
@@ -25,6 +25,7 @@ import com.securelight.secureshellv.vpnservice.StatsHandler;
 import com.securelight.secureshellv.vpnservice.listeners.InterfaceErrorListener;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import com.securelight.secureshellv.vpnservice.listeners.SocksStateListener;
+import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
 
 import org.json.JSONException;
 
@@ -32,9 +33,9 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
-import dev.dev7.lib.v2ray.utils.V2rayConfigs;
-import dev.dev7.lib.v2ray.utils.V2rayConstants;
+//import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
+//import dev.dev7.lib.v2ray.utils.V2rayConstants;
+
 
 public class ConnectionManager extends Thread {
 
@@ -44,7 +45,7 @@ public class ConnectionManager extends Thread {
     private final NotificationListener notificationListener;
     private final InterfaceErrorListener interfaceErrorListener;
     private final Timer socksTimer;
-    private final V2rayCoreExecutor v2rayCoreExecutor;
+    private final V2rayCoreManager v2rayCoreManager;
     private final StatsHandler statsHandler;
     private final Timer sendTrafficTimer;
     private final Timer apiHeartbeatTimer;
@@ -62,14 +63,14 @@ public class ConnectionManager extends Thread {
 
     public ConnectionManager(ParcelFileDescriptor vpnInterface, Context context,
                              NotificationListener notificationListener,
-                             V2rayCoreExecutor v2rayCoreExecutor,
+                             V2rayCoreManager v2rayCoreManager,
                              StatsHandler statsHandler,
                              InterfaceErrorListener interfaceErrorListener) {
         this.vpnInterface = vpnInterface;
         this.context = context.getApplicationContext();
         this.notificationListener = notificationListener;
         this.interfaceErrorListener = interfaceErrorListener;
-        this.v2rayCoreExecutor = v2rayCoreExecutor;
+        this.v2rayCoreManager = v2rayCoreManager;
         this.statsHandler = statsHandler;
         socksTimer = new Timer();
         sendTrafficTimer = new Timer();
@@ -83,11 +84,6 @@ public class ConnectionManager extends Thread {
     public void run() {
         setupInProgress = true;
         running.set(true);
-        updateConnectionStateUI();
-        boolean isLoaded = loadV2rayConfig();
-        if (!isLoaded) {
-            return;
-        }
         startV2ray();
         scheduleSocksHeartbeatTask();
         setupListener.onSetupFinished();
@@ -102,16 +98,28 @@ public class ConnectionManager extends Thread {
             interfaceErrorListener.onFoundInterfaceError();
             return;
         }
-
-        boolean restart = v2rayCoreExecutor.getCoreState() == V2rayConstants.CORE_STATES.IDLE ||
-                v2rayCoreExecutor.getCoreState() == V2rayConstants.CORE_STATES.RUNNING;
+        v2rayCoreManager.initCore();
+        boolean restart = v2rayCoreManager.isCoreRunning();
         if (restart) {
-            v2rayCoreExecutor.stopCore(false);
+            v2rayCoreManager.stopLoop();
         }
         if (!running.get()) {
             return;
         }
-        v2rayCoreExecutor.startCore(V2rayConfigs.currentConfig);
+        if (!loadV2rayConfig()) {
+            stopV2ray();
+            return;
+        }
+
+        try {
+            v2rayCoreManager.startLoop(DataManager.getInstance().selectedConfig, vpnInterface.getFd());
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage(), e);
+            stopV2ray();
+            return;
+        }
+
+
         stopStatsHandler();
         startStatsHandler();
         cancelTasks();
@@ -119,7 +127,7 @@ public class ConnectionManager extends Thread {
     }
 
     private void stopV2ray() {
-        v2rayCoreExecutor.stopCore(false);
+        v2rayCoreManager.stopLoop();
         connectionState = ConnectionState.DISCONNECTED;
         updateConnectionStateUI();
         stopStatsHandler();
@@ -135,12 +143,14 @@ public class ConnectionManager extends Thread {
                 LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.START_SERVICE_FAILED_ACTION));
                 return false;
             }
-        } catch (JSONException e) {
+            Utilities.refillV2rayConfig("BestConfig", config.getConfig(), null, true);
+            DataManager.getInstance().selectedConfig = Utilities.currentConfig.fullJsonConfig;
+//            DataManager.getInstance().selectedConfig = config.getConfig();
+        } catch (Exception e) {
             Log.e(TAG, "couldn't load v2ray config", e);
-            throw new RuntimeException(e);
+            return false;
         }
 
-        Utilities.refillV2rayConfig("BestConfig", config.getJson(), null, true);
         return true;
     }
 
@@ -184,7 +194,7 @@ public class ConnectionManager extends Thread {
     }
 
     private void scheduleSocksHeartbeatTask() {
-        socksHeartbeatTask = new SocksHeartbeatTask(running, v2rayCoreExecutor,
+        socksHeartbeatTask = new SocksHeartbeatTask(running, v2rayCoreManager,
                 new SocksStateListener() {
                     @Override
                     public void onSocksDown() {

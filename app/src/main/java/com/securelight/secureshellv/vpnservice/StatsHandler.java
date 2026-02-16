@@ -1,20 +1,22 @@
 package com.securelight.secureshellv.vpnservice;
 
+import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
+//import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
 
 public class StatsHandler {
-    private final V2rayCoreExecutor v2rayCoreExecutor;
+    private final V2rayCoreManager v2rayCoreManager;
     ScheduledExecutorService scheduler;
     private long bytesDownloaded = 0;
     private long bytesUploaded = 0;
     private boolean running = false;
 
-    public StatsHandler(V2rayCoreExecutor v2rayCoreExecutor) {
-        this.v2rayCoreExecutor = v2rayCoreExecutor;
+    public StatsHandler(V2rayCoreManager v2rayCoreExecutor) {
+        this.v2rayCoreManager = v2rayCoreExecutor;
     }
 
     public void start() {
@@ -23,8 +25,8 @@ public class StatsHandler {
         }
         scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleWithFixedDelay(() -> {
-                    bytesDownloaded += v2rayCoreExecutor.getDownloadSpeed();
-                    bytesUploaded += v2rayCoreExecutor.getUploadSpeed();
+                    bytesDownloaded += v2rayCoreManager.getDownloadSpeed();
+                    bytesUploaded += v2rayCoreManager.getUploadSpeed();
                 },
                 0,
                 100,

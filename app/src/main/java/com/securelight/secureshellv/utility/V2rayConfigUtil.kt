@@ -29,7 +29,7 @@ object V2rayConfigUtil {
 //        val result = getV2rayNonCustomConfig(context, outbound, configJson.toString())
 //        return result
 //    }
-    fun getV2rayConfig(context: Context, configJson: JSONObject): Result {
+    fun getV2rayConfig(configJson: JSONObject): Result {
         try {
             val config = Gson().fromJson(configJson.toString(), ServerConfig::class.java)
             val outbound = config.getProxyOutbound() ?: return Result(false, "")
@@ -37,7 +37,7 @@ object V2rayConfigUtil {
             val address = outbound.getServerAddress() ?: return Result(false, "")
 
 
-            val result = getV2rayNonCustomConfig(context, outbound, configJson.toString())
+            val result = getV2rayNonCustomConfig(outbound, configJson.toString())
             //Log.d(ANG_PACKAGE, result.content)
             return result
         } catch (e: Exception) {
@@ -50,7 +50,6 @@ object V2rayConfigUtil {
      * 生成v2ray的客户端配置文件
      */
     private fun getV2rayNonCustomConfig(
-        context: Context,
         outbound: V2rayConfig.OutboundBean,
         v2rayJson: String
     ): Result {

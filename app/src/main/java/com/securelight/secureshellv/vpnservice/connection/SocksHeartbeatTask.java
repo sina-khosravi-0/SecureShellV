@@ -6,31 +6,33 @@ import android.util.Log;
 
 import com.securelight.secureshellv.vpnservice.listeners.ConnectionStateListener;
 import com.securelight.secureshellv.vpnservice.listeners.SocksStateListener;
+import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
 
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
-import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
+import libv2ray.CoreController;
+
+//import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
 
 public class SocksHeartbeatTask extends TimerTask {
     private final String TAG = getClass().getName();
     private final ConnectionStateListener connectionStateListener;
     private final SocksStateListener socksStateListener;
     private final AtomicBoolean networkIFaceAvailable = new AtomicBoolean(true);
-    private final V2rayCoreExecutor v2rayCoreExecutor;
+    private final V2rayCoreManager v2raCoreManager;
     private final AccessChangeListener accessChangeListener;
     private final AtomicBoolean connectionHandlerRunning;
     private int counter = 0;
 
     public SocksHeartbeatTask(AtomicBoolean running,
-                              V2rayCoreExecutor v2rayCoreExecutor,
+                              V2rayCoreManager v2rayCoreManager ,
                               SocksStateListener socksStateListener,
                               AccessChangeListener accessChangeListener,
                               ConnectionStateListener connectionStateListener) {
         this.connectionStateListener = connectionStateListener;
         this.socksStateListener = socksStateListener;
-        this.v2rayCoreExecutor = v2rayCoreExecutor;
+        this.v2raCoreManager = v2rayCoreManager;
         this.accessChangeListener = accessChangeListener;
         this.connectionHandlerRunning = running;
     }
@@ -58,19 +60,25 @@ public class SocksHeartbeatTask extends TimerTask {
         }
 
         this.accessChangeListener.onNetworkStateChanged(NetworkState.WORLD_WIDE);
-        if (v2rayCoreExecutor.getCurrentServerDelay() >= 1) {
-            connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTED);
-            socksStateListener.onSocksUp();
-            Log.d(TAG, "SOCKS UP");
-            counter = 0;
-        } else {
-            Log.d(TAG, "SOCKS DOWN");
-            if (counter >= 3) {
-                socksStateListener.onSocksDown();
-                connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTING);
-                counter = -1;
+        try {
+            if (v2raCoreManager.measureDelay("") >= 1) {
+                connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTED);
+                socksStateListener.onSocksUp();
+                Log.d(TAG, "SOCKS UP");
+                counter = 0;
+            } else {
+                Log.d(TAG, "SOCKS DOWN");
+                if (counter >= 3) {
+                    socksStateListener.onSocksDown();
+                    connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTING);
+                    counter = -1;
+                }
+                counter++;
             }
-            counter++;
+        } catch (Exception ignored) {
+            socksStateListener.onSocksDown();
+            connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTING);
+            counter = -1;
         }
     }
 

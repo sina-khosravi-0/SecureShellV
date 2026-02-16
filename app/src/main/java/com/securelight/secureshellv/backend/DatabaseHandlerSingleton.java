@@ -86,6 +86,7 @@ public class DatabaseHandlerSingleton {
         if (requestQueue == null) {
             requestQueue = Volley.newRequestQueue(context);
         }
+
         return requestQueue;
     }
 
@@ -169,14 +170,17 @@ public class DatabaseHandlerSingleton {
     private void handleAuthFailureError(VolleyError error) {
         // refresh tokens and fetch user data again
         String errorData = new String(error.networkResponse.data);
-        if (errorData.contains(Constants.TOKEN_INVALID_CODE_STRING)) {
+        //todo some's fucky here
+        if (errorData.contains("password_changed") || errorData.contains("user_inactive") ||
+                error.networkResponse.statusCode == 401 || error.networkResponse.statusCode == 403) {
+            SharedPreferencesSingleton.getInstance(null).setLoggedIn(false);
+            broadcastSignIn();
+        } else if (errorData.contains(Constants.TOKEN_INVALID_CODE_STRING)) {
             new Thread(() -> {
                 if (requestTokenRefresh()) {
                     fetchUserData();
                 }
             }).start();
-        } else if (errorData.contains("password_changed") || errorData.contains("user_inactive")) {
-            broadcastSignIn();
         } else if (errorData.contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {
             broadcastTrafficUsageLimit();
         } else if (errorData.contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
@@ -184,12 +188,10 @@ public class DatabaseHandlerSingleton {
         }
     }
 
-    public void verifyToken(String token, Response.Listener<JSONObject> responseListener,
-                            Response.ErrorListener errorListener) {
+    public void verifyToken(String token) {
         if (token.isEmpty()) {
             broadcastSignIn();
         }
-        AtomicReference<TokenResult> result = new AtomicReference<>();
 
         String url = apiAddress + "api/token/verify/";
         JSONObject object;
@@ -199,27 +201,14 @@ public class DatabaseHandlerSingleton {
         } catch (JSONException ignored) {
         }
 
-        JsonObjectRequest jsonObjectRequest =
-                new JsonObjectRequest(Request.Method.POST,
-                        url,
-                        object,
-                        responseListener,
-                        errorListener) {
-                    @Override
-                    protected Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
-                        try {
-                            String jsonString = new String(response.data, HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
-                            JSONObject jsonResponse = new JSONObject(jsonString);
-                            jsonResponse.put("code", response.statusCode);
-                            return Response.success(jsonResponse, HttpHeaderParser.parseCacheHeaders(response));
-                        } catch (UnsupportedEncodingException | JSONException e) {
-                            return Response.error(new ParseError(e));
-                        }
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, null,
+                error -> {
+                    if (error instanceof AuthFailureError) {
+                        handleAuthFailureError(error);
                     }
-                };
+                });
 
         instance.addToRequestQueue(jsonObjectRequest);
-        result.get();
     }
 
     public boolean requestTokenRefresh() {
@@ -285,7 +274,12 @@ public class DatabaseHandlerSingleton {
         try {
             future.get(10, TimeUnit.SECONDS);
             return true;
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (InterruptedException | TimeoutException e) {
+            return false;
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof AuthFailureError) {
+                handleAuthFailureError((VolleyError) e.getCause());
+            }
             return false;
         }
     }
@@ -294,12 +288,7 @@ public class DatabaseHandlerSingleton {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = apiAddress + "api/account/message_received/";
 
-        JSONObject object = new JSONObject();
-        try {
-            object.put("message_pending", false);
-        } catch (JSONException ignored) {
-        }
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.PUT, url, object,
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
                 null, null) {
             @Override
             public Map<String, String> getHeaders() {

@@ -9,9 +9,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.dev7.lib.v2ray.core.Tun2SocksExecutor;
-import dev.dev7.lib.v2ray.utils.V2rayConfigs;
-
 
 public class Tun2SocksManager {
 

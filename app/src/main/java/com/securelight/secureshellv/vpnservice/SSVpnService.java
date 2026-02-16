@@ -13,7 +13,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
@@ -39,8 +38,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.securelight.secureshellv.statics.Constants;
+import com.securelight.secureshellv.statics.V2rayConstants;
+import com.securelight.secureshellv.tun2socks.Tun2SocksListener;
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.statics.Intents;
@@ -52,6 +51,7 @@ import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 import com.securelight.secureshellv.vpnservice.listeners.InterfaceErrorListener;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
+import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -64,13 +64,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import dev.dev7.lib.v2ray.core.Tun2SocksExecutor;
-import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
-import dev.dev7.lib.v2ray.interfaces.Tun2SocksListener;
-import dev.dev7.lib.v2ray.interfaces.V2rayServicesListener;
-import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
-public class SSVpnService extends VpnService implements V2rayServicesListener, Tun2SocksListener {
+public class SSVpnService extends VpnService implements Tun2SocksListener {
     private final String TAG = this.getClass().getSimpleName();
     private final String notificationChannelID = "onGoing_001";
     private final Set<String> packages = new HashSet<>();
@@ -80,7 +75,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     private final IBinder binder = new VpnServiceBinder();
     private boolean isReceiverRegistered = false;
     private boolean serviceCreated = false;
-    private V2rayCoreExecutor v2rayCoreExecutor;
+    private V2rayCoreManager v2rayCoreManager;
     private Tun2SocksExecutor tun2SocksExecutor;
     private StatsHandler statsHandler;
     private NotificationCompat.Builder notificationBuilder;
@@ -174,9 +169,9 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
     @Override
     public void onCreate() {
         if (!serviceCreated) {
-            v2rayCoreExecutor = new V2rayCoreExecutor(this);
             tun2SocksExecutor = new Tun2SocksExecutor(this);
-            statsHandler = new StatsHandler(v2rayCoreExecutor);
+            v2rayCoreManager = new V2rayCoreManager(this);
+            statsHandler = new StatsHandler(v2rayCoreManager);
             serviceCreated = true;
         }
         if (!isReceiverRegistered) {
@@ -282,7 +277,7 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         connectionManager = new ConnectionManager(vpnInterface,
                 this,
                 notificationListener,
-                v2rayCoreExecutor,
+                v2rayCoreManager,
                 statsHandler,
                 new InterfaceErrorListener() {
                     @Override
@@ -531,31 +526,32 @@ public class SSVpnService extends VpnService implements V2rayServicesListener, T
         return serviceActive.get();
     }
 
-    //    V2rayServicesListener implementations
-    @Override
-    public boolean onProtect(int socket) {
-        return true;
-    }
-
-    @Override
-    public Service getService() {
-        return this;
-    }
-
-    @Override
-    public void startService() {
-    }
-
-    @Override
-    public void stopService() {
-        System.out.println("V2ray Called Stop");
-        SharedPreferencesSingleton.getInstance(this).saveV2rayMessage("SERVICE FUCKED");
-    }
+//    //    V2rayServicesListener implementations
+//    @Override
+//    public boolean onProtect(int socket) {
+//        return true;
+//    }
+//
+//    @Override
+//    public Service getService() {
+//        return this;
+//    }
+//
+//    @Override
+//    public void startService() {
+//    }
+//
+//    @Override
+//    public void stopService() {
+//        System.out.println("V2ray Called Stop");
+//        SharedPreferencesSingleton.getInstance(this).saveV2rayMessage("SERVICE FUCKED");
+//    }
 
     @Override
     public void OnTun2SocksHasMassage(V2rayConstants.CORE_STATES tun2SocksState, String newMessage) {
         System.out.println("V2RAY MESSAGE:" + newMessage);
     }
+
 //    V2rayServicesListener implementations
 
     public class VpnServiceBinder extends Binder {

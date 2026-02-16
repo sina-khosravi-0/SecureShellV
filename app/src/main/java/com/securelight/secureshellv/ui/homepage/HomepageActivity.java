@@ -71,7 +71,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-import dev.dev7.lib.v2ray.V2rayController;
 
 public class HomepageActivity extends AppCompatActivity {
     public static boolean isTrafficProgressBarAnimated = false;
@@ -99,6 +98,7 @@ public class HomepageActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             startActivity(new Intent(getApplicationContext(), LoginActivity.class));
+            finish();
         }
     };
     private final BroadcastReceiver killActivityBr = new BroadcastReceiver() {
@@ -247,7 +247,7 @@ public class HomepageActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        V2rayController.init(this, R.drawable.ic_launcher_foreground, "V2ray Android");
+//        V2rayController.init(this, R.drawable.ic_launcher_foreground, "V2ray Android");
 //        SpeedTestSocket speedTestSocket = new SpeedTestSocket();
 //
 //// add a listener to wait for speedtest completion and progress
@@ -315,16 +315,7 @@ public class HomepageActivity extends AppCompatActivity {
         initUIComponents();
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         if (!isReceiverRegistered) {
-            lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
-            lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
-            lbm.registerReceiver(exitBr, new IntentFilter(Intents.EXIT_APP_ACTION));
-            lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
-            lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
-            lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
-            lbm.registerReceiver(signInBr, new IntentFilter(Intents.SIGN_IN_ACTION));
-            lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
-            lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
-            lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
+            registerReceivers();
             isReceiverRegistered = true;
             Runtime.getRuntime().addShutdownHook(
                     new Thread(() -> {
@@ -340,6 +331,9 @@ public class HomepageActivity extends AppCompatActivity {
                         lbm.unregisterReceiver(sendStatsFailBr);
                     }));
         }
+        DatabaseHandlerSingleton.getInstance(getApplicationContext()).verifyToken(SharedPreferencesSingleton.getInstance(this).getRefreshToken());
+        DatabaseHandlerSingleton.getInstance(getApplicationContext()).verifyToken(SharedPreferencesSingleton.getInstance(this).getAccessToken());
+
     }
 
     private void initUIComponents() {
@@ -601,17 +595,7 @@ public class HomepageActivity extends AppCompatActivity {
         }
 
         if (!isReceiverRegistered) {
-            LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
-            lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
-            lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
-            lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
-            lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
-            lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
-            lbm.registerReceiver(signInBr, new IntentFilter(Intents.SIGN_IN_ACTION));
-            lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
-            lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
-            lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
-            isReceiverRegistered = true;
+            registerReceivers();
         }
     }
 
@@ -645,6 +629,20 @@ public class HomepageActivity extends AppCompatActivity {
         }
     }
 
+    private void registerReceivers() {
+        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
+        lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
+        lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
+        lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
+        lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
+        lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
+        lbm.registerReceiver(signInBr, new IntentFilter(Intents.SIGN_IN_ACTION));
+        lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
+        lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
+        lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
+        isReceiverRegistered = true;
+    }
+
     private void performConnectedAction() {
         buttonImage.setVisibility(View.GONE);
         buttonText.setVisibility(View.VISIBLE);
@@ -672,6 +670,7 @@ public class HomepageActivity extends AppCompatActivity {
     }
 
     private void performConnectingAction() {
+//        TODO: make connecting engaging so the user isn't bored :|
         buttonImage.setImageResource(R.drawable.vpn_loading_animated);
         buttonImage.setVisibility(View.VISIBLE);
         buttonText.setVisibility(View.GONE);
