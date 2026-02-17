@@ -2,6 +2,9 @@ package com.securelight.secureshellv.resubscribe;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -33,10 +36,13 @@ import com.securelight.secureshellv.utility.Utilities;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class CheckoutActivity extends Activity {
@@ -113,7 +119,7 @@ public class CheckoutActivity extends Activity {
     private void fillShitUp(ServicePlan servicePlan) {
         loadingView.setVisibility(View.VISIBLE);
         cardNumberArea.removeAllViews();
-        amountText.setText(String.valueOf(servicePlan.getPrice()) + getString(R.string.toman));
+        amountText.setText(String.format(Locale.getDefault(), "%,d %s", servicePlan.getPrice(), getString(R.string.toman)));
         monthText.setText(getResources().getQuantityString(R.plurals.months, servicePlan.getMonths(), servicePlan.getMonths()));
         if (servicePlan.isGold()) {
             gigText.setText(getResources().getQuantityString(R.plurals.gigs, servicePlan.getTraffic(), servicePlan.getTraffic()));
@@ -126,11 +132,14 @@ public class CheckoutActivity extends Activity {
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
 
             cardNumbers.forEach(cardNumber -> {
+                String formattedCard = String.format(Locale.getDefault(), "%d", Long.parseLong(cardNumber))
+                        .replaceAll("(.{4})(?!$)", "$1—");
+
                 TextView cardNumberTextView = new TextView(this);
                 cardNumberTextView.setLayoutParams(layoutParams);
-                cardNumberTextView.setText(String.format("%s", cardNumber));
+                cardNumberTextView.setText(String.format("%s", formattedCard));
                 cardNumberTextView.setTypeface(Typeface.DEFAULT_BOLD);
-                cardNumberTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+                cardNumberTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
                 cardNumberTextView.setBackgroundResource(R.drawable.rounded_container_background);
                 cardNumberTextView.setClickable(true);
                 int padding_in_px = Utilities.convertDPtoPX(getResources(), 10);
@@ -139,9 +148,16 @@ public class CheckoutActivity extends Activity {
                 TypedValue typedValue = new TypedValue();
                 this.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, typedValue, true);
                 cardNumberTextView.setForeground(AppCompatResources.getDrawable(this, typedValue.resourceId));
-                runOnUiThread(() -> cardNumberArea.addView(cardNumberTextView));
+                runOnUiThread(() -> {
+                    cardNumberArea.addView(cardNumberTextView);
+                    cardNumberTextView.setOnClickListener(v -> {
+                        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                        ClipData clip = ClipData.newPlainText("card number", cardNumber.replaceAll("-", ""));
+                        clipboard.setPrimaryClip(clip);
+                    });
+                });
             });
-            runOnUiThread(() ->loadingView.setVisibility(View.GONE));
+            runOnUiThread(() -> loadingView.setVisibility(View.GONE));
         }).start();
     }
 

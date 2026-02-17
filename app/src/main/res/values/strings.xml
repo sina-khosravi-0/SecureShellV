@@ -144,6 +144,6 @@
     <string name="package_type">Package Type:</string>
     <string name="limited">Limited</string>
     <string name="rial">Rial</string>
-    <string name="transfer_the_specified_amount">Transfer the specified amount to the card number below and submit your receipt.\n • Your request will be processed by an operator.</string>
+    <string name="transfer_the_specified_amount">Transfer the specified amount to the card number below and then submit your receipt.\n • Your request will be processed by an operator.</string>
     <string name="already_submitted">Already Submitted</string>
 </resources>

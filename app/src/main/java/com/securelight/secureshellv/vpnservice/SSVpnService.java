@@ -198,7 +198,9 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        assert startAllowed.get();
+        if (!startAllowed.get()) {
+            return START_REDELIVER_INTENT;
+        }
         final var startRedeliverIntent = setup();
         if (startRedeliverIntent != null) return startRedeliverIntent;
         return START_NOT_STICKY;
