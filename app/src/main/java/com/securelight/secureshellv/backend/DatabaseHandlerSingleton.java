@@ -1,6 +1,7 @@
 package com.securelight.secureshellv.backend;
 
 
+import static com.securelight.secureshellv.statics.Constants.TOKEN_INVALID_CODE_STRING;
 import static com.securelight.secureshellv.statics.Constants.apiAddress;
 
 import android.content.Context;
@@ -27,10 +28,8 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.toolbox.Volley;
 import com.securelight.secureshellv.statics.Intents;
-import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
-import com.securelight.secureshellv.vpnservice.SSVpnService;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -39,7 +38,6 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +47,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DatabaseHandlerSingleton {
+    private static final String TAG = DatabaseHandlerSingleton.class.getName();
     private static DatabaseHandlerSingleton instance;
     private final ImageLoader imageLoader;
     private final Context context;
@@ -170,17 +169,20 @@ public class DatabaseHandlerSingleton {
     private void handleAuthFailureError(VolleyError error) {
         // refresh tokens and fetch user data again
         String errorData = new String(error.networkResponse.data);
-        //todo some's fucky here
-        if (errorData.contains("password_changed") || errorData.contains("user_inactive") ||
-                error.networkResponse.statusCode == 401 || error.networkResponse.statusCode == 403) {
+        Log.e("DatabaseHandler.handleAuthFailure", errorData, error);
+        if (errorData.contains("password_changed") || errorData.contains("user_inactive")) {
             SharedPreferencesSingleton.getInstance(null).setLoggedIn(false);
+            SharedPreferencesSingleton.getInstance(null).clearCredentials();
             broadcastSignIn();
         } else if (errorData.contains(Constants.TOKEN_INVALID_CODE_STRING)) {
-            new Thread(() -> {
-                if (requestTokenRefresh()) {
-                    fetchUserData();
-                }
-            }).start();
+            if (verifyToken(SharedPreferencesSingleton.getInstance(null).getRefreshToken())) {
+                requestTokenRefresh();
+                fetchUserData();
+            } else {
+                SharedPreferencesSingleton.getInstance(null).setLoggedIn(false);
+                SharedPreferencesSingleton.getInstance(null).clearCredentials();
+                broadcastSignIn();
+            }
         } else if (errorData.contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {
             broadcastTrafficUsageLimit();
         } else if (errorData.contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
@@ -188,11 +190,10 @@ public class DatabaseHandlerSingleton {
         }
     }
 
-    public void verifyToken(String token) {
+    public boolean verifyToken(String token) {
         if (token.isEmpty()) {
-            broadcastSignIn();
+            return false;
         }
-
         String url = apiAddress + "api/token/verify/";
         JSONObject object;
         object = new JSONObject();
@@ -200,18 +201,28 @@ public class DatabaseHandlerSingleton {
             object.put("token", token);
         } catch (JSONException ignored) {
         }
-
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, null,
-                error -> {
-                    if (error instanceof AuthFailureError) {
-                        handleAuthFailureError(error);
-                    }
-                });
+        RequestFuture<JSONObject> future = RequestFuture.newFuture();
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, object, future, future);
 
         instance.addToRequestQueue(jsonObjectRequest);
+        try {
+            JSONObject response = future.get(5, TimeUnit.SECONDS);
+            return true;
+        } catch (ExecutionException e) {
+            Log.e(TAG, e.getMessage(), e);
+            if (e.getCause() instanceof AuthFailureError) {
+                String errorData = new String(((VolleyError) e.getCause()).networkResponse.data);
+                if (errorData.contains(TOKEN_INVALID_CODE_STRING)){
+                    return false;
+                }
+            }
+        } catch (InterruptedException | TimeoutException e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
+        return false;
     }
 
-    public boolean requestTokenRefresh() {
+    public void requestTokenRefresh() {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
         String url = apiAddress + "api/token/refresh/";
 
@@ -237,14 +248,9 @@ public class DatabaseHandlerSingleton {
                 }
             } catch (JSONException ignored) {
             }
-        } catch (InterruptedException | TimeoutException ignored) {
-
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof AuthFailureError) {
-                handleAuthFailureError((VolleyError) e.getCause());
-            }
+        } catch (InterruptedException | TimeoutException | ExecutionException e) {
+            Log.e(TAG, e.getMessage(), e);
         }
-        return true;
     }
 
     public boolean sendTrafficIncrement(long trafficBytes) {
@@ -326,6 +332,7 @@ public class DatabaseHandlerSingleton {
             return "";
         } catch (ExecutionException e) {
             if (e.getCause() instanceof AuthFailureError) {
+                // todo wtf???
                 NetworkResponse networkResponse = ((AuthFailureError) (e.getCause())).networkResponse;
                 if (networkResponse.statusCode == 403) {
                     if (new String(networkResponse.data).contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {

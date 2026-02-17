@@ -71,6 +71,7 @@ public class CheckoutActivity extends Activity {
         amountText.setClickable(true);
 
         ServicePlan servicePlan = getIntent().getParcelableExtra("service_plan");
+        assert servicePlan != null;
         fillShitUp(servicePlan);
         selectReceiptButton.setOnClickListener(view -> {
             List<String> requiredPermissions = new ArrayList<>(Arrays.asList(

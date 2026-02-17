@@ -331,9 +331,6 @@ public class HomepageActivity extends AppCompatActivity {
                         lbm.unregisterReceiver(sendStatsFailBr);
                     }));
         }
-        DatabaseHandlerSingleton.getInstance(getApplicationContext()).verifyToken(SharedPreferencesSingleton.getInstance(this).getRefreshToken());
-        DatabaseHandlerSingleton.getInstance(getApplicationContext()).verifyToken(SharedPreferencesSingleton.getInstance(this).getAccessToken());
-
     }
 
     private void initUIComponents() {
