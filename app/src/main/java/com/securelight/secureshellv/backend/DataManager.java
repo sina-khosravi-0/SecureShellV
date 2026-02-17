@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class DataManager {
     private static DataManager dataManager;
     private final List<V2rayConfig> v2rayConfigs = new ArrayList<>();
+    private final List<Thread> calcConfigThreads = new ArrayList<>();
     public String selectedConfig;
     private String userName;
     private List<TargetServer> targetServers = new ArrayList<>();
@@ -314,6 +315,7 @@ public class DataManager {
 
     public List<V2rayConfig> updateV2rayConfigs(String location) throws JSONException {
         getTargetServers();
+        v2rayConfigs.clear();
         JSONArray jsonArray = DatabaseHandlerSingleton.getInstance(null).fetchConfigs(location);
         for (int i = 0; i < jsonArray.length(); i++) {
             V2rayConfig v2rayConfig = new V2rayConfig();
@@ -321,6 +323,45 @@ public class DataManager {
             v2rayConfigs.add(v2rayConfig);
         }
         return v2rayConfigs;
+    }
+
+    public V2rayConfig getBestV2rayConfig() {
+        if (v2rayConfigs.isEmpty()) {
+            return null;
+        }
+        double[] pings = new double[v2rayConfigs.size()];
+        int bestConfigIndex = 0;
+        double bestPing = Double.MAX_VALUE;
+        for (int i = 0; i < v2rayConfigs.size(); i++) {
+            int index = i;
+            Thread thread = new Thread(() -> {
+                pings[index] = v2rayConfigs.get(index).calculateBestPing();
+            });
+            calcConfigThreads.add(thread);
+            thread.start();
+        }
+
+        calcConfigThreads.forEach(thread -> {
+            try {
+                thread.join();
+            } catch (InterruptedException ignored) {
+            }
+        });
+        boolean goodPingExists = false;
+        for (int i = 0; i < pings.length; i++) {
+            if (bestPing > pings[i] && pings[i] > 0) {
+                bestConfigIndex = i;
+                goodPingExists = true;
+            }
+        }
+        if (!goodPingExists){
+            return null;
+        }
+        return v2rayConfigs.get(bestConfigIndex);
+    }
+
+    public void interruptCalcConfigThreads() {
+        calcConfigThreads.forEach(Thread::interrupt);
     }
 
     public List<V2rayConfig> getV2rayConfigs() {

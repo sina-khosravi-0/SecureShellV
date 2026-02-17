@@ -118,8 +118,6 @@ public class ConnectionManager extends Thread {
             stopV2ray();
             return;
         }
-
-
         stopStatsHandler();
         startStatsHandler();
         cancelTasks();
@@ -138,7 +136,8 @@ public class ConnectionManager extends Thread {
         V2rayConfig config;
         try {
             String preferredLocation = SharedPreferencesSingleton.getInstance(context).getSelectedServerLocation();
-            config = Utilities.getBestV2rayConfig(DataManager.getInstance().updateV2rayConfigs(preferredLocation));
+            DataManager.getInstance().updateV2rayConfigs(preferredLocation);
+            config = DataManager.getInstance().getBestV2rayConfig();
             if (config == null) {
                 LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.START_SERVICE_FAILED_ACTION));
                 return false;
@@ -232,6 +231,7 @@ public class ConnectionManager extends Thread {
     @Override
     public void interrupt() {
         if (setupInProgress) {
+            DataManager.getInstance().interruptCalcConfigThreads();
             setupListener = () -> {
                 running.set(false);
                 stopV2ray();
@@ -239,9 +239,9 @@ public class ConnectionManager extends Thread {
             };
             return;
         }
-        running.set(false);
         stopV2ray();
         socksHeartbeatTask.cancel();
+        running.set(false);
     }
 
     public void no() {

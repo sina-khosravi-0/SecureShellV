@@ -88,38 +88,6 @@ public class Utilities {
         return (int) (dp * scale + 0.5f);
     }
 
-    public static V2rayConfig getBestV2rayConfig(List<V2rayConfig> configs) {
-        if (configs.isEmpty()) {
-            return null;
-        }
-        double[] pings = new double[configs.size()];
-        int bestConfigIndex = 0;
-        double bestPing = Double.MAX_VALUE;
-        List<Thread> threads = new ArrayList<>();
-        for (int i = 0; i < configs.size(); i++) {
-            int index = i;
-            Thread thread = new Thread(() -> {
-                pings[index] = configs.get(index).calculateBestPing();
-            });
-            threads.add(thread);
-            thread.start();
-        }
-
-        threads.forEach(thread -> {
-            try {
-                thread.join();
-            } catch (InterruptedException ignored) {
-            }
-        });
-
-        for (int i = 0; i < pings.length; i++) {
-            if (bestPing > pings[i]) {
-                bestConfigIndex = i;
-            }
-        }
-        return configs.get(bestConfigIndex);
-    }
-
     public static NetworkState checkAndGetAccessType() {
         Socket socket = new Socket();
         try {

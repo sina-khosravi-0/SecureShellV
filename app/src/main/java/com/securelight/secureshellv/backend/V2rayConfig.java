@@ -1,6 +1,8 @@
 package com.securelight.secureshellv.backend;
 
 
+import static com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager.getConfigDelay;
+
 import android.util.Log;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,33 +24,11 @@ import libv2ray.Libv2ray;
 
 
 public class V2rayConfig {
+    private final List<Thread> threads = new ArrayList<>();
     private String[] configs;
     private String json;
     private JSONArray ips;
     private int bestIpIndex = -1;
-
-    public static long getConfigDelay(final String config) {
-        try {
-            JSONObject config_json = new JSONObject(config);
-            config_json.remove("routing");
-            config_json.remove("dns");
-            JSONObject routing = new JSONObject();
-            routing.put("domainStrategy", "IPIfNonMatch");
-            config_json.put("routing", routing);
-            config_json.put("dns", new JSONObject("{\n" +
-                    "    \"hosts\": {\n" +
-                    "        \"domain:googleapis.cn\": \"googleapis.com\"\n" +
-                    "    },\n" +
-                    "    \"servers\": [\n" +
-                    "        \"1.1.1.1\"\n" +
-                    "    ]\n" +
-                    "}"));
-            return Libv2ray.measureOutboundDelay(config, "");
-        } catch (Exception json_error) {
-            Log.d("MeasureOutboundDelay_V2rayConfig", "getCurrentServerDelay -> ", json_error);
-            return -1;
-        }
-    }
 
     public void parseData(JSONObject jsonObject) throws JSONException {
         json = jsonObject.getString("json");
@@ -57,12 +37,11 @@ public class V2rayConfig {
         mapIpToConfig();
     }
 
-
     public double calculateBestPing() {
         if (configs == null) {
             return -1;
         }
-        List<Thread> threads = new ArrayList<>();
+        threads.clear();
         List<Long> pings = new ArrayList<>(Collections.nCopies(configs.length, 0L));
         for (int i = 0; i < configs.length; i++) {
             int finalI = i;
@@ -73,14 +52,13 @@ public class V2rayConfig {
             thread.start();
         }
 
-        threads.forEach(thread -> {
+        for (Thread thread : threads) {
             try {
                 thread.join();
-            } catch (InterruptedException ignored) {
+            } catch (InterruptedException e) {
+                return -1;
             }
-        });
-        System.out.println(pings);
-        System.out.println(Arrays.toString(configs));
+        }
         long bestPing = Long.MAX_VALUE;
         for (int i = 0; i < configs.length; i++) {
             if (pings.get(i) > 0 && pings.get(i) < bestPing) {

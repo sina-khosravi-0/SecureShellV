@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.securelight.secureshellv.backend.DataManager;
 
+import org.json.JSONObject;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
@@ -104,5 +106,29 @@ public class V2rayCoreManager {
 
     public long measureDelay(String s) throws Exception {
         return coreController.measureDelay(s);
+    }
+
+
+    public static long getConfigDelay(final String config) {
+        try {
+            JSONObject config_json = new JSONObject(config);
+            config_json.remove("routing");
+            config_json.remove("dns");
+            JSONObject routing = new JSONObject();
+            routing.put("domainStrategy", "IPIfNonMatch");
+            config_json.put("routing", routing);
+            config_json.put("dns", new JSONObject("{\n" +
+                    "    \"hosts\": {\n" +
+                    "        \"domain:googleapis.cn\": \"googleapis.com\"\n" +
+                    "    },\n" +
+                    "    \"servers\": [\n" +
+                    "        \"1.1.1.1\"\n" +
+                    "    ]\n" +
+                    "}"));
+            return Libv2ray.measureOutboundDelay(config, "");
+        } catch (Exception json_error) {
+            Log.d("MeasureOutboundDelay_V2rayConfig", "getCurrentServerDelay -> ", json_error);
+            return -1;
+        }
     }
 }
