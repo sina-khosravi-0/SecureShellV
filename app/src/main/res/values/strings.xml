@@ -146,4 +146,5 @@
     <string name="rial">Rial</string>
     <string name="transfer_the_specified_amount">Transfer the specified amount to the card number below and then submit your receipt.\n • Your request will be processed by an operator.</string>
     <string name="already_submitted">Already Submitted</string>
+    <string name="service_start_failed">Service Start Failed</string>
 </resources>

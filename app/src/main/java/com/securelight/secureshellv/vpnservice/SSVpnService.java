@@ -146,7 +146,7 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
         public void onReceive(Context context, Intent intent) {
             ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
             stopVpnService();
-            Toast.makeText(getApplicationContext(), "failed to connect to server", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), R.string.service_start_failed, Toast.LENGTH_SHORT).show();
         }
     };
     private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
@@ -284,7 +284,7 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
                 new InterfaceErrorListener() {
                     @Override
                     public void onFoundInterfaceError() {
-                        System.out.println("file descriptor error");
+                        Log.e(TAG, "file descriptor error");
                         stopVpnService();
                     }
                 });
@@ -551,7 +551,7 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
 
     @Override
     public void OnTun2SocksHasMassage(V2rayConstants.CORE_STATES tun2SocksState, String newMessage) {
-        System.out.println("V2RAY MESSAGE:" + newMessage);
+        System.out.println("Tun2Socks MESSAGE:" + newMessage);
     }
 
 //    V2rayServicesListener implementations

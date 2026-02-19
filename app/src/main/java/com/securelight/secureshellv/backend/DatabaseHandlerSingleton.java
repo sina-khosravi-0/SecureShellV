@@ -212,7 +212,7 @@ public class DatabaseHandlerSingleton {
             Log.e(TAG, e.getMessage(), e);
             if (e.getCause() instanceof AuthFailureError) {
                 String errorData = new String(((VolleyError) e.getCause()).networkResponse.data);
-                if (errorData.contains(TOKEN_INVALID_CODE_STRING)){
+                if (errorData.contains(TOKEN_INVALID_CODE_STRING)) {
                     return false;
                 }
             }
@@ -332,29 +332,17 @@ public class DatabaseHandlerSingleton {
             return "";
         } catch (ExecutionException e) {
             if (e.getCause() instanceof AuthFailureError) {
-                // todo wtf???
-                NetworkResponse networkResponse = ((AuthFailureError) (e.getCause())).networkResponse;
-                if (networkResponse.statusCode == 403) {
-                    if (new String(networkResponse.data).contains(Constants.OUT_OF_TRAFFIC_CODE_STRING)) {
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(
-                                new Intent(Intents.STOP_VPN_SERVICE_ACTION)
-                                        .putExtra(Constants.OUT_OF_TRAFFIC_CODE_STRING, true));
-                    }
-                    if (new String(networkResponse.data).contains(Constants.CREDIT_EXPIRED_CODE_STRING)) {
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(
-                                new Intent(Intents.STOP_VPN_SERVICE_ACTION)
-                                        .putExtra(Constants.CREDIT_EXPIRED_CODE_STRING, true));
-                    }
-                }
+                handleAuthFailureError((VolleyError) e.getCause());
             }
         }
         return "";
     }
 
-    public void sendHeartbeat() {
+    public Constants.ApiHeartbeatResult sendHeartbeat() {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = apiAddress + "api/heartbeat/";
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
+        RequestFuture<JSONObject> future = RequestFuture.newFuture();
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, future, future) {
             @Override
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
@@ -371,6 +359,19 @@ public class DatabaseHandlerSingleton {
             }
         };
         instance.addToRequestQueue(request);
+        try {
+            future.get(5, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            return Constants.ApiHeartbeatResult.TIMEOUT;
+        } catch (ExecutionException | InterruptedException e) {
+            Log.e(TAG, e.getMessage(), e);
+
+            if (e.getCause() instanceof AuthFailureError) {
+                handleAuthFailureError((VolleyError) e.getCause());
+            }
+            return Constants.ApiHeartbeatResult.ERROR;
+        }
+        return Constants.ApiHeartbeatResult.SUCCESS;
     }
 
     public JSONArray fetchServerList(String location) {

@@ -45,7 +45,7 @@ public class SendTrafficTimeTask extends TimerTask {
 
     private long calcBytes() {
         long bytes = statsHandler.getBytesDownloaded() + statsHandler.getBytesUploaded();
-        System.out.println(bytes);
+        System.out.println("bytes = " + bytes);
         return bytes;
     }
 }

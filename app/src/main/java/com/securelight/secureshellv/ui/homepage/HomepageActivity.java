@@ -145,13 +145,6 @@ public class HomepageActivity extends AppCompatActivity {
             performDisconnectedAction();
         }
     };
-    private final BroadcastReceiver startServiceFailedBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            performDisconnectedAction();
-            Toast.makeText(getApplicationContext(), "failed to connect to server", Toast.LENGTH_SHORT).show();
-        }
-    };
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -320,7 +313,6 @@ public class HomepageActivity extends AppCompatActivity {
             Runtime.getRuntime().addShutdownHook(
                     new Thread(() -> {
                         lbm.unregisterReceiver(stopBr);
-                        lbm.unregisterReceiver(startServiceFailedBr);
                         lbm.unregisterReceiver(exitBr);
                         lbm.unregisterReceiver(connectedBr);
                         lbm.unregisterReceiver(connectingBr);
@@ -605,7 +597,6 @@ public class HomepageActivity extends AppCompatActivity {
         if (isReceiverRegistered) {
             LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
             lbm.unregisterReceiver(stopBr);
-            lbm.unregisterReceiver(startServiceFailedBr);
             lbm.unregisterReceiver(connectedBr);
             lbm.unregisterReceiver(connectingBr);
             lbm.unregisterReceiver(disconnectedBr);
@@ -629,7 +620,6 @@ public class HomepageActivity extends AppCompatActivity {
     private void registerReceivers() {
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
-        lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
         lbm.registerReceiver(connectedBr, new IntentFilter(Intents.CONNECTED_ACTION));
         lbm.registerReceiver(connectingBr, new IntentFilter(Intents.CONNECTING_ACTION));
         lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));

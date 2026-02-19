@@ -47,6 +47,12 @@ public class Constants {
         HORRIBLE
     }
 
+    public enum ApiHeartbeatResult {
+        SUCCESS,
+        ERROR,
+        TIMEOUT
+    }
+
     public static final int sendTrafficPeriod = 10000;
     public static final int apiHeartbeatPeriod = 8000;
     public static final int socksHeartbeatPeriod = 5000;

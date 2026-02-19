@@ -2,17 +2,13 @@ package com.securelight.secureshellv.vpnservice.connection;
 
 import static com.securelight.secureshellv.statics.Constants.apiHeartbeatPeriod;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.SendTrafficTimeTask;
@@ -27,14 +23,9 @@ import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import com.securelight.secureshellv.vpnservice.listeners.SocksStateListener;
 import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
 
-import org.json.JSONException;
-
 import java.io.IOException;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-//import dev.dev7.lib.v2ray.core.V2rayCoreExecutor;
-//import dev.dev7.lib.v2ray.utils.V2rayConstants;
 
 
 public class ConnectionManager extends Thread {
@@ -49,13 +40,13 @@ public class ConnectionManager extends Thread {
     private final StatsHandler statsHandler;
     private final Timer sendTrafficTimer;
     private final Timer apiHeartbeatTimer;
+    private final AtomicBoolean running = new AtomicBoolean(false);
     private SetupListener setupListener;
     private SendTrafficTimeTask sendTrafficTask;
     private APIHeartbeatTask apiHeartbeatTask;
     private SocksHeartbeatTask socksHeartbeatTask;
     private ConnectionState connectionState = ConnectionState.CONNECTING;
     private NetworkState networkState = NetworkState.WORLD_WIDE;
-    private AtomicBoolean running = new AtomicBoolean(false);
     private boolean setupInProgress = false;
     private boolean tasksScheduled = false;
     private boolean statsStarted = false;
@@ -107,7 +98,7 @@ public class ConnectionManager extends Thread {
             return;
         }
         if (!loadV2rayConfig()) {
-            stopV2ray();
+            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.START_SERVICE_FAILED_ACTION));
             return;
         }
 
@@ -115,7 +106,9 @@ public class ConnectionManager extends Thread {
             v2rayCoreManager.startLoop(DataManager.getInstance().selectedConfig, vpnInterface.getFd());
         } catch (Exception e) {
             Log.e(TAG, e.getMessage(), e);
-            stopV2ray();
+            if (setupInProgress) {
+                LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.START_SERVICE_FAILED_ACTION));
+            }
             return;
         }
         stopStatsHandler();
@@ -139,12 +132,10 @@ public class ConnectionManager extends Thread {
             DataManager.getInstance().updateV2rayConfigs(preferredLocation);
             config = DataManager.getInstance().getBestV2rayConfig();
             if (config == null) {
-                LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.START_SERVICE_FAILED_ACTION));
                 return false;
             }
             Utilities.refillV2rayConfig("BestConfig", config.getConfig(), null, true);
             DataManager.getInstance().selectedConfig = Utilities.currentConfig.fullJsonConfig;
-//            DataManager.getInstance().selectedConfig = config.getConfig();
         } catch (Exception e) {
             Log.e(TAG, "couldn't load v2ray config", e);
             return false;
@@ -199,7 +190,6 @@ public class ConnectionManager extends Thread {
                     public void onSocksDown() {
                         updateConnectionStateUI();
                         stopV2ray();
-                        loadV2rayConfig();
                         startV2ray();
                     }
 
@@ -237,11 +227,12 @@ public class ConnectionManager extends Thread {
                 stopV2ray();
                 socksHeartbeatTask.cancel();
             };
-            return;
+
+        } else {
+            stopV2ray();
+            socksHeartbeatTask.cancel();
+            running.set(false);
         }
-        stopV2ray();
-        socksHeartbeatTask.cancel();
-        running.set(false);
     }
 
     public void no() {
@@ -249,11 +240,6 @@ public class ConnectionManager extends Thread {
             vpnInterface.close();
         } catch (IOException ignored) {
         }
-    }
-
-    public void yes() {
-        SharedPreferences preferences = context.getSharedPreferences("tun2socksDEATH", Activity.MODE_PRIVATE);
-        Toast.makeText(context, preferences.getString("died", "N/A"), Toast.LENGTH_SHORT).show();
     }
 
     private void updateConnectionStateUI() {

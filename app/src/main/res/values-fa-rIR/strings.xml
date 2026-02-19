@@ -129,4 +129,5 @@
     <string name="duration_no_colon">مدت</string>
     <string name="transfer_the_specified_amount">مقدار تعیین شده را به شماره کارت واریز بفرمایید و سپس رسید آن را ارسال کنید.\n  • درخواست شما توسط اپراتور پیگیری خواهد شد.</string>
     <string name="already_submitted">قبلا درخواست داده اید</string>
+    <string name="service_start_failed">شروع سرویس انجام نشد</string>
 </resources>

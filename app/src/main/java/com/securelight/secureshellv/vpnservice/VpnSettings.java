@@ -1,15 +1,21 @@
 package com.securelight.secureshellv.vpnservice;
 
+import android.util.Log;
+
+import com.securelight.secureshellv.utility.Utilities;
+
+import java.io.IOException;
 import java.io.Serializable;
+import java.net.ServerSocket;
 
 public class VpnSettings implements Serializable {
-    public static final String iFaceAddress;
-    public static final String iFaceSubnetMask;
+    public static String iFaceAddress;
+    public static String iFaceSubnetMask;
     public static final int iFacePrefix;
-    public static final int socksPort;
-    public static final int httpPort;
-    public static final int localDnsPort = 10853;
     public static final String dnsHost;
+    public static int socksPort;
+    public static int httpPort;
+    public static int localDnsPort = 10853;
     public static int interfaceMtu;
     public static int udpgwPort;
     public static boolean proxySharing;
@@ -21,14 +27,20 @@ public class VpnSettings implements Serializable {
         iFaceAddress = "26.26.26.1";
         iFaceSubnetMask = "255.255.255.252";
         iFacePrefix = 30;
-        socksPort = 10808;
-        httpPort = socksPort + 1;
+        try {
+            socksPort = Utilities.checkOrFindFreePort(10808);
+            httpPort = Utilities.checkOrFindFreePort(10809);
+            localDnsPort = Utilities.checkOrFindFreePort(10853);
+        } catch (IOException e) {
+            Log.e("VpnSettings", "Failed to find any open ports!");
+            throw new RuntimeException(e);
+        }
         dnsHost = "8.8.8.8";
         interfaceMtu = 1500;
         udpgwPort = 10853;
         proxySharing = false;
         localDnsEnabled = true;
-        fakeDnsEnabled = true;
+        fakeDnsEnabled = false;
         trafficStatsEnabled = true;
     }
 }

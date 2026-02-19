@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.securelight.secureshellv.backend.V2rayConfig;
 import com.securelight.secureshellv.backend.V2rayConfigModel;
 import com.securelight.secureshellv.statics.V2rayConstants;
+import com.securelight.secureshellv.vpnservice.VpnSettings;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 
 import org.json.JSONArray;
@@ -19,6 +20,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -165,7 +167,6 @@ public class Utilities {
                     config_json.put("stats", new JSONObject());
                 } catch (Exception e) {
                     Log.e("refillV2rayConfig", e.toString());
-                    currentConfig.enableTrafficStatics = false;
                     //ignore
                 }
             }
@@ -219,12 +220,14 @@ public class Utilities {
                         "      }\n" +
                         "    ]\n" +
                         "  }"));
-                config_json.put("fakedns", new JSONArray("[\n" +
-                        "    {\n" +
-                        "      \"ipPool\": \"198.18.0.0/15\",\n" +
-                        "      \"poolSize\": 10000\n" +
-                        "    }\n" +
-                        "  ]"));
+                if (VpnSettings.fakeDnsEnabled) {
+                    config_json.put("fakedns", new JSONArray("[\n" +
+                            "    {\n" +
+                            "      \"ipPool\": \"198.18.0.0/15\",\n" +
+                            "      \"poolSize\": 10000\n" +
+                            "    }\n" +
+                            "  ]"));
+                }
             } catch (JSONException ignored) {
             }
             currentConfig.fullJsonConfig = config_json.toString();
@@ -232,6 +235,20 @@ public class Utilities {
         } catch (Exception e) {
             Log.e("RefillV2rayConfig", "parseV2rayJsonFile failed => ", e);
             return false;
+        }
+    }
+
+
+    /**
+     * @throws IOException when failed to find any open ports
+     * */
+    public static int checkOrFindFreePort(int port) throws IOException {
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            return serverSocket.getLocalPort();
+        } catch (IOException e) {
+            try (ServerSocket serverSocket = new ServerSocket(0)) {
+                return serverSocket.getLocalPort();
+            }
         }
     }
 //    todo: do this if need uri
@@ -242,4 +259,4 @@ public class Utilities {
 //        return config;
 //    }
 
-}
+    }
