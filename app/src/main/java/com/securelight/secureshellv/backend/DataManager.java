@@ -354,13 +354,13 @@ public class DataManager {
                 goodPingExists = true;
             }
         }
-        if (!goodPingExists){
+        if (!goodPingExists) {
             return null;
         }
         return v2rayConfigs.get(bestConfigIndex);
     }
 
-    public void interruptCalcConfigThreads() {
+    public void interruptConfigTestThreads() {
         calcConfigThreads.forEach(Thread::interrupt);
     }
 

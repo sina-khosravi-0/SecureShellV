@@ -88,7 +88,8 @@ public class Utilities {
     }
 
     public static NetworkState checkAndGetAccessType(SocketProtector socketProtector) {
-        try (Socket socket = SocketChannel.open().socket()){
+        try (SocketChannel channel = SocketChannel.open()) {
+            Socket socket = channel.socket();
             socketProtector.protectSocks(socket);
             InetAddress[] addresses = InetAddress.getAllByName("google.com");
             for (InetAddress address : addresses) {
@@ -99,7 +100,8 @@ public class Utilities {
                 }
             }
         } catch (IOException e) {
-            try (Socket socket = SocketChannel.open().socket()){
+            try (SocketChannel channel = SocketChannel.open()) {
+                Socket socket = channel.socket();
                 socketProtector.protectSocks(socket);
                 InetAddress[] addresses = InetAddress.getAllByName("google.com");
                 for (InetAddress address : addresses) {

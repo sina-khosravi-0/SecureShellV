@@ -10,17 +10,21 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.securelight.secureshellv.vpnservice.listeners.SocketProtector;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import libv2ray.Libv2ray;
 
 
 public class V2rayConfig {
@@ -28,6 +32,7 @@ public class V2rayConfig {
     private String[] configs;
     private String json;
     private JSONArray ips;
+    private boolean[] reachabilityArray;
     private int bestIpIndex = -1;
 
     public void parseData(JSONObject jsonObject) throws JSONException {
@@ -44,6 +49,9 @@ public class V2rayConfig {
         threads.clear();
         List<Long> pings = new ArrayList<>(Collections.nCopies(configs.length, 0L));
         for (int i = 0; i < configs.length; i++) {
+            if (!reachabilityArray[i]) {
+                continue;
+            }
             int finalI = i;
             Thread thread = new Thread(() -> {
                 pings.set(finalI, getConfigDelay(configs[finalI]));
@@ -113,6 +121,34 @@ public class V2rayConfig {
                 configs[i] = mapper.writeValueAsString(config);
             } catch (JsonProcessingException e) {
                 Log.e("V2rayConfig.parseData", e.getMessage(), e);
+            }
+        }
+    }
+    public void checkConfigReachability(SocketProtector socketProtector) {
+        reachabilityArray = new boolean[configs.length];
+        for (int i = 0; i < ips.length(); i++) {
+            String address;
+            int port;
+            try {
+                address = ips.getJSONObject(i).getString("ip");
+                 port = ips.getJSONObject(i).getInt("port");
+            } catch (JSONException e) {
+                continue;
+            }
+
+            try (SocketChannel channel = SocketChannel.open()) {
+                Socket socket = channel.socket();
+                socketProtector.protectSocks(socket);
+                InetAddress[] addresses = InetAddress.getAllByName(address);
+                for (InetAddress ip : addresses) {
+                    if (ip instanceof Inet4Address) {
+                        socket.connect(new InetSocketAddress(ip, port), 2500);
+                        socket.close();
+                        reachabilityArray[i] = true;
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
     }

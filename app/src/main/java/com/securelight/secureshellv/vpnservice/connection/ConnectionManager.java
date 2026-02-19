@@ -81,12 +81,11 @@ public class ConnectionManager extends Thread {
         running.set(true);
         updateConnectionStateUI();
         startV2ray();
-        setupListener.onSetupFinished();
+            setupListener.onSetupFinished();
         setupInProgress = false;
     }
 
     private void startV2ray() {
-
         try {
             vpnInterface.checkError();
         } catch (IOException e) {
@@ -116,7 +115,6 @@ public class ConnectionManager extends Thread {
             }
             return;
         }
-        scheduleSocksHeartbeatTask();
         stopStatsHandler();
         startStatsHandler();
         cancelTasks();
@@ -136,6 +134,7 @@ public class ConnectionManager extends Thread {
         try {
             String preferredLocation = SharedPreferencesSingleton.getInstance(context).getSelectedServerLocation();
             DataManager.getInstance().updateV2rayConfigs(preferredLocation);
+            DataManager.getInstance().getV2rayConfigs().forEach(v2rayConfig -> v2rayConfig.checkConfigReachability(socketProtector));
             config = DataManager.getInstance().getBestV2rayConfig();
             if (config == null) {
                 return false;
@@ -171,6 +170,7 @@ public class ConnectionManager extends Thread {
             return;
         }
         tasksScheduled = true;
+        scheduleSocksHeartbeatTask();
         scheduleApiHeartbeatTask();
         scheduleSendTrafficTask();
     }
@@ -182,6 +182,7 @@ public class ConnectionManager extends Thread {
         tasksScheduled = false;
         apiHeartbeatTask.cancel();
         sendTrafficTask.cancel();
+        socksHeartbeatTask.cancel();
     }
 
     private void scheduleSendTrafficTask() {
@@ -227,16 +228,14 @@ public class ConnectionManager extends Thread {
     @Override
     public void interrupt() {
         if (setupInProgress) {
-            DataManager.getInstance().interruptCalcConfigThreads();
+            DataManager.getInstance().interruptConfigTestThreads();
             setupListener = () -> {
                 running.set(false);
                 stopV2ray();
-                socksHeartbeatTask.cancel();
             };
 
         } else {
             stopV2ray();
-            socksHeartbeatTask.cancel();
             running.set(false);
         }
     }
