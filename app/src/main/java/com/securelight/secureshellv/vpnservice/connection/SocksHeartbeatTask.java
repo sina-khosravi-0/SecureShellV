@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.securelight.secureshellv.vpnservice.VpnSettings;
 import com.securelight.secureshellv.vpnservice.listeners.ConnectionStateListener;
+import com.securelight.secureshellv.vpnservice.listeners.SocketProtector;
 import com.securelight.secureshellv.vpnservice.listeners.SocksStateListener;
 import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
 
@@ -22,6 +23,7 @@ public class SocksHeartbeatTask extends TimerTask {
     private final String TAG = getClass().getName();
     private final ConnectionStateListener connectionStateListener;
     private final SocksStateListener socksStateListener;
+    private SocketProtector socketProtector;
     private final AtomicBoolean networkIFaceAvailable = new AtomicBoolean(true);
     private final V2rayCoreManager v2raCoreManager;
     private final AccessChangeListener accessChangeListener;
@@ -29,10 +31,12 @@ public class SocksHeartbeatTask extends TimerTask {
     private int counter = 0;
 
     public SocksHeartbeatTask(AtomicBoolean running,
+                              SocketProtector socketProtector,
                               V2rayCoreManager v2rayCoreManager,
                               SocksStateListener socksStateListener,
                               AccessChangeListener accessChangeListener,
                               ConnectionStateListener connectionStateListener) {
+        this.socketProtector = socketProtector;
         this.connectionStateListener = connectionStateListener;
         this.socksStateListener = socksStateListener;
         this.v2raCoreManager = v2rayCoreManager;
@@ -55,7 +59,7 @@ public class SocksHeartbeatTask extends TimerTask {
             return;
         }
 
-        NetworkState tempType = Utilities.checkAndGetAccessType();
+        NetworkState tempType = Utilities.checkAndGetAccessType(socketProtector);
         if (tempType == NetworkState.NO_ACCESS) {
             counter = 0;
             this.accessChangeListener.onNetworkStateChanged(NetworkState.NO_ACCESS);

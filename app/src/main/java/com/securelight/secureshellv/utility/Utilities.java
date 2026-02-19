@@ -1,17 +1,14 @@
 package com.securelight.secureshellv.utility;
 
 
-import static com.securelight.secureshellv.statics.V2rayConstants.DEFAULT_OUT_BOUND_PLACE_IN_FULL_JSON_CONFIG;
-
 import android.content.res.Resources;
 import android.util.Log;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.securelight.secureshellv.backend.V2rayConfig;
 import com.securelight.secureshellv.backend.V2rayConfigModel;
 import com.securelight.secureshellv.statics.V2rayConstants;
 import com.securelight.secureshellv.vpnservice.VpnSettings;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
+import com.securelight.secureshellv.vpnservice.listeners.SocketProtector;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,16 +16,16 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.List;
-
-import libv2ray.Libv2ray;
 
 public class Utilities {
 
@@ -90,21 +87,32 @@ public class Utilities {
         return (int) (dp * scale + 0.5f);
     }
 
-    public static NetworkState checkAndGetAccessType() {
-        Socket socket = new Socket();
-        try {
-            socket.connect(new InetSocketAddress("google.com", 443), 2500);
-            socket.close();
-            return NetworkState.WORLD_WIDE;
+    public static NetworkState checkAndGetAccessType(SocketProtector socketProtector) {
+        try (Socket socket = SocketChannel.open().socket()){
+            socketProtector.protectSocks(socket);
+            InetAddress[] addresses = InetAddress.getAllByName("google.com");
+            for (InetAddress address : addresses) {
+                if (address instanceof Inet4Address) {
+                    socket.connect(new InetSocketAddress(address, 443), 2500);
+                    socket.close();
+                    return NetworkState.WORLD_WIDE;
+                }
+            }
         } catch (IOException e) {
-            try {
-                socket.connect(new InetSocketAddress("snapp.ir", 443), 1500);
-                socket.close();
-                return NetworkState.RESTRICTED;
+            try (Socket socket = SocketChannel.open().socket()){
+                socketProtector.protectSocks(socket);
+                InetAddress[] addresses = InetAddress.getAllByName("google.com");
+                for (InetAddress address : addresses) {
+                    if (address instanceof Inet4Address) {
+                        socket.connect(new InetSocketAddress("snapp.ir", 443), 1500);
+                        socket.close();
+                        return NetworkState.RESTRICTED;
+                    }
+                }
             } catch (IOException ignored) {
-                return NetworkState.NO_ACCESS;
             }
         }
+        return NetworkState.NO_ACCESS;
     }
 
     public static boolean refillV2rayConfig(String remark,
@@ -241,7 +249,7 @@ public class Utilities {
 
     /**
      * @throws IOException when failed to find any open ports
-     * */
+     */
     public static int checkOrFindFreePort(int port) throws IOException {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             return serverSocket.getLocalPort();
@@ -259,4 +267,4 @@ public class Utilities {
 //        return config;
 //    }
 
-    }
+}

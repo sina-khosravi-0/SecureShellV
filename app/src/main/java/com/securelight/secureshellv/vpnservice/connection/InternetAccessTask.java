@@ -2,6 +2,8 @@ package com.securelight.secureshellv.vpnservice.connection;
 
 import static com.securelight.secureshellv.utility.Utilities.checkAndGetAccessType;
 
+import com.securelight.secureshellv.utility.Utilities;
+
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
@@ -32,7 +34,8 @@ public class InternetAccessTask extends TimerTask {
 
     @Override
     public void run() {
-        NetworkState tempType = checkAndGetAccessType();
+//        NetworkState tempType = Utilities.checkAndGetAccessType();
+        NetworkState tempType =NetworkState.WORLD_WIDE;
         switch (tempType) {
             case RESTRICTED:
             case WORLD_WIDE:

@@ -7,7 +7,6 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -51,6 +50,7 @@ import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
 import com.securelight.secureshellv.vpnservice.listeners.InterfaceErrorListener;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
+import com.securelight.secureshellv.vpnservice.listeners.SocketProtector;
 import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
 
 import java.io.File;
@@ -58,6 +58,7 @@ import java.io.FileDescriptor;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
@@ -65,18 +66,26 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class SSVpnService extends VpnService implements Tun2SocksListener {
+public class SSVpnService extends VpnService implements Tun2SocksListener, SocketProtector {
     private final String TAG = this.getClass().getSimpleName();
     private final String notificationChannelID = "onGoing_001";
     private final Set<String> packages = new HashSet<>();
+    private ConnectionManager connectionManager;
     private final int onGoingNotificationID = 1;
     private final AtomicBoolean serviceActive = new AtomicBoolean();
     private final AtomicBoolean startAllowed = new AtomicBoolean(true);
     private final IBinder binder = new VpnServiceBinder();
     private boolean isReceiverRegistered = false;
     private boolean serviceCreated = false;
+    private PendingIntent startPendingIntent;
+    private PendingIntent stopPendingIntent;
+    private PendingIntent quitPendingIntent;
     private V2rayCoreManager v2rayCoreManager;
     private Tun2SocksExecutor tun2SocksExecutor;
+    private ParcelFileDescriptor vpnInterface;
+    private NotificationCompat.Action notifStartAction;
+    private NotificationCompat.Action notifStopAction;
+    private NotificationCompat.Action notifQuitAction;
     private StatsHandler statsHandler;
     private NotificationCompat.Builder notificationBuilder;
     private NotificationManager notificationManager;
@@ -104,7 +113,6 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
             builder.setSilent(true);
         }
     };
-    private ConnectionManager connectionManager;
     private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
         @Override
         public void onAvailable(@NonNull Network network) {
@@ -130,10 +138,6 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
             }
         }
     };
-    private ParcelFileDescriptor vpnInterface;
-    private NotificationCompat.Action notifStartAction;
-    private NotificationCompat.Action notifStopAction;
-    private NotificationCompat.Action notifQuitAction;
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -155,14 +159,12 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
             stopVpnService();
         }
     };
-    private PendingIntent startPendingIntent;
-    private PendingIntent stopPendingIntent;
-    private PendingIntent quitPendingIntent;
+
     private final BroadcastReceiver startBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE));
-            setup();
+            setupService();
         }
     };
 
@@ -201,12 +203,12 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
         if (!startAllowed.get()) {
             return START_REDELIVER_INTENT;
         }
-        final var startRedeliverIntent = setup();
+        final var startRedeliverIntent = setupService();
         if (startRedeliverIntent != null) return startRedeliverIntent;
         return START_NOT_STICKY;
     }
 
-    private @Nullable Integer setup() {
+    private @Nullable Integer setupService() {
         ConnectivityManager connectivityManager = getSystemService(ConnectivityManager.class);
         boolean letStart = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -272,11 +274,11 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
     private void startVpn() {
         VpnService.prepare(this);
         Log.d(TAG, "VPN service prepared");
-
         vpnInterface = establishVPNInterface();
         serviceActive.set(true);
 
         connectionManager = new ConnectionManager(vpnInterface,
+                this,
                 this,
                 notificationListener,
                 v2rayCoreManager,
@@ -528,27 +530,6 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
         return serviceActive.get();
     }
 
-//    //    V2rayServicesListener implementations
-//    @Override
-//    public boolean onProtect(int socket) {
-//        return true;
-//    }
-//
-//    @Override
-//    public Service getService() {
-//        return this;
-//    }
-//
-//    @Override
-//    public void startService() {
-//    }
-//
-//    @Override
-//    public void stopService() {
-//        System.out.println("V2ray Called Stop");
-//        SharedPreferencesSingleton.getInstance(this).saveV2rayMessage("SERVICE FUCKED");
-//    }
-
     @Override
     public void OnTun2SocksHasMassage(V2rayConstants.CORE_STATES tun2SocksState, String newMessage) {
         System.out.println("Tun2Socks MESSAGE:" + newMessage);
@@ -595,6 +576,11 @@ public class SSVpnService extends VpnService implements Tun2SocksListener {
         public NetworkState getNetworkState() {
             return connectionManager.getNetworkState();
         }
+    }
+
+    @Override
+    public void protectSocks(Socket socket) {
+        protect(socket);
     }
 }
 

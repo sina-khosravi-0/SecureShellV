@@ -364,7 +364,9 @@ public class DatabaseHandlerSingleton {
         } catch (TimeoutException e) {
             return Constants.ApiHeartbeatResult.TIMEOUT;
         } catch (ExecutionException | InterruptedException e) {
-            Log.e(TAG, e.getMessage(), e);
+            if (!(e.getCause() instanceof JSONException)){
+                Log.e(TAG, e.getMessage(), e);
+            }
 
             if (e.getCause() instanceof AuthFailureError) {
                 handleAuthFailureError((VolleyError) e.getCause());

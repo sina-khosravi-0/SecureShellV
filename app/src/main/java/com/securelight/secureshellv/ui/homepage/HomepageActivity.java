@@ -33,7 +33,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -53,7 +52,6 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.BottomSheetTabAdapter;
 import com.securelight.secureshellv.R;
-import com.securelight.secureshellv.resubscribe.CheckoutActivity;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.resubscribe.SelectServiceActivity;
@@ -73,6 +71,7 @@ import java.util.Objects;
 
 
 public class HomepageActivity extends AppCompatActivity {
+    public static boolean vpnServiceInitialized = false;
     public static boolean isTrafficProgressBarAnimated = false;
     public static int colorPrimary;
     public static int colorOnPrimary;
@@ -341,6 +340,7 @@ public class HomepageActivity extends AppCompatActivity {
             if (vpnServiceBinder == null) {
                 // It's the first time we're starting the service
                 startVpnService();
+                vpnServiceInitialized = true;
                 return;
             }
             if (vpnServiceBinder.getService().isServiceActive()) {
@@ -488,6 +488,7 @@ public class HomepageActivity extends AppCompatActivity {
 
             }
         });
+        performDisconnectedAction();
     }
 
     private void fetchStringValues() {
@@ -567,7 +568,9 @@ public class HomepageActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        bindService(vpnServiceIntent, vpnServiceConnection, BIND_AUTO_CREATE);
+        if (vpnServiceInitialized) {
+            bindService(vpnServiceIntent, vpnServiceConnection, BIND_AUTO_CREATE);
+        }
         updateUserData();
         if (vpnServiceBinder != null) {
             switch (vpnServiceBinder.getConnectionState()) {

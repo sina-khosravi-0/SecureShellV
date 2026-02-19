@@ -20,6 +20,7 @@ import com.securelight.secureshellv.utility.Utilities;
 import com.securelight.secureshellv.vpnservice.StatsHandler;
 import com.securelight.secureshellv.vpnservice.listeners.InterfaceErrorListener;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
+import com.securelight.secureshellv.vpnservice.listeners.SocketProtector;
 import com.securelight.secureshellv.vpnservice.listeners.SocksStateListener;
 import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
 
@@ -41,6 +42,7 @@ public class ConnectionManager extends Thread {
     private final Timer sendTrafficTimer;
     private final Timer apiHeartbeatTimer;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private SocketProtector socketProtector;
     private SetupListener setupListener;
     private SendTrafficTimeTask sendTrafficTask;
     private APIHeartbeatTask apiHeartbeatTask;
@@ -53,12 +55,14 @@ public class ConnectionManager extends Thread {
     private boolean stateChanged = true;
 
     public ConnectionManager(ParcelFileDescriptor vpnInterface, Context context,
+                             SocketProtector socketProtector,
                              NotificationListener notificationListener,
                              V2rayCoreManager v2rayCoreManager,
                              StatsHandler statsHandler,
                              InterfaceErrorListener interfaceErrorListener) {
         this.vpnInterface = vpnInterface;
         this.context = context.getApplicationContext();
+        this.socketProtector = socketProtector;
         this.notificationListener = notificationListener;
         this.interfaceErrorListener = interfaceErrorListener;
         this.v2rayCoreManager = v2rayCoreManager;
@@ -75,13 +79,14 @@ public class ConnectionManager extends Thread {
     public void run() {
         setupInProgress = true;
         running.set(true);
+        updateConnectionStateUI();
         startV2ray();
-        scheduleSocksHeartbeatTask();
         setupListener.onSetupFinished();
         setupInProgress = false;
     }
 
     private void startV2ray() {
+
         try {
             vpnInterface.checkError();
         } catch (IOException e) {
@@ -111,6 +116,7 @@ public class ConnectionManager extends Thread {
             }
             return;
         }
+        scheduleSocksHeartbeatTask();
         stopStatsHandler();
         startStatsHandler();
         cancelTasks();
@@ -184,7 +190,7 @@ public class ConnectionManager extends Thread {
     }
 
     private void scheduleSocksHeartbeatTask() {
-        socksHeartbeatTask = new SocksHeartbeatTask(running, v2rayCoreManager,
+        socksHeartbeatTask = new SocksHeartbeatTask(running, socketProtector,v2rayCoreManager,
                 new SocksStateListener() {
                     @Override
                     public void onSocksDown() {
