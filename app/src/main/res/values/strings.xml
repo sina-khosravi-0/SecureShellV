@@ -57,7 +57,7 @@
     <string name="info_about_app_filter" translatable="false">Info about app filter</string>
     <string name="selected">Selected:</string>
     <string name="off">Off</string>
-    <string name="selected_app_alert">You can select apps to either include or exclude in the VPN.  \tIf you include apps, the VPN will only serve the specified apps. \tif you exclude apps, the VPN will serve all apps except the selected ones.\n(e.g: Mobile banking apps)</string>
+    <string name="selected_app_alert">If you include apps, the VPN will only route the specified apps. \tif you exclude apps, the VPN will route everything except the selected apps. (e.g: Mobile banking apps)</string>
     <string name="description">Description</string>
     <string name="cancel">Cancel</string>
     <string name="deselect_all">Deselect all</string>
@@ -138,7 +138,7 @@
     <string name="confirmation">Confirmation</string>
     <string name="no">No</string>
     <string name="yes">Yes</string>
-    <string name="fail_to_connect_to_server">Fail To Connect To Server</string>
+    <string name="fail_to_connect_to_server">Failed To Connect To Server</string>
     <string name="couldn_t_send_stats_to_server">Couldn\'t send stats to server.</string>
     <string name="select_package">Select Package</string>
     <string name="package_type">Package Type:</string>
@@ -147,4 +147,5 @@
     <string name="transfer_the_specified_amount">Transfer the specified amount to the card number below and then submit your receipt.\n • Your request will be processed by an operator.</string>
     <string name="already_submitted">Already Submitted</string>
     <string name="service_start_failed">Service Start Failed</string>
+    <string name="restarting_connection">Restarting Connection</string>
 </resources>

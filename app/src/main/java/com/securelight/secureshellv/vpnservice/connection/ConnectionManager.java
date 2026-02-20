@@ -81,7 +81,7 @@ public class ConnectionManager extends Thread {
         running.set(true);
         updateConnectionStateUI();
         startV2ray();
-            setupListener.onSetupFinished();
+        setupListener.onSetupFinished();
         setupInProgress = false;
     }
 
@@ -107,7 +107,7 @@ public class ConnectionManager extends Thread {
         }
 
         try {
-            v2rayCoreManager.startLoop(DataManager.getInstance().selectedConfig, vpnInterface.getFd());
+                v2rayCoreManager.startLoop(DataManager.getInstance().selectedConfig, vpnInterface.getFd());
         } catch (Exception e) {
             Log.e(TAG, e.getMessage(), e);
             if (setupInProgress) {
@@ -127,6 +127,14 @@ public class ConnectionManager extends Thread {
         updateConnectionStateUI();
         stopStatsHandler();
         cancelTasks();
+    }
+    /**
+     * Method for restarting v2ray from VpnService
+     * */
+    public void restartV2ray() {
+        new Thread(() -> {
+            startV2ray();
+        }, "RestartV2ray_Thread").start();
     }
 
     private boolean loadV2rayConfig() {
@@ -237,13 +245,6 @@ public class ConnectionManager extends Thread {
         } else {
             stopV2ray();
             running.set(false);
-        }
-    }
-
-    public void no() {
-        try {
-            vpnInterface.close();
-        } catch (IOException ignored) {
         }
     }
 

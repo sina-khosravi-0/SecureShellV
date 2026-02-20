@@ -119,27 +119,32 @@ public class InstalledPackageDialogFragment extends DialogFragment {
                 }
             }
             for (ApplicationInfo applicationInfo : appList) {// foreach app info
-                if (((applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0 ||
-                        applicationInfo.packageName.matches(packageRegex)) &&
-                        !applicationInfo.packageName.equals(requireContext().getApplicationContext().getPackageName())) {
-                    String appName;
-                    try {
-                        appName = Objects.requireNonNull(packageManager.getApplicationLabel(applicationInfo)).toString();
-                    } catch (NullPointerException e) {
-                        appName = applicationInfo.packageName;
-                    }
-                    Drawable appIcon = null;
-                    try {
-                        appIcon = Objects.requireNonNull(packageManager.getApplicationIcon(applicationInfo));
-                    } catch (NullPointerException ignored) {
-                    }
-                    AppInfoItem appinfoItem = new AppInfoItem(
-                            preferences.isPackageFiltered(applicationInfo.packageName),
-                            applicationInfo.packageName,
-                            appName,
-                            appIcon);
+                try {
+                    if (((applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0 ||
+                            applicationInfo.packageName.matches(packageRegex)) &&
+                            !applicationInfo.packageName.equals(requireContext().getApplicationContext().getPackageName())) {
+                        String appName;
+                        try {
+                            appName = Objects.requireNonNull(packageManager.getApplicationLabel(applicationInfo)).toString();
+                        } catch (NullPointerException e) {
+                            appName = applicationInfo.packageName;
+                        }
+                        Drawable appIcon = null;
+                        try {
+                            appIcon = Objects.requireNonNull(packageManager.getApplicationIcon(applicationInfo));
+                        } catch (NullPointerException ignored) {
+                        }
+                        AppInfoItem appinfoItem = new AppInfoItem(
+                                preferences.isPackageFiltered(applicationInfo.packageName),
+                                applicationInfo.packageName,
+                                appName,
+                                appIcon);
 
-                    adapter.getAppInfoList().add(appinfoItem);
+                        adapter.getAppInfoList().add(appinfoItem);
+                    }
+                    // to stop app crash when fragment is closed prematurely
+                } catch (IllegalStateException ignored) {
+
                 }
                 adapter.getAppInfoList().sort((first, second) -> { //sort adapter app info list
                     if (!first.isChecked() && second.isChecked()) {

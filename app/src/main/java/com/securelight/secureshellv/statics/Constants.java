@@ -50,7 +50,8 @@ public class Constants {
     public enum ApiHeartbeatResult {
         SUCCESS,
         ERROR,
-        TIMEOUT
+        TIMEOUT,
+        SHOULD_RESTART
     }
 
     public static final int sendTrafficPeriod = 10000;

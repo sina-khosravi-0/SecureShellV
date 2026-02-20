@@ -16,6 +16,7 @@ import com.securelight.secureshellv.databinding.FragmentServicePackageItemBindin
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServicePackageRecyclerAdapter.ViewHolder> {
     private List<ServicePlan> items;
@@ -42,7 +43,7 @@ public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServiceP
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         holder.title.setText(context.getResources().getQuantityString(
                 R.plurals.months, items.get(position).getMonths(), items.get(position).getMonths()));
-        holder.price.setText(String.valueOf(items.get(position).getPrice()));
+        holder.price.setText(String.format(Locale.getDefault(), "%,d", items.get(position).getPrice()));
         if (unlimited) {
             holder.supportText.setText(context.getResources().getQuantityString(R.plurals.users,
                     items.get(position).getUsers(), items.get(position).getUsers()));

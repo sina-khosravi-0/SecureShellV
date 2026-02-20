@@ -11,6 +11,8 @@ import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.TypedValue;
@@ -136,6 +138,7 @@ public class CheckoutActivity extends Activity {
                         .replaceAll("(.{4})(?!$)", "$1—");
 
                 TextView cardNumberTextView = new TextView(this);
+                cardNumberTextView.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                 cardNumberTextView.setLayoutParams(layoutParams);
                 cardNumberTextView.setText(String.format("%s", formattedCard));
                 cardNumberTextView.setTypeface(Typeface.DEFAULT_BOLD);
@@ -151,6 +154,7 @@ public class CheckoutActivity extends Activity {
                 runOnUiThread(() -> {
                     cardNumberArea.addView(cardNumberTextView);
                     cardNumberTextView.setOnClickListener(v -> {
+                        ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE));
                         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                         ClipData clip = ClipData.newPlainText("card number", cardNumber.replaceAll("-", ""));
                         clipboard.setPrimaryClip(clip);

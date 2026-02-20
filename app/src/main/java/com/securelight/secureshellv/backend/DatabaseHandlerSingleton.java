@@ -349,29 +349,24 @@ public class DatabaseHandlerSingleton {
                 params.put("Authorization", "Bearer " + accessToken);
                 return params;
             }
-
-            @Override
-            protected VolleyError parseNetworkError(VolleyError error) {
-                if (error instanceof AuthFailureError) {
-                    handleAuthFailureError(error);
-                }
-                return error;
-            }
         };
         instance.addToRequestQueue(request);
         try {
-            future.get(5, TimeUnit.SECONDS);
+            JSONObject response = future.get(5, TimeUnit.SECONDS);
+            if (response.has("message")) {
+                if (response.getString("message").contains("restart_client")) {
+                    Log.i(TAG, "Should Restart");
+                    return Constants.ApiHeartbeatResult.SHOULD_RESTART;
+                }
+            }
         } catch (TimeoutException e) {
             return Constants.ApiHeartbeatResult.TIMEOUT;
         } catch (ExecutionException | InterruptedException e) {
-            if (!(e.getCause() instanceof ParseError)){
+            if (!(e.getCause() instanceof ParseError)) {
                 Log.e(TAG, e.getMessage(), e);
+                return Constants.ApiHeartbeatResult.ERROR;
             }
-
-            if (e.getCause() instanceof AuthFailureError) {
-                handleAuthFailureError((VolleyError) e.getCause());
-            }
-            return Constants.ApiHeartbeatResult.ERROR;
+        } catch (JSONException ignored) {
         }
         return Constants.ApiHeartbeatResult.SUCCESS;
     }

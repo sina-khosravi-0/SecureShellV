@@ -13,8 +13,9 @@ public class Intents {
     public static final String CONNECTION_INFO_PREF = "CONNECTION_INFO";
     public static final String UPDATE_USER_DATA_INTENT = "UPDATE_USER_DATA";
 
-    public static final String STOP_VPN_SERVICE_ACTION = "com.securelight.secureshellv.STOP";
     public static final String START_VPN_SERVICE_ACTION = "com.securelight.secureshellv.START";
+    public static final String STOP_VPN_SERVICE_ACTION = "com.securelight.secureshellv.STOP";
+    public static final String RESTART_V2RAY_SERVICE_ACTION = "com.securelight.secureshellv.RESTART_V2RAY";
     public static final String START_SERVICE_FAILED_ACTION = "com.securelight.secureshellv.VPN_FAILED";
     public static final String CONNECTED_ACTION = "com.securelight.secureshellv.CONNECTED";
     public static final String CONNECTING_ACTION = "com.securelight.secureshellv.CONNECTING";

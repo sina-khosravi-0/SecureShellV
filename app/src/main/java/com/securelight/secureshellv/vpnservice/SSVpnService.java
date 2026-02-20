@@ -70,22 +70,45 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
     private final String TAG = this.getClass().getSimpleName();
     private final String notificationChannelID = "onGoing_001";
     private final Set<String> packages = new HashSet<>();
-    private ConnectionManager connectionManager;
     private final int onGoingNotificationID = 1;
     private final AtomicBoolean serviceActive = new AtomicBoolean();
     private final AtomicBoolean startAllowed = new AtomicBoolean(true);
     private final IBinder binder = new VpnServiceBinder();
+    private ConnectionManager connectionManager;
+    private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+        @Override
+        public void onAvailable(@NonNull Network network) {
+            super.onAvailable(network);
+            if (connectionManager != null) {
+                connectionManager.onNetworkAvailable();
+            }
+        }
+
+        @Override
+        public void onLost(@NonNull Network network) {
+            super.onLost(network);
+            if (connectionManager != null) {
+                connectionManager.onNetworkLost();
+            }
+        }
+
+        @Override
+        public void onUnavailable() {
+            super.onUnavailable();
+            if (connectionManager != null) {
+                connectionManager.onNetworkLost();
+            }
+        }
+    };
     private boolean isReceiverRegistered = false;
     private boolean serviceCreated = false;
     private PendingIntent startPendingIntent;
     private PendingIntent stopPendingIntent;
-    private PendingIntent quitPendingIntent;
     private V2rayCoreManager v2rayCoreManager;
     private Tun2SocksExecutor tun2SocksExecutor;
     private ParcelFileDescriptor vpnInterface;
     private NotificationCompat.Action notifStartAction;
     private NotificationCompat.Action notifStopAction;
-    private NotificationCompat.Action notifQuitAction;
     private StatsHandler statsHandler;
     private NotificationCompat.Builder notificationBuilder;
     private NotificationManager notificationManager;
@@ -113,36 +136,28 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
             builder.setSilent(true);
         }
     };
-    private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+    private final BroadcastReceiver startBr = new BroadcastReceiver() {
         @Override
-        public void onAvailable(@NonNull Network network) {
-            super.onAvailable(network);
-            if (connectionManager != null) {
-                connectionManager.onNetworkAvailable();
-            }
-        }
-
-        @Override
-        public void onLost(@NonNull Network network) {
-            super.onLost(network);
-            if (connectionManager != null) {
-                connectionManager.onNetworkLost();
-            }
-        }
-
-        @Override
-        public void onUnavailable() {
-            super.onUnavailable();
-            if (connectionManager != null) {
-                connectionManager.onNetworkLost();
-            }
+        public void onReceive(Context context, Intent intent) {
+            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE));
+            setupService();
         }
     };
     private final BroadcastReceiver stopBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             stopVpnService();
-            Log.i("MainActivity", "VPN service stopped");
+            Log.i(TAG, "VPN service stopped");
+        }
+    };
+    private final BroadcastReceiver restartV2rayBr = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            connectionManager.restartV2ray();
+            Log.i(TAG, "V2ray Restarted");
+            if (intent.hasExtra("message")) {
+                Toast.makeText(getApplicationContext(), intent.getStringExtra("message"), Toast.LENGTH_SHORT).show();
+            }
         }
     };
     private final BroadcastReceiver startServiceFailedBr = new BroadcastReceiver() {
@@ -150,21 +165,17 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
         public void onReceive(Context context, Intent intent) {
             ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
             stopVpnService();
-            Toast.makeText(getApplicationContext(), R.string.service_start_failed, Toast.LENGTH_SHORT).show();
+            if (intent.hasExtra("message")) {
+                Toast.makeText(getApplicationContext(), intent.getStringExtra("message"), Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getApplicationContext(), R.string.service_start_failed, Toast.LENGTH_SHORT).show();
+            }
         }
     };
     private final BroadcastReceiver sendStatsFailBr = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             stopVpnService();
-        }
-    };
-
-    private final BroadcastReceiver startBr = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            ((Vibrator) getSystemService(VIBRATOR_SERVICE)).vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE));
-            setupService();
         }
     };
 
@@ -180,6 +191,7 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
             LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
             lbm.registerReceiver(startBr, new IntentFilter(Intents.START_VPN_SERVICE_ACTION));
             lbm.registerReceiver(stopBr, new IntentFilter(Intents.STOP_VPN_SERVICE_ACTION));
+            lbm.registerReceiver(restartV2rayBr, new IntentFilter(Intents.RESTART_V2RAY_SERVICE_ACTION));
             lbm.registerReceiver(startServiceFailedBr, new IntentFilter(Intents.START_SERVICE_FAILED_ACTION));
             lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
             isReceiverRegistered = true;
@@ -187,6 +199,7 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
                     new Thread(() -> {
                         lbm.unregisterReceiver(startBr);
                         lbm.unregisterReceiver(stopBr);
+                        lbm.unregisterReceiver(restartV2rayBr);
                         lbm.unregisterReceiver(startServiceFailedBr);
                         lbm.unregisterReceiver(sendStatsFailBr);
                     }));
@@ -245,9 +258,7 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
             wakeLock.acquire(20 * 60 * 1000L /*10 minutes*/);
 
             setupNotification();
-            // set notification action buttons
-            notificationBuilder.clearActions().addAction(notifStopAction);
-            notificationBuilder.addAction(notifQuitAction);
+
 
             startVpn();
 
@@ -283,13 +294,11 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
                 notificationListener,
                 v2rayCoreManager,
                 statsHandler,
-                new InterfaceErrorListener() {
-                    @Override
-                    public void onFoundInterfaceError() {
-                        Log.e(TAG, "file descriptor error");
-                        stopVpnService();
-                    }
+                () -> {
+                    Log.e(TAG, "file descriptor error");
+                    stopVpnService();
                 });
+        connectionManager.setName("ConnectionManager-Thread");
         connectionManager.start();
 
         tun2SocksExecutor.run(this,
@@ -397,8 +406,7 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
 
         notifStartAction = new NotificationCompat.Action(R.drawable.start_vpn_notification, "Start", startPendingIntent);
         notifStopAction = new NotificationCompat.Action(R.drawable.stop_vpn_notification, "Stop", stopPendingIntent);
-        notifQuitAction = new NotificationCompat.Action(R.drawable.quit_app_icon, "Quit", quitPendingIntent);
-        notificationBuilder.addAction(notifQuitAction);
+        notificationBuilder.clearActions().addAction(notifStopAction);
 
         androidx.media.app.NotificationCompat.MediaStyle mediaStyle =
                 new androidx.media.app.NotificationCompat.MediaStyle();
@@ -435,12 +443,6 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
         stopIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
         stopPendingIntent = PendingIntent.getBroadcast(
                 this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE);
-
-        Intent quitIntent = new Intent(this, NotificationBroadcastReceiver.class);
-        quitIntent.setAction(Intents.EXIT_APP_ACTION);
-        quitIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
-        quitPendingIntent = PendingIntent.getBroadcast(
-                this, 0, quitIntent, PendingIntent.FLAG_IMMUTABLE);
     }
 
     @Override
@@ -491,7 +493,6 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
         serviceActive.set(false);
         connectionManager.interrupt();
         notificationBuilder.clearActions().addAction(notifStartAction);
-        notificationBuilder.addAction(notifQuitAction);
         notificationManager.notify(onGoingNotificationID, notificationBuilder.build());
         notificationListener.updateNotification(NetworkState.NONE, ConnectionState.DISCONNECTED);
         tun2SocksExecutor.stopTun2Socks();
@@ -537,6 +538,11 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
 
 //    V2rayServicesListener implementations
 
+    @Override
+    public void protectSocks(Socket socket) {
+        protect(socket);
+    }
+
     public class VpnServiceBinder extends Binder {
 
         public SSVpnService getService() {
@@ -576,11 +582,6 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
         public NetworkState getNetworkState() {
             return connectionManager.getNetworkState();
         }
-    }
-
-    @Override
-    public void protectSocks(Socket socket) {
-        protect(socket);
     }
 }
 

@@ -544,6 +544,7 @@ public class HomepageActivity extends AppCompatActivity {
     protected void onActivityResult(int request, int result, Intent data) {
         if (result == RESULT_OK) {
             startService(vpnServiceIntent);
+            bindService(vpnServiceIntent, vpnServiceConnection, BIND_AUTO_CREATE);
         }
         super.onActivityResult(request, result, data);
     }

@@ -54,7 +54,7 @@
     <string name="include">شامل کردن</string>
     <string name="selected">انتخاب شده:</string>
     <string name="off">خاموش</string>
-    <string name="selected_app_alert">با گزینه شامل کردن میتوانید برنامه هایی که فقط آنها حق استفاده از وی پی ان را دارند انتخاب کنید و با گزینه منع کردن میتوانید برنامه هایی را از استفاده از وی پی ان منع کنید.\n(مانند برنامه های موبایل بانک)</string>
+    <string name="selected_app_alert">با گزینه شامل کردن میتوانید برنامه هایی که فقط آنها حق استفاده از وی پی ان را دارند انتخاب کنید.\nبا گزینه منع کردن میتوانید برنامه هایی را از استفاده از وی پی ان منع کنید.\n(مانند برنامه های موبایل بانک)</string>
     <string name="description">توضیحات</string>
     <string name="cancel">لغو</string>
     <string name="deselect_all">حذف انتخاب</string>
@@ -130,4 +130,5 @@
     <string name="transfer_the_specified_amount">مقدار تعیین شده را به شماره کارت واریز بفرمایید و سپس رسید آن را ارسال کنید.\n  • درخواست شما توسط اپراتور پیگیری خواهد شد.</string>
     <string name="already_submitted">قبلا درخواست داده اید</string>
     <string name="service_start_failed">شروع سرویس انجام نشد</string>
+    <string name="restarting_connection">در حال تازه سازی اتصال</string>
 </resources>
