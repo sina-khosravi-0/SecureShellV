@@ -3,7 +3,6 @@ package com.securelight.secureshellv.ui.homepage.bottomsheet.serversettings;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -59,7 +58,7 @@ public class ServerFragment extends Fragment {
         autoComplete.setAdapter(arrayAdapter);
 
         new Thread(() -> {
-            DataManager.getInstance().fetchServerSelection();
+            DataManager.getInstance().updateServerSelection();
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> {
                     arrayAdapter.setAutoCompleteItem(autoComplete, preferencesSingleton.getSelectedServerLocationForDropDown());
@@ -77,7 +76,7 @@ public class ServerFragment extends Fragment {
 
     @Override
     public void onResume() {
-        new Thread(() -> DataManager.getInstance().fetchServerSelection()).start();
+        new Thread(() -> DataManager.getInstance().updateServerSelection()).start();
         super.onResume();
     }
 }

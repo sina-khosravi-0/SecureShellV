@@ -48,8 +48,7 @@ public class ServicePackageRecyclerAdapter extends RecyclerView.Adapter<ServiceP
             holder.supportText.setText(context.getResources().getQuantityString(R.plurals.users,
                     items.get(position).getUsers(), items.get(position).getUsers()));
         } else {
-            holder.supportText.setText(context.getResources().getQuantityString(R.plurals.gigs,
-                    items.get(position).getTraffic(), items.get(position).getTraffic()));
+            holder.supportText.setText(String.format(Locale.getDefault(), "%d %s", items.get(position).getTraffic(), context.getString(R.string.gigs)));
         }
     }
 

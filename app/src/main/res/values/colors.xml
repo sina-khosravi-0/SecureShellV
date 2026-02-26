@@ -4,6 +4,9 @@
     <color name="my_dark_primary">#222831</color>
     <color name="my_light_accent">#222831</color>
     <color name="my_dark_accent">#CFCFCF</color>
+    <color name="ping_good_container">#1B6840</color>
+    <color name="ping_weak_container">#074559</color>
+    <color name="ping_bad_container">#074559</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="seed">#006686</color>
@@ -11,7 +14,7 @@
     <color name="md_theme_light_onPrimary">#C8DBE6</color>
     <color name="md_theme_light_primaryContainer">#5FA8C8</color>
     <color name="md_theme_light_primaryContainer_opaque">#D85FA8C8</color>
-    <color name="md_theme_light_onPrimaryContainer">#355473</color>
+    <color name="md_theme_light_onPrimaryContainer">#002B56</color>
     <color name="md_theme_light_secondary">#3DA7AC</color>
     <color name="md_theme_light_onSecondary">#FFFFFF</color>
     <color name="md_theme_light_secondaryContainer">#D0E6F3</color>
@@ -19,7 +22,7 @@
     <color name="md_theme_light_tertiary">#75CD8C</color>
     <color name="md_theme_light_onTertiary">#003316</color>
     <color name="md_theme_light_tertiaryContainer">#1B6840</color>
-    <color name="md_theme_light_onTertiaryContainer">#B2FDC4</color>
+    <color name="md_theme_light_onTertiaryContainer">#D9FFE2</color>
     <color name="md_theme_light_error">#BA1A1A</color>
     <color name="md_theme_light_onError">#FFFFFF</color>
     <color name="md_theme_light_errorContainer">#FFDAD6</color>

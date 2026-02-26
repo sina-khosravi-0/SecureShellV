@@ -40,7 +40,7 @@
     <string name="unlimited_time">Unlimited Time</string>
     <string name="unlimited_data">Unlimited Data</string>
     <string name="connected_ips">Current Connected IPs</string>
-    <string name="data_limit">Data limit:</string>
+    <string name="data_limit">Used Traffic</string>
     <string name="broadcast_message">Broadcast Message</string>
     <string name="date">Date</string>
     <string name="location">Location</string>
@@ -119,10 +119,7 @@
         <item quantity="one">%d user</item>
         <item quantity="other">%d users</item>
     </plurals>
-    <plurals name="gigs">
-        <item quantity="one">%dGB</item>
-        <item quantity="other">%dGB</item>
-    </plurals>
+    <string name="gigs">GB</string>
     <string name="toman">Toman</string>
     <string name="unlimited">Unlimited</string>
     <string name="what_is_gold_plan">What is VIP plan?</string>
@@ -131,7 +128,7 @@
     <string name="silver_plan_alert">Please note that in the normal plan, the probability of slow connection is higher due to direct connection to VPN servers.(No tunnel)</string>
     <string name="submit_successful">Submit Successful</string>
     <string name="please_select_a_plan_first">Please select a plan first</string>
-    <string name="already_requested_renewal">You have already requested renewal. Please wait.</string>
+    <string name="already_requested_renewal">Your Request is being processed</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="log_out">Log out</string>
     <string name="are_you_sure_about_logging_out">Are you sure about logging out?</string>
@@ -148,4 +145,9 @@
     <string name="already_submitted">Already Submitted</string>
     <string name="service_start_failed">Service Start Failed</string>
     <string name="restarting_connection">Restarting Connection</string>
+    <string name="connection_delay">Delay:</string>
+    <string name="timeout" translatable="false">Timeout</string>
+    <string name="current_package">Current Package</string>
+    <string name="will_automatically_renew">Will Automatically Renew</string>
+    <string name="renew_current">Renew Current</string>
 </resources>

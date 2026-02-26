@@ -1,5 +1,6 @@
 package com.securelight.secureshellv.statics;
 
+import android.content.Intent;
 import android.content.IntentFilter;
 
 /** @noinspection unused*/
@@ -21,4 +22,5 @@ public class Intents {
     public static final String CONNECTING_ACTION = "com.securelight.secureshellv.CONNECTING";
     public static final String DISCONNECTED_ACTION = "com.securelight.secureshellv.DISCONNECTED";
     public static final String SEND_STATS_FAIL_INTENT = "SEND_STATS_FAIL_INTENT";
+    public static final String NEW_PING_ACTION = "NEW_PING";
 }

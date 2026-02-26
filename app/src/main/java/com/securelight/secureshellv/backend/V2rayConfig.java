@@ -148,7 +148,7 @@ public class V2rayConfig {
                     }
                 }
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                Log.e("V2rayConfig.testConfig", e.getMessage(), e);
             }
         }
     }

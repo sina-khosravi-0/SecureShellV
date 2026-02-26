@@ -1,7 +1,10 @@
 package com.securelight.secureshellv.ui.homepage;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
+import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
@@ -12,6 +15,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.graphics.drawable.Animatable2;
 import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.Drawable;
@@ -24,19 +28,22 @@ import android.os.Vibrator;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewPropertyAnimator;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 import android.view.animation.Transformation;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.os.LocaleListCompat;
@@ -44,6 +51,10 @@ import androidx.core.widget.ImageViewCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
+import com.bumptech.glide.request.target.Target;
+import com.google.android.material.animation.AnimationUtils;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -61,6 +72,7 @@ import com.securelight.secureshellv.statics.Values;
 import com.securelight.secureshellv.ui.login.LoginActivity;
 import com.securelight.secureshellv.utility.CustomExceptionHandler;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
+import com.securelight.secureshellv.utility.Utilities;
 import com.securelight.secureshellv.vpnservice.SSVpnService;
 
 import java.util.ArrayList;
@@ -69,19 +81,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import io.noties.markwon.Markwon;
+import io.noties.markwon.ext.tables.TablePlugin;
+import io.noties.markwon.image.AsyncDrawable;
+import io.noties.markwon.image.glide.GlideImagesPlugin;
+import io.noties.markwon.linkify.LinkifyPlugin;
+
 
 public class HomepageActivity extends AppCompatActivity {
     public static boolean vpnServiceInitialized = false;
     public static boolean isTrafficProgressBarAnimated = false;
     public static int colorPrimary;
     public static int colorOnPrimary;
-    /**
-     * @noinspection unused
-     */
     public static int colorSecondary;
-    /**
-     * @noinspection unused
-     */
     public static int colorOnSecondary;
     public static int colorSecondaryContainer;
     public static int colorOnSecondaryContainer;
@@ -116,13 +128,32 @@ public class HomepageActivity extends AppCompatActivity {
                     .setNeutralButton(R.string.ok, null).show();
         }
     };
+    private Markwon markwon;
+    private int colorPrimaryContainer;
+    private int colorOnPrimaryContainer;
     private boolean isReceiverRegistered = false;
     private Intent vpnServiceIntent;
     private BottomSheetBehavior<View> bottomSheetBehavior;
+    private FrameLayout startButtonFrame;
     private ImageView buttonImage;
     private TextView buttonText;
     private TextView mainConnectText;
     private TextView remainingTimeText;
+    private TextView willAutoRenewText;
+    private TextView pingText;
+    private final BroadcastReceiver pingBroadcast = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.hasExtra("ping")) {
+                long ping = intent.getLongExtra("ping", -1);
+                showPing(ping);
+            }
+        }
+    };
+    private LinearLayout delayLayout;
+    private String broadcastMessageTextString;
+    private TextView broadcastMessageTextView;
+    private ScrollView broadcastMessageScrollView;
     private MaterialButton resubscribeButton;
     private CircularProgressIndicator trafficProgressIndicator;
     private final BroadcastReceiver connectedBr = new BroadcastReceiver() {
@@ -211,10 +242,33 @@ public class HomepageActivity extends AppCompatActivity {
                     remainingTimeText.setTextColor(colorWarning);
                 } else if (remainingDays <= 1) {
                     remainingTimeText.setTextColor(colorAlert);
-                    resubscribeButton.setVisibility(View.VISIBLE);
                 } else {
                     remainingTimeText.setTextColor(colorOk);
+                }
+                if (remainingDays <= 3 || dataManager.getRemainingTrafficGB() < 1) {
+                    resubscribeButton.setVisibility(View.VISIBLE);
+                } else {
                     resubscribeButton.setVisibility(View.GONE);
+                }
+                if (dataManager.getRemainingTime()[0] < 0 ||
+                        dataManager.getRemainingTime()[1] < 0 ||
+                        dataManager.getRemainingTrafficGB() <= 0 ||
+                        (dataManager.getRemainingTime()[0] == 0 && dataManager.getRemainingTime()[1] == 0)) {
+                    remainingTimeText.setText(getString(R.string.credit_expired));
+                    remainingTimeText.setTextColor(colorAlert);
+                    if (dataManager.isAutoRenew()) {
+                        willAutoRenewText.setVisibility(View.VISIBLE);
+                        startButtonFrame.setVisibility(View.VISIBLE);
+                        mainConnectText.setVisibility(View.VISIBLE);
+                    } else {
+                        startButtonFrame.setVisibility(View.GONE);
+                        mainConnectText.setVisibility(View.GONE);
+                    }
+                    return;
+                } else {
+                    willAutoRenewText.setVisibility(View.GONE);
+                    startButtonFrame.setVisibility(View.VISIBLE);
+                    mainConnectText.setVisibility(View.VISIBLE);
                 }
                 if (remainingDays == 0) {
                     long[] timeLeft = dataManager.getRemainingTime();
@@ -303,6 +357,27 @@ public class HomepageActivity extends AppCompatActivity {
                         Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setPackage(getPackageName());
 
+        markwon = Markwon.builder(getApplicationContext())
+                .usePlugin(TablePlugin.create(getApplicationContext()))
+                .usePlugin(LinkifyPlugin.create()) // automatically create Glide instance
+                .usePlugin(GlideImagesPlugin.create(this))
+                // use supplied Glide instance
+                .usePlugin(GlideImagesPlugin.create(Glide.with(this)))
+                // if you need more control
+                .usePlugin(GlideImagesPlugin.create(new GlideImagesPlugin.GlideStore() {
+                    @NonNull
+                    @Override
+                    public RequestBuilder<Drawable> load(@NonNull AsyncDrawable drawable) {
+                        return Glide.with(getApplicationContext()).load(drawable.getDestination());
+                    }
+
+                    @Override
+                    public void cancel(@NonNull Target<?> target) {
+                        Glide.with(getApplicationContext()).clear(target);
+                    }
+                }))
+                .build();
+
         updateUserData();
         initUIComponents();
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
@@ -318,20 +393,27 @@ public class HomepageActivity extends AppCompatActivity {
                         lbm.unregisterReceiver(disconnectedBr);
                         lbm.unregisterReceiver(signInBr);
                         lbm.unregisterReceiver(updateUserDataUIBr);
+                        lbm.unregisterReceiver(pingBroadcast);
                         lbm.unregisterReceiver(killActivityBr);
                         lbm.unregisterReceiver(sendStatsFailBr);
                     }));
         }
     }
 
+    @SuppressLint("RestrictedApi")
     private void initUIComponents() {
-        FrameLayout startButtonFrame = findViewById(R.id.vpn_toggle_frame);
+        startButtonFrame = findViewById(R.id.vpn_toggle_frame);
         buttonImage = startButtonFrame.findViewById(R.id.vpn_toggle_img);
         buttonText = startButtonFrame.findViewById(R.id.vpn_toggle_txt);
         trafficProgressIndicator = startButtonFrame.findViewById(R.id.traffic_progress);
         mainConnectText = findViewById(R.id.main_connect_status);
         remainingTimeText = findViewById(R.id.remaining_time);
+        willAutoRenewText = findViewById(R.id.will_auto_renew_text);
+        pingText = findViewById(R.id.ping_text_view);
+        broadcastMessageTextView = findViewById(R.id.broadcast_message_text_view);
+        broadcastMessageScrollView = findViewById(R.id.broadcast_message_scrollview);
         resubscribeButton = findViewById(R.id.main_screen_renew_button);
+        delayLayout = findViewById(R.id.delay_layout);
 
         startButtonFrame.setOnClickListener(v -> {
             ((Vibrator) getSystemService(VIBRATOR_SERVICE))
@@ -350,9 +432,44 @@ public class HomepageActivity extends AppCompatActivity {
             }
         });
 
-        resubscribeButton.setOnClickListener(v -> {
-            startActivity(new Intent(getApplicationContext(), SelectServiceActivity.class));
-        });
+//        broadcastMessageTextView.setOnClickListener(v -> {
+//            TextView textView = (TextView) v;
+//            textView.setMaxHeight(200);
+//            if (!broadcastMessageExpanded) {
+////                expand the text
+//                int px = (int) (58 * getResources().getDisplayMetrics().density + 0.5f);
+//                ObjectAnimator animation = ObjectAnimator.ofInt(textView, "Height", (textView.getLineCount() * (textView.getLineHeight() - 1)) + px);
+//                animation.setInterpolator(AnimationUtils.LINEAR_OUT_SLOW_IN_INTERPOLATOR);
+//                animation.setDuration(500).start();
+//                markwon.setMarkdown(textView, broadcastMessageTextString);
+//                broadcastMessageExpanded = true;
+//                animation.addListener(new AnimatorListenerAdapter() {
+//                    @Override
+//                    public void onAnimationEnd(Animator animation) {
+//                        mainConnectText.setVisibility(View.GONE);
+//                        remainingTimeText.setVisibility(View.GONE);
+//                        super.onAnimationEnd(animation);
+//                    }
+//                });
+//
+//            } else {
+////                collapse the text
+//                int px = (int) (58 * getResources().getDisplayMetrics().density + 0.5f);
+//                ObjectAnimator animation = ObjectAnimator.ofInt(textView, "Height", px);
+//                animation.setInterpolator(AnimationUtils.FAST_OUT_SLOW_IN_INTERPOLATOR);
+//                animation.setDuration(500).start();
+//                textView.setText(broadcastMessageTextString);
+//                animation.addListener(new AnimatorListenerAdapter() {
+//                    @Override
+//                    public void onAnimationEnd(Animator animation) {
+//                        mainConnectText.setVisibility(View.VISIBLE);
+//                        remainingTimeText.setVisibility(View.VISIBLE);
+//                        super.onAnimationEnd(animation);
+//                    }
+//                });
+//                broadcastMessageExpanded = false;
+//            }
+//        });
 
         LinearLayout bottomSheetLayout = findViewById(R.id.standard_bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
@@ -374,6 +491,7 @@ public class HomepageActivity extends AppCompatActivity {
                 } else {
                     if (tab.getPosition() == 0) {
                         updateUserData();
+                        new Thread(() -> DataManager.getInstance().updateServicePlans()).start();
                     }
 
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -472,6 +590,12 @@ public class HomepageActivity extends AppCompatActivity {
             }
         }).attach();
         Objects.requireNonNull(tabLayout.getTabAt(2)).select();
+
+        resubscribeButton.setOnClickListener(v -> {
+//            startActivity(new Intent(getApplicationContext(), SelectServiceActivity.class));
+            Objects.requireNonNull(tabLayout.getTabAt(0)).select();
+
+        });
 
         viewPager.setUserInputEnabled(false);
         viewPager.setOffscreenPageLimit(NUMBER_OF_TABS);
@@ -606,6 +730,7 @@ public class HomepageActivity extends AppCompatActivity {
             lbm.unregisterReceiver(disconnectedBr);
             lbm.unregisterReceiver(signInBr);
             lbm.unregisterReceiver(updateUserDataUIBr);
+            lbm.unregisterReceiver(pingBroadcast);
             lbm.unregisterReceiver(killActivityBr);
             lbm.unregisterReceiver(sendStatsFailBr);
             isReceiverRegistered = false;
@@ -629,15 +754,18 @@ public class HomepageActivity extends AppCompatActivity {
         lbm.registerReceiver(disconnectedBr, new IntentFilter(Intents.DISCONNECTED_ACTION));
         lbm.registerReceiver(signInBr, new IntentFilter(Intents.SIGN_IN_ACTION));
         lbm.registerReceiver(updateUserDataUIBr, new IntentFilter(Intents.UPDATE_USER_DATA_INTENT));
+        lbm.registerReceiver(pingBroadcast, new IntentFilter(Intents.NEW_PING_ACTION));
         lbm.registerReceiver(killActivityBr, new IntentFilter(Intents.KILL_HOMEPAGE_ACTIVITY_INTENT));
         lbm.registerReceiver(sendStatsFailBr, new IntentFilter(Intents.SEND_STATS_FAIL_INTENT));
         isReceiverRegistered = true;
     }
 
     private void performConnectedAction() {
+        updateUserData();
         buttonImage.setVisibility(View.GONE);
         buttonText.setVisibility(View.VISIBLE);
         mainConnectText.setText(R.string.connected);
+        delayLayout.setVisibility(View.VISIBLE);
         trafficProgressIndicator.setIndeterminate(false);
         Animation animation = new Animation() {
             @SuppressLint({"DefaultLocale", "SetTextI18n"})
@@ -648,13 +776,13 @@ public class HomepageActivity extends AppCompatActivity {
                 double value = dataManager.getRemainingTrafficGB() / dataManager.getTotalTrafficGB() *
                         interpolatedTime * 100;
                 double traffic = 0 + dataManager.getRemainingTrafficGB() * interpolatedTime;
-                buttonText.setText(String.format("%.2f", traffic) + "\nGB");
+                buttonText.setText(String.format("%.2f\n%s", traffic, getString(R.string.gigs)));
                 trafficProgressIndicator.setProgress((int) value);
             }
 
         };
         animation.setDuration(1000);
-        animation.setInterpolator(new AccelerateDecelerateInterpolator());
+        animation.setInterpolator((Interpolator) AnimationUtils.FAST_OUT_SLOW_IN_INTERPOLATOR);
 
         trafficProgressIndicator.startAnimation(animation);
         isTrafficProgressBarAnimated = true;
@@ -665,6 +793,7 @@ public class HomepageActivity extends AppCompatActivity {
         buttonImage.setImageResource(R.drawable.vpn_loading_animated);
         buttonImage.setVisibility(View.VISIBLE);
         buttonText.setVisibility(View.GONE);
+        delayLayout.setVisibility(View.GONE);
         mainConnectText.setText(R.string.connecting);
         new Thread(() -> {
             try {
@@ -697,6 +826,7 @@ public class HomepageActivity extends AppCompatActivity {
         buttonText.setVisibility(View.GONE);
         mainConnectText.setText(R.string.disconnected);
         trafficProgressIndicator.setIndeterminate(false);
+        delayLayout.setVisibility(View.GONE);
 
         Animation animation = new Animation() {
             @SuppressLint({"DefaultLocale", "SetTextI18n"})
@@ -721,17 +851,59 @@ public class HomepageActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("DefaultLocale")
+    private void showPing(long ping) {
+        if (ping == -1) {
+            pingText.setBackgroundColor(R.attr.alert);
+            pingText.setTextColor(R.attr.colorOnPrimary);
+            pingText.setText(R.string.timeout);
+            return;
+        } else if (ping > 1000) {
+            pingText.setBackgroundColor(R.attr.warning);
+            pingText.setTextColor(R.attr.colorOnPrimary);
+        } else {
+            pingText.setBackgroundColor(R.attr.ok);
+            pingText.setTextColor(R.attr.colorOnPrimary);
+        }
+        pingText.setBackground(AppCompatResources.getDrawable(this, R.drawable.rounded_container_background));
+        pingText.setText(String.format("%d ms", ping));
+    }
+
     private void updateUserData() {
         new Thread(() -> {
-            DatabaseHandlerSingleton.getInstance(this).fetchUserData();
+            if (!DataManager.getInstance().updateUserData()) {
+                return;
+            }
+            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(Intents.UPDATE_USER_DATA_INTENT));
+            String message = DataManager.getInstance().getMessage();
+            try {
+                Thread.sleep(750);
+            } catch (InterruptedException e) {
+                return;
+            }
             runOnUiThread(() -> {
-                if (DataManager.getInstance().isMessagePending()) {
-                    new MaterialAlertDialogBuilder(this).setTitle(R.string.broadcast_message)
-                            .setMessage(DataManager.getInstance().getMessage())
-                            .setNeutralButton(R.string.ok, null)
-                            .show();
-                    DataManager.getInstance().setMessageSeen();
-                    DatabaseHandlerSingleton.getInstance(null).sendMessageReceived();
+                if (!message.isEmpty()) {
+                    if (DataManager.getInstance().isMessagePending()) {
+                        DatabaseHandlerSingleton.getInstance(null).sendMessageReceived();
+                        broadcastMessageScrollView.setBackground(AppCompatResources.getDrawable(this, R.drawable.rounded_container_background));
+                        broadcastMessageTextView.setTextColor(colorOnTertiaryContainer);
+                        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) startButtonFrame.getLayoutParams();
+                        params.setMargins(0, 0, 0, 0);
+                        startButtonFrame.setLayoutParams(params);
+                        mainConnectText.setVisibility(View.GONE);
+                        remainingTimeText.setVisibility(View.GONE);
+                    } else {
+                        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) startButtonFrame.getLayoutParams();
+                        params.setMargins(0, Utilities.convertDPtoPX(getResources(), 80), 0, 0);
+                        startButtonFrame.setLayoutParams(params);
+                        broadcastMessageScrollView.setBackground(AppCompatResources.getDrawable(this, R.drawable.rounded_message_container_background));
+                        broadcastMessageScrollView.setBackgroundTintList(ColorStateList.valueOf(colorPrimaryContainer));
+                        broadcastMessageTextView.setTextColor(colorOnPrimaryContainer);
+                        mainConnectText.setVisibility(View.VISIBLE);
+                        remainingTimeText.setVisibility(View.VISIBLE);
+                    }
+                    broadcastMessageTextView.setVisibility(View.VISIBLE);
+                    markwon.setMarkdown(broadcastMessageTextView, message);
                 }
             });
         }).start();
@@ -744,6 +916,10 @@ public class HomepageActivity extends AppCompatActivity {
         colorPrimary = typedValue.data;
         getTheme().resolveAttribute(R.attr.colorOnPrimary, typedValue, true);
         colorOnPrimary = typedValue.data;
+        getTheme().resolveAttribute(R.attr.colorPrimaryContainer, typedValue, true);
+        colorPrimaryContainer = typedValue.data;
+        getTheme().resolveAttribute(R.attr.colorOnPrimaryContainer, typedValue, true);
+        colorOnPrimaryContainer = typedValue.data;
         getTheme().resolveAttribute(R.attr.colorSecondaryContainer, typedValue, true);
         colorSecondaryContainer = typedValue.data;
         getTheme().resolveAttribute(R.attr.colorOnSecondaryContainer, typedValue, true);

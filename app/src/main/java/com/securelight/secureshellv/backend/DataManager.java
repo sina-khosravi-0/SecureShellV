@@ -32,6 +32,7 @@ public class DataManager {
     private static DataManager dataManager;
     private final List<V2rayConfig> v2rayConfigs = new ArrayList<>();
     private final List<Thread> calcConfigThreads = new ArrayList<>();
+    private List<ServicePlan> servicePlans = new ArrayList<>();
     public String selectedConfig;
     private String userName;
     private List<TargetServer> targetServers = new ArrayList<>();
@@ -43,8 +44,10 @@ public class DataManager {
     private boolean unlimitedCreditTime;
     private boolean unlimitedTraffic;
     private boolean renewPending;
+    private boolean autoRenew;
     private int connectedIps;
     private int allowedIps;
+    private int currentPlanId;
     private Image paymentReceipt;
     private String message;
     private LocalDateTime messageDate;
@@ -72,8 +75,7 @@ public class DataManager {
         return calculatePassword(userName, result);
     }
 
-    public void parseData(JSONObject data) throws JSONException {
-
+    public void parseUserData(JSONObject data) throws JSONException {
         if (dataManager == null) {
             return;
         }
@@ -85,8 +87,10 @@ public class DataManager {
         boolean unlimitedCreditTime = userCreditInfo.getBoolean("unlimited_credit_time");
         boolean unlimitedTraffic = userCreditInfo.getBoolean("unlimited_data");
         boolean renewPending = userCreditInfo.getBoolean("renew_pending");
+        boolean autoRenews = userCreditInfo.getBoolean("auto_renew");
         int connectedIps = userCreditInfo.getInt("connected_ips");
         int allowedIps = userCreditInfo.getInt("allowed_ips");
+        int currentServiceId = userCreditInfo.getInt("current_service_plan");
         String paymentReceipt = userCreditInfo.getString("payment_receipt");
         String message = data.getString("message");
         String messageDate = data.getString("message_date");
@@ -104,8 +108,10 @@ public class DataManager {
         this.unlimitedCreditTime = unlimitedCreditTime;
         this.unlimitedTraffic = unlimitedTraffic;
         this.renewPending = renewPending;
+        this.autoRenew = autoRenews;
         this.connectedIps = connectedIps;
         this.allowedIps = allowedIps;
+        this.currentPlanId = currentServiceId;
 //        this.paymentReceipt = paymentReceipt;
         this.message = message;
         try {
@@ -115,6 +121,21 @@ public class DataManager {
         }
         this.messagePending = messagePending;
         this.userName = userName;
+    }
+
+    /**
+     * fetches user data from the backend and parses it
+     * @return boolean indicating success
+     * */
+    public boolean updateUserData() {
+        try {
+            JSONObject response = DatabaseHandlerSingleton.getInstance(null).fetchUserData();
+            parseUserData(new JSONObject(response.toString()));
+            return true;
+        } catch (NullPointerException | JSONException e) {
+            Log.e("DatabaseHandler", "error parsing userdata", e);
+        }
+        return false;
     }
 
     public void parseTargetServers(JSONArray data) throws JSONException {
@@ -171,8 +192,7 @@ public class DataManager {
     /**
      * Gets all servers regardless of location
      */
-    public List<TargetServer> fetchServerSelection() {
-        List<TargetServer> targetServers = new ArrayList<>();
+    public void updateServerSelection() {
         if (isFetching) {
             while (isFetching) {
                 try {
@@ -184,7 +204,6 @@ public class DataManager {
                     lock.unlock();
                 }
             }
-            return targetServers;
         }
 
         isFetching = true;
@@ -200,7 +219,6 @@ public class DataManager {
             condition.signalAll();
             lock.unlock();
         }
-        return targetServers;
     }
 
     /**
@@ -299,9 +317,9 @@ public class DataManager {
         return bestHopServer.get();
     }
 
-    public List<ServicePlan> getServicePlans() {
+    public void updateServicePlans() {
         JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServicePlans();
-        List<ServicePlan> servicePlans = new ArrayList<>();
+        servicePlans = new ArrayList<>();
         for (int i = 0; i < response.length(); i++) {
             ServicePlan servicePlan = new ServicePlan();
             try {
@@ -310,10 +328,13 @@ public class DataManager {
             }
             servicePlans.add(servicePlan);
         }
+    }
+
+    public List<ServicePlan> getServicePlans() {
         return servicePlans;
     }
 
-    public List<V2rayConfig> updateV2rayConfigs(String location) throws JSONException {
+    public void updateV2rayConfigs(String location) throws JSONException {
         getTargetServers();
         v2rayConfigs.clear();
         JSONArray jsonArray = DatabaseHandlerSingleton.getInstance(null).fetchConfigs(location);
@@ -322,7 +343,6 @@ public class DataManager {
             v2rayConfig.parseData(jsonArray.getJSONObject(i));
             v2rayConfigs.add(v2rayConfig);
         }
-        return v2rayConfigs;
     }
 
     public V2rayConfig getBestV2rayConfig() {
@@ -405,6 +425,10 @@ public class DataManager {
         return LocalDateTime.now().until(endCreditDate, ChronoUnit.DAYS);
     }
 
+
+    /**
+     * @return an array of hours and minutes left
+     * */
     public long[] getRemainingTime() {
         long[] time = new long[2];
         time[0] = LocalDateTime.now().until(endCreditDate, ChronoUnit.HOURS);
@@ -442,10 +466,6 @@ public class DataManager {
 
     public String getMessage() {
         return message;
-    }
-
-    public void setMessageSeen() {
-        messagePending = false;
     }
 
     public LocalDateTime getMessageDate() {
@@ -489,5 +509,13 @@ public class DataManager {
                 ", messagePending=" + messagePending +
                 ", userId=" + userName +
                 '}';
+    }
+
+    public int getCurrentPlanId() {
+        return currentPlanId;
+    }
+
+    public boolean isAutoRenew() {
+        return autoRenew;
     }
 }

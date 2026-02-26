@@ -12,6 +12,7 @@
         android:id="@+id/constraintLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:animateLayoutChanges="true"
         android:hapticFeedbackEnabled="true"
         android:paddingBottom="100dp">
 
@@ -27,7 +28,6 @@
             android:background="@drawable/vpn_toggle_animation"
             android:clickable="true"
             android:hapticFeedbackEnabled="true"
-
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.497"
             app:layout_constraintStart_toStartOf="parent"
@@ -36,16 +36,15 @@
             <ImageButton
                 android:id="@+id/vpn_toggle_img"
                 android:layout_width="match_parent"
-                android:hapticFeedbackEnabled="true"
                 android:layout_height="match_parent"
                 android:background="@null"
                 android:clickable="false"
                 android:contentDescription="@string/vpn_toggle_accessibility"
+                android:hapticFeedbackEnabled="true"
                 android:src="@drawable/vpn_toggle_vector"
                 android:visibility="visible" />
 
             <TextView
-
                 android:id="@+id/vpn_toggle_txt"
                 android:layout_width="170dp"
                 android:layout_height="170dp"
@@ -55,7 +54,8 @@
                 android:textColor="?attr/colorTertiary"
                 android:textSize="40dp"
                 android:visibility="gone"
-                tools:text="51.23 GB" />
+                tools:ignore="SpUsage"
+                tools:text="51.23 \nGB" />
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/traffic_progress"
@@ -66,15 +66,19 @@
                 android:hapticFeedbackEnabled="true"
                 android:rotation="180"
                 app:indicatorSize="205dp"
+                app:trackColor="?attr/colorOnPrimary"
                 app:trackCornerRadius="100dp"
                 app:trackThickness="15dp"
                 tools:progress="78" />
         </FrameLayout>
 
+
         <LinearLayout
+            android:id="@+id/linearLayout3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:animateLayoutChanges="true"
+            android:descendantFocusability="beforeDescendants"
             android:divider="@drawable/empty_divider"
             android:gravity="center"
             android:orientation="vertical"
@@ -86,96 +90,55 @@
                 android:id="@+id/main_connect_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                tools:text="@string/connected"
                 android:textSize="20sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="@string/connected" />
 
             <LinearLayout
+                android:id="@+id/delay_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:divider="@drawable/empty_divider"
                 android:gravity="center"
-                android:layoutDirection="ltr"
-                android:orientation="horizontal"
                 android:showDividers="middle">
 
                 <TextView
-                    android:id="@+id/remaining_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="?attr/warning"
+                    android:text="@string/connection_delay" />
+
+                <TextView
+                    android:id="@+id/ping_text_view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:alpha="0.9"
+                    android:background="@drawable/rounded_container_background"
+                    android:backgroundTint="?attr/ok"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="1dp"
+                    android:textColor="?attr/colorOnPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold"
-                    tools:text="32 days left" />
+                    tools:text="223ms" />
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/remaining_time"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:divider="@drawable/empty_divider"
-                android:gravity="center"
-                android:layoutDirection="ltr"
+                android:textColor="?attr/warning"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="32 days left" />
 
-                android:orientation="horizontal"
-                android:showDividers="middle">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ip" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    tools:text="0.0.0.0" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/will_auto_renew_text"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:divider="@drawable/empty_divider"
-                android:gravity="center"
-                android:layoutDirection="ltr"
-
-                android:orientation="horizontal"
-                android:showDividers="middle">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/internet_quality"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="16sp"
-                    tools:text="@string/n_a" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:divider="@drawable/empty_divider"
-                android:gravity="center"
-                android:layoutDirection="ltr"
-                android:orientation="horizontal"
-                android:showDividers="middle">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/connection_quality"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="16sp"
-                    tools:text="@string/dash" />
-            </LinearLayout>
+                android:textColor="?attr/ok"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:text="@string/will_automatically_renew"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/main_screen_renew_button"
@@ -184,6 +147,38 @@
                 android:text="@string/renew"
                 android:visibility="gone" />
         </LinearLayout>
+
+
+
+        <ScrollView
+            android:id="@+id/broadcast_message_scrollview"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/rounded_message_container_background"
+            android:backgroundTint="?attr/colorPrimaryContainer"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/linearLayout3"
+            app:layout_constraintVertical_bias="0.0">
+
+            <TextView
+                android:id="@+id/broadcast_message_text_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layerType="hardware"
+                android:paddingHorizontal="8dp"
+                android:paddingTop="4dp"
+                android:textColor="?attr/colorOnPrimaryContainer"
+                android:textSize="16sp"
+                android:visibility="gone"
+                tools:text="Broadcast Message"
+                tools:visibility="visible" />
+        </ScrollView>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout

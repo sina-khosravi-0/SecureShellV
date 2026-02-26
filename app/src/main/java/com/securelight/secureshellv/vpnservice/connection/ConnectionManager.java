@@ -9,6 +9,7 @@ import android.util.Log;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.backend.DataManager;
 import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.backend.SendTrafficTimeTask;
@@ -203,13 +204,19 @@ public class ConnectionManager extends Thread {
                 new SocksStateListener() {
                     @Override
                     public void onSocksDown() {
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                                new Intent(Intents.NEW_PING_ACTION)
+                                        .putExtra("ping", -1));
                         updateConnectionStateUI();
                         stopV2ray();
                         startV2ray();
                     }
 
                     @Override
-                    public void onSocksUp() {
+                    public void onSocksUp(long delay) {
+                        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                                new Intent(Intents.NEW_PING_ACTION)
+                                        .putExtra("ping", delay));
                         updateConnectionStateUI();
                     }
                 },

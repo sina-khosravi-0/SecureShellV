@@ -68,9 +68,11 @@ public class SocksHeartbeatTask extends TimerTask {
 
         this.accessChangeListener.onNetworkStateChanged(NetworkState.WORLD_WIDE);
         try {
-            if (v2raCoreManager.measureDelay("") >= 0) {
+            long delay = v2raCoreManager.measureDelay("");
+            if (delay >= 0) {
+
                 connectionStateListener.onConnectionStateListener(ConnectionState.CONNECTED);
-                socksStateListener.onSocksUp();
+                socksStateListener.onSocksUp(delay);
                 Log.d(TAG, "SOCKS UP");
                 counter = 0;
             } else {

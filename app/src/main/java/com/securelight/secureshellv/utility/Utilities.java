@@ -1,6 +1,7 @@
 package com.securelight.secureshellv.utility;
 
 
+import android.animation.ObjectAnimator;
 import android.content.res.Resources;
 import android.util.Log;
 
@@ -260,6 +261,20 @@ public class Utilities {
                 return serverSocket.getLocalPort();
             }
         }
+    }
+
+    public static int[] parseIranianDate(String date) {
+        if (date == null || !date.matches("\\d+-\\d+-\\d+")) {
+            throw new IllegalArgumentException("Invalid date format. Expected YYYY-MM-DD");
+        }
+
+        String[] parts = date.split("-");
+
+        int year = Integer.parseInt(parts[0]);
+        int month = Integer.parseInt(parts[1]);
+        int day = Integer.parseInt(parts[2]);
+
+        return new int[]{year, month, day};
     }
 //    todo: do this if need uri
 //    public static String normalizeV2rayFullConfig(String config) {

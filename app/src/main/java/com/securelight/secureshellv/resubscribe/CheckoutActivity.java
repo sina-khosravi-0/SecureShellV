@@ -124,7 +124,7 @@ public class CheckoutActivity extends Activity {
         amountText.setText(String.format(Locale.getDefault(), "%,d %s", servicePlan.getPrice(), getString(R.string.toman)));
         monthText.setText(getResources().getQuantityString(R.plurals.months, servicePlan.getMonths(), servicePlan.getMonths()));
         if (servicePlan.isGold()) {
-            gigText.setText(getResources().getQuantityString(R.plurals.gigs, servicePlan.getTraffic(), servicePlan.getTraffic()));
+            gigText.setText(String.format(Locale.getDefault(), "%d %s", servicePlan.getTraffic(), getString(R.string.gigs)));
         } else {
             gigText.setText(getResources().getQuantityString(R.plurals.users, servicePlan.getUsers(), servicePlan.getUsers()));
         }

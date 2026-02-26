@@ -23,5 +23,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "SecureShellV"
 include ':app'
-//include ':v2ray'
-//project(':v2ray').projectDir = new File(rootDir, 'v2ray')

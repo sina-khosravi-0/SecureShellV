@@ -42,11 +42,12 @@ public class SelectServiceActivity extends AppCompatActivity {
         serviceRecycler.setLayoutManager(new LinearLayoutManager(this));
 
         new Thread(() -> {
+            DataManager.getInstance().updateServicePlans();
             List<ServicePlan> servicePlans = DataManager.getInstance().getServicePlans();
             ServicePackageRecyclerAdapter recyclerAdapter =
                     new ServicePackageRecyclerAdapter(servicePlans.stream()
                             // filter services based on selected type before passing it to the recycler
-                            .filter(servicePlan -> normalRadio.isChecked() ? !servicePlan.isGold() : servicePlan.isGold())
+                            .filter(servicePlan -> normalRadio.isChecked() != servicePlan.isGold())
                             .collect(Collectors.toList()),
                             normalRadio.isChecked(),
                             this);

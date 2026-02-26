@@ -29,12 +29,14 @@
                 android:layout_height="wrap_content"
                 android:text="@string/transfer_the_specified_amount"
                 android:textSize="18sp"
+                android:textColor="?attr/colorOnPrimaryContainer"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/month_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnPrimaryContainer"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 tools:text="1 Month" />
@@ -43,6 +45,7 @@
                 android:id="@+id/gig_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnPrimaryContainer"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 tools:text="50 GB" />
@@ -60,7 +63,9 @@
                     android:id="@+id/amount_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:textColor="?attr/colorOnPrimaryContainer"
                     android:background="@drawable/rounded_container_background"
+                    android:backgroundTint="?attr/colorPrimaryContainer"
                     android:padding="10dp"
                     android:textSize="24sp"
                     android:textStyle="bold"
@@ -72,8 +77,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:divider="@drawable/empty_divider"
-                android:gravity="center"
-                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:orientation="vertical"
                 android:showDividers="middle|beginning">
 
                 <TextView
@@ -84,6 +89,8 @@
                 <LinearLayout
                     android:id="@+id/card_number_area"
                     android:layout_width="wrap_content"
+                    android:layout_gravity="center"
+                    android:elevation="20dp"
                     android:layout_height="wrap_content"
                     android:divider="@drawable/empty_divider"
                     android:orientation="vertical"

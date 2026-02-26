@@ -119,48 +119,32 @@ public class DatabaseHandlerSingleton {
         result.get();
     }
 
-    public void fetchUserData() {
+    public JSONObject fetchUserData() {
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(context);
         String accessToken = preferences.getAccessToken();
         String url = apiAddress + "api/account/details/";
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, null, null) {
+        RequestFuture<JSONObject> future = RequestFuture.newFuture();
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, future, future) {
             @Override
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
                 params.put("Authorization", "Bearer " + accessToken);
                 return params;
             }
-
-            @Override
-            protected VolleyError parseNetworkError(VolleyError error) {
-                if (error instanceof AuthFailureError) {
-                    handleAuthFailureError(error);
-                }
-                return error;
-            }
-
-            @Override
-            protected Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
-                try {
-                    String jsonString = new String(response.data,
-                            HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
-                    DataManager dataManager = DataManager.getInstance();
-
-                    try {
-                        dataManager.parseData(new JSONObject(jsonString));
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Intents.UPDATE_USER_DATA_INTENT));
-                    } catch (JSONException e) {
-                        Log.d("DatabaseHandler", "error parsing userdata", e);
-                    }
-
-                    return Response.success(new JSONObject(jsonString), HttpHeaderParser.parseCacheHeaders(response));
-                } catch (UnsupportedEncodingException | JSONException e) {
-                    return Response.error(new ParseError(e));
-                }
-            }
         };
         instance.addToRequestQueue(jsonObjectRequest);
+
+        try {
+            return future.get(12, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            if (e.getCause() instanceof AuthFailureError) {
+                handleAuthFailureError((VolleyError) e.getCause());
+            }
+            Log.e(TAG, e.getMessage(), e);
+        }
+        return null;
     }
 
     /**
@@ -177,7 +161,6 @@ public class DatabaseHandlerSingleton {
         } else if (errorData.contains(Constants.TOKEN_INVALID_CODE_STRING)) {
             if (verifyToken(SharedPreferencesSingleton.getInstance(null).getRefreshToken())) {
                 requestTokenRefresh();
-                fetchUserData();
             } else {
                 SharedPreferencesSingleton.getInstance(null).setLoggedIn(false);
                 SharedPreferencesSingleton.getInstance(null).clearCredentials();
@@ -294,7 +277,7 @@ public class DatabaseHandlerSingleton {
         String accessToken = SharedPreferencesSingleton.getInstance(context).getAccessToken();
         String url = apiAddress + "api/account/message_received/";
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.PUT, url, null,
                 null, null) {
             @Override
             public Map<String, String> getHeaders() {
