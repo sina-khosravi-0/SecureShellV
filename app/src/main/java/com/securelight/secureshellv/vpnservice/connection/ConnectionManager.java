@@ -80,6 +80,7 @@ public class ConnectionManager extends Thread {
     public void run() {
         setupInProgress = true;
         running.set(true);
+        stateChanged = true;
         updateConnectionStateUI();
         startV2ray();
         setupListener.onSetupFinished();
@@ -90,6 +91,7 @@ public class ConnectionManager extends Thread {
         try {
             vpnInterface.checkError();
         } catch (IOException e) {
+            stateChanged = true;
             updateConnectionStateUI();
             interfaceErrorListener.onFoundInterfaceError();
             return;
@@ -108,7 +110,7 @@ public class ConnectionManager extends Thread {
         }
 
         try {
-                v2rayCoreManager.startLoop(DataManager.getInstance().selectedConfig, vpnInterface.getFd());
+            v2rayCoreManager.startLoop(DataManager.getInstance().selectedConfig, vpnInterface.getFd());
         } catch (Exception e) {
             Log.e(TAG, e.getMessage(), e);
             if (setupInProgress) {
@@ -125,16 +127,24 @@ public class ConnectionManager extends Thread {
     private void stopV2ray() {
         v2rayCoreManager.stopLoop();
         connectionState = ConnectionState.DISCONNECTED;
+        stateChanged = true;
         updateConnectionStateUI();
         stopStatsHandler();
         cancelTasks();
     }
+
     /**
      * Method for restarting v2ray from VpnService
-     * */
+     */
     public void restartV2ray() {
         new Thread(() -> {
+            connectionState = ConnectionState.CONNECTING;
+            stateChanged = true;
+            updateConnectionStateUI();
             startV2ray();
+            connectionState = ConnectionState.CONNECTED;
+            stateChanged = true;
+            updateConnectionStateUI();
         }, "RestartV2ray_Thread").start();
     }
 
@@ -200,13 +210,14 @@ public class ConnectionManager extends Thread {
     }
 
     private void scheduleSocksHeartbeatTask() {
-        socksHeartbeatTask = new SocksHeartbeatTask(running, socketProtector,v2rayCoreManager,
+        socksHeartbeatTask = new SocksHeartbeatTask(running, socketProtector, v2rayCoreManager,
                 new SocksStateListener() {
                     @Override
                     public void onSocksDown() {
                         LocalBroadcastManager.getInstance(context).sendBroadcast(
                                 new Intent(Intents.NEW_PING_ACTION)
                                         .putExtra("ping", -1));
+                        stateChanged = true;
                         updateConnectionStateUI();
                         stopV2ray();
                         startV2ray();
