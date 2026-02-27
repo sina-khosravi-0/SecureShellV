@@ -6,7 +6,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Filter;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,10 +13,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.content.res.AppCompatResources;
 
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
-import com.securelight.secureshellv.MainActivityTest;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.backend.DataManager;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 
 import java.util.ArrayList;
 import java.util.List;

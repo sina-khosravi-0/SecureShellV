@@ -9,9 +9,8 @@ import android.util.Log;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.backend.DataManager;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.backend.BackendHandlerSingleton;
 import com.securelight.secureshellv.backend.SendTrafficTimeTask;
 import com.securelight.secureshellv.backend.V2rayConfig;
 import com.securelight.secureshellv.statics.Constants;
@@ -205,7 +204,7 @@ public class ConnectionManager extends Thread {
     }
 
     private void scheduleSendTrafficTask() {
-        sendTrafficTask = new SendTrafficTimeTask(statsHandler, DatabaseHandlerSingleton.getInstance(context), context);
+        sendTrafficTask = new SendTrafficTimeTask(statsHandler, BackendHandlerSingleton.getInstance(context), context);
         sendTrafficTimer.schedule(sendTrafficTask, 0, Constants.sendTrafficPeriod);
     }
 

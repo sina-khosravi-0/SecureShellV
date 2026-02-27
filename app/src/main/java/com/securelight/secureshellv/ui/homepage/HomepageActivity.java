@@ -1,10 +1,7 @@
 package com.securelight.secureshellv.ui.homepage;
 
 import android.Manifest;
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
-import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
@@ -15,7 +12,6 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
-import android.content.res.Resources;
 import android.graphics.drawable.Animatable2;
 import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.Drawable;
@@ -64,8 +60,7 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.securelight.secureshellv.BottomSheetTabAdapter;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.backend.DataManager;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
-import com.securelight.secureshellv.resubscribe.SelectServiceActivity;
+import com.securelight.secureshellv.backend.BackendHandlerSingleton;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
@@ -349,7 +344,7 @@ public class HomepageActivity extends AppCompatActivity {
 
         initColors();
         // initialize database handler singleton
-        DatabaseHandlerSingleton.getInstance(this);
+        BackendHandlerSingleton.getInstance(this);
         SharedPreferencesSingleton.getInstance(this);
         // set vpn intent
         vpnServiceIntent = new Intent(this, SSVpnService.class).setAction(Intents.VPN_SERVICE_ACTION)
@@ -378,7 +373,6 @@ public class HomepageActivity extends AppCompatActivity {
                 }))
                 .build();
 
-        updateUserData();
         initUIComponents();
         LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         if (!isReceiverRegistered) {
@@ -486,6 +480,7 @@ public class HomepageActivity extends AppCompatActivity {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 if (tab.getPosition() == 2) {
+                    updateUserData();
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                     bottomSheetBehavior.setDraggable(false);
                 } else {
@@ -884,7 +879,7 @@ public class HomepageActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (!message.isEmpty()) {
                     if (DataManager.getInstance().isMessagePending()) {
-                        DatabaseHandlerSingleton.getInstance(null).sendMessageReceived();
+                        BackendHandlerSingleton.getInstance(null).sendMessageReceived();
                         broadcastMessageScrollView.setBackground(AppCompatResources.getDrawable(this, R.drawable.rounded_container_background));
                         broadcastMessageTextView.setTextColor(colorOnTertiaryContainer);
                         ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) startButtonFrame.getLayoutParams();

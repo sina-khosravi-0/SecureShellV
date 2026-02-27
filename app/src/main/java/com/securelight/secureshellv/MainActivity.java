@@ -2,12 +2,10 @@ package com.securelight.secureshellv;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
 import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.ui.login.LoginActivity;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;

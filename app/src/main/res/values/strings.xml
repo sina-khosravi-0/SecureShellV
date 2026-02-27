@@ -150,4 +150,5 @@
     <string name="current_package">Current Package</string>
     <string name="will_automatically_renew">Will Automatically Renew</string>
     <string name="renew_current">Renew Current</string>
+    <string name="package_select">Package Select</string>
 </resources>

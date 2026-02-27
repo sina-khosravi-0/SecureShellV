@@ -133,4 +133,5 @@
     <string name="current_package">بسته فعلی</string>
     <string name="will_automatically_renew">خودکار تمدید می شود</string>
     <string name="renew_current">تمدید فعلی</string>
+    <string name="package_select">انتخاب بسته</string>
 </resources>

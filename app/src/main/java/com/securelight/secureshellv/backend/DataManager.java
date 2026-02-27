@@ -55,7 +55,7 @@ public class DataManager {
     private boolean isFetching = false;
     private ReentrantLock lock = new ReentrantLock();
     private Condition condition = lock.newCondition();
-    private int emptyCount = 0;
+    private int emptyRetries = 0;
 
     private DataManager() {
     }
@@ -71,7 +71,7 @@ public class DataManager {
      * Requests password of the best server from the backend
      */
     public String getSshPassword(boolean reset) {
-        String result = DatabaseHandlerSingleton.getInstance(null).retrievePassword(bestServer.getId(), reset);
+        String result = BackendHandlerSingleton.getInstance(null).retrievePassword(bestServer.getId(), reset);
         return calculatePassword(userName, result);
     }
 
@@ -129,7 +129,7 @@ public class DataManager {
      * */
     public boolean updateUserData() {
         try {
-            JSONObject response = DatabaseHandlerSingleton.getInstance(null).fetchUserData();
+            JSONObject response = BackendHandlerSingleton.getInstance(null).fetchUserData();
             parseUserData(new JSONObject(response.toString()));
             return true;
         } catch (NullPointerException | JSONException e) {
@@ -170,11 +170,11 @@ public class DataManager {
 
         isFetching = true;
         try {
-            JSONArray response = DatabaseHandlerSingleton.getInstance(null)
+            JSONArray response = BackendHandlerSingleton.getInstance(null)
                     .fetchServerList(SharedPreferencesSingleton.getInstance(null).getSelectedServerLocation());
             if (response.length() == 0) {
                 // if nothing was found we fetch servers from all locations
-                response = DatabaseHandlerSingleton.getInstance(null).fetchServerList("");
+                response = BackendHandlerSingleton.getInstance(null).fetchServerList("");
                 SharedPreferencesSingleton.getInstance(null).setServerLocation("ato");
             }
             parseTargetServers(response);
@@ -209,7 +209,7 @@ public class DataManager {
         isFetching = true;
         try {
 
-            JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServerList("");
+            JSONArray response = BackendHandlerSingleton.getInstance(null).fetchServerList("");
             parseTargetServers(response);
         } catch (JSONException e) {
             Log.d("DataManager", e.getMessage(), e);
@@ -240,9 +240,9 @@ public class DataManager {
     public boolean calculateBestServer() {
         List<TargetServer> servers = DataManager.getInstance().getTargetServers();
         while (servers.isEmpty()) {
-            emptyCount++;
+            emptyRetries++;
             servers = DataManager.getInstance().getTargetServers();
-            if (emptyCount == 3) {
+            if (emptyRetries == 3) {
                 return false;
             }
         }
@@ -318,7 +318,7 @@ public class DataManager {
     }
 
     public void updateServicePlans() {
-        JSONArray response = DatabaseHandlerSingleton.getInstance(null).fetchServicePlans();
+        JSONArray response = BackendHandlerSingleton.getInstance(null).fetchServicePlans();
         servicePlans = new ArrayList<>();
         for (int i = 0; i < response.length(); i++) {
             ServicePlan servicePlan = new ServicePlan();
@@ -337,7 +337,7 @@ public class DataManager {
     public void updateV2rayConfigs(String location) throws JSONException {
         getTargetServers();
         v2rayConfigs.clear();
-        JSONArray jsonArray = DatabaseHandlerSingleton.getInstance(null).fetchConfigs(location);
+        JSONArray jsonArray = BackendHandlerSingleton.getInstance(null).fetchConfigs(location);
         for (int i = 0; i < jsonArray.length(); i++) {
             V2rayConfig v2rayConfig = new V2rayConfig();
             v2rayConfig.parseData(jsonArray.getJSONObject(i));

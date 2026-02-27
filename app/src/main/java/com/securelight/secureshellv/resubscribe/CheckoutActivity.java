@@ -19,7 +19,6 @@ import android.util.TypedValue;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,25 +26,17 @@ import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.app.ActivityCompat;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.materialswitch.MaterialSwitch;
-import com.google.gson.Gson;
 import com.securelight.secureshellv.R;
-import com.securelight.secureshellv.backend.DataManager;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.backend.BackendHandlerSingleton;
 import com.securelight.secureshellv.backend.ServicePlan;
 import com.securelight.secureshellv.utility.Utilities;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 public class CheckoutActivity extends Activity {
 
@@ -101,7 +92,7 @@ public class CheckoutActivity extends Activity {
 
         submitReceiptButton.setOnClickListener(v -> {
             loadingView.setVisibility(View.VISIBLE);
-            DatabaseHandlerSingleton.getInstance(null).sendRenewRequest(bitmap,
+            BackendHandlerSingleton.getInstance(null).sendRenewRequest(bitmap,
                     servicePlan.getId(),
                     response -> {
                         Toast.makeText(this, R.string.submit_successful, Toast.LENGTH_SHORT).show();
@@ -129,7 +120,7 @@ public class CheckoutActivity extends Activity {
             gigText.setText(getResources().getQuantityString(R.plurals.users, servicePlan.getUsers(), servicePlan.getUsers()));
         }
         new Thread(() -> {
-            List<String> cardNumbers = DatabaseHandlerSingleton.getInstance(this).fetchCardNumbers();
+            List<String> cardNumbers = BackendHandlerSingleton.getInstance(this).fetchCardNumbers();
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
 

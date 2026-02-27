@@ -2,12 +2,11 @@ package com.securelight.secureshellv.vpnservice.connection;
 
 import android.content.Context;
 import android.content.Intent;
-import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.securelight.secureshellv.R;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.backend.BackendHandlerSingleton;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.statics.Intents;
 
@@ -16,12 +15,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class APIHeartbeatTask extends TimerTask {
     private final Context context;
-    private final DatabaseHandlerSingleton databaseHandler;
+    private final BackendHandlerSingleton databaseHandler;
     private final AtomicInteger nFailed = new AtomicInteger(0);
 
     public APIHeartbeatTask(Context context) {
         this.context = context;
-        databaseHandler = DatabaseHandlerSingleton.getInstance(context);
+        databaseHandler = BackendHandlerSingleton.getInstance(context);
     }
 
     @Override

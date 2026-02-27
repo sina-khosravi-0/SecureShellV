@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModel;
 
 import com.android.volley.Response;
 import com.securelight.secureshellv.R;
-import com.securelight.secureshellv.backend.DatabaseHandlerSingleton;
+import com.securelight.secureshellv.backend.BackendHandlerSingleton;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 
 import org.json.JSONException;
@@ -41,7 +41,7 @@ public class LoginViewModel extends ViewModel {
             }
         };
         Response.ErrorListener errorListener = error -> loginResult.postValue(new LoginResult(R.string.login_failed));
-        DatabaseHandlerSingleton.getInstance(context).signIn(username, password, responseListener, errorListener);
+        BackendHandlerSingleton.getInstance(context).signIn(username, password, responseListener, errorListener);
 
 //        Result<LoggedInUser> result = loginRepository.login(username, password, context);
 
