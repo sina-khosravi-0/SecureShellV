@@ -2,10 +2,11 @@ package com.securelight.secureshellv.statics;
 
 public class Constants {
     //    public static final String apiAddress = "https://api.masterelite.shop/";
-    public static final String backupEndpointAddress = "https://backup.tellmewhy.ir/";
-    public static final String backupEndpointAddressHttp = "http://backup.tellmewhy.ir/";
+    public static final String fallbackEndpoint = "https://backup.tellmewhy.ir/";
+    public static final String fallbackEndpointHttp = "http://backup.tellmewhy.ir/";
+    public static final String endpoint = "https://10.200.177.90:8000/";
+    public static final String endpointHttp = "http://10.200.177.90:8000/";
     public static final String endpointAddress = "http://10.200.177.90:8000/";
-    public static final String endpointAddressHttp = "http://10.200.177.90:8000/";
     public static final String APP_FILTER_PACKAGES = "appFilterPackages";
     public static final String APP_LANGUAGE_NAME = "appLanguage";
     public static final String LOGGED_IN_PREF_NAME = "loginState";
@@ -57,8 +58,8 @@ public class Constants {
         SHOULD_RESTART
     }
 
-    public static final int sendTrafficPeriod = 10000;
-    public static final int apiHeartbeatPeriod = 8000;
-    public static final int socksHeartbeatPeriod = 5000;
-    public static final int internetAccessPeriod = 3000;
+    public static final int SEND_TRAFFIC_PERIOD = 10000;
+    public static final int API_HEARTBEAT_PERIOD = 8000;
+    public static final int SOCKS_HEARTBEAT_PERIOD = 5000;
+    public static final int INTERNET_ACCESS_PERIOD = 3000;
 }

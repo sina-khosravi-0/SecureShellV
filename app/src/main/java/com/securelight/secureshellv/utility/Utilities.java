@@ -88,36 +88,6 @@ public class Utilities {
         return (int) (dp * scale + 0.5f);
     }
 
-    public static NetworkState checkAndGetAccessType(SocketProtector socketProtector) {
-        try (SocketChannel channel = SocketChannel.open()) {
-            Socket socket = channel.socket();
-            socketProtector.protectSocks(socket);
-            InetAddress[] addresses = InetAddress.getAllByName("google.com");
-            for (InetAddress address : addresses) {
-                if (address instanceof Inet4Address) {
-                    socket.connect(new InetSocketAddress(address, 443), 2500);
-                    socket.close();
-                    return NetworkState.WORLD_WIDE;
-                }
-            }
-        } catch (IOException e) {
-            try (SocketChannel channel = SocketChannel.open()) {
-                Socket socket = channel.socket();
-                socketProtector.protectSocks(socket);
-                InetAddress[] addresses = InetAddress.getAllByName("google.com");
-                for (InetAddress address : addresses) {
-                    if (address instanceof Inet4Address) {
-                        socket.connect(new InetSocketAddress("snapp.ir", 443), 1500);
-                        socket.close();
-                        return NetworkState.RESTRICTED;
-                    }
-                }
-            } catch (IOException ignored) {
-            }
-        }
-        return NetworkState.NO_ACCESS;
-    }
-
     public static boolean refillV2rayConfig(String remark,
                                             String config,
                                             final ArrayList<String> blockedApplications,
@@ -246,20 +216,6 @@ public class Utilities {
         } catch (Exception e) {
             Log.e("RefillV2rayConfig", "parseV2rayJsonFile failed => ", e);
             return false;
-        }
-    }
-
-
-    /**
-     * @throws IOException when failed to find any open ports
-     */
-    public static int checkOrFindFreePort(int port) throws IOException {
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            return serverSocket.getLocalPort();
-        } catch (IOException e) {
-            try (ServerSocket serverSocket = new ServerSocket(0)) {
-                return serverSocket.getLocalPort();
-            }
         }
     }
 

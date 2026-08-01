@@ -1,6 +1,6 @@
 package com.securelight.secureshellv.vpnservice.connection;
 
-import static com.securelight.secureshellv.statics.Constants.apiHeartbeatPeriod;
+import static com.securelight.secureshellv.statics.Constants.API_HEARTBEAT_PERIOD;
 
 import android.content.Context;
 import android.content.Intent;
@@ -205,7 +205,7 @@ public class ConnectionManager extends Thread {
 
     private void scheduleSendTrafficTask() {
         sendTrafficTask = new SendTrafficTimeTask(statsHandler, BackendHandlerSingleton.getInstance(context), context);
-        sendTrafficTimer.schedule(sendTrafficTask, 0, Constants.sendTrafficPeriod);
+        sendTrafficTimer.schedule(sendTrafficTask, 0, Constants.SEND_TRAFFIC_PERIOD);
     }
 
     private void scheduleSocksHeartbeatTask() {
@@ -242,12 +242,12 @@ public class ConnectionManager extends Thread {
                     }
                     this.connectionState = connectionState;
                 });
-        socksTimer.schedule(socksHeartbeatTask, 0, Constants.socksHeartbeatPeriod);
+        socksTimer.schedule(socksHeartbeatTask, 0, Constants.SOCKS_HEARTBEAT_PERIOD);
     }
 
     private void scheduleApiHeartbeatTask() {
         apiHeartbeatTask = new APIHeartbeatTask(context);
-        apiHeartbeatTimer.schedule(apiHeartbeatTask, 0, apiHeartbeatPeriod);
+        apiHeartbeatTimer.schedule(apiHeartbeatTask, 0, API_HEARTBEAT_PERIOD);
     }
 
     @Override

@@ -6,12 +6,18 @@ import android.util.Log;
 import com.securelight.secureshellv.backend.TargetServer;
 import com.securelight.secureshellv.statics.Constants;
 import com.securelight.secureshellv.vpnservice.VpnSettings;
+import com.securelight.secureshellv.vpnservice.connection.NetworkState;
+import com.securelight.secureshellv.vpnservice.listeners.SocketProtector;
 
 import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.nio.channels.SocketChannel;
 
 public class NetTools {
     public static boolean checkInternetAccess() {
@@ -148,5 +154,56 @@ public class NetTools {
             }
         }
         return (int) averageMilli;
+    }
+
+    public static NetworkState checkAndGetAccessType(SocketProtector socketProtector) {
+        try (SocketChannel channel = SocketChannel.open()) {
+            Socket socket = channel.socket();
+            socketProtector.protectSocks(socket);
+            InetAddress[] addresses = InetAddress.getAllByName("google.com");
+            for (InetAddress address : addresses) {
+                if (address instanceof Inet4Address) {
+                    socket.connect(new InetSocketAddress(address, 443), 2500);
+                    socket.close();
+                    return NetworkState.WORLD_WIDE;
+                }
+            }
+        } catch (IOException e) {
+            try (SocketChannel channel = SocketChannel.open()) {
+                Socket socket = channel.socket();
+                socketProtector.protectSocks(socket);
+                InetAddress[] addresses = InetAddress.getAllByName("google.com");
+                for (InetAddress address : addresses) {
+                    if (address instanceof Inet4Address) {
+                        socket.connect(new InetSocketAddress("snapp.ir", 443), 1500);
+                        socket.close();
+                        return NetworkState.RESTRICTED;
+                    }
+                }
+            } catch (IOException ignored) {
+            }
+        }
+        return NetworkState.NO_ACCESS;
+    }
+
+
+    /**
+     * @throws IOException when failed to find any open ports
+     */
+    public static int checkOrFindFreePort(int port) throws IOException {
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            return serverSocket.getLocalPort();
+        } catch (IOException e) {
+            try (ServerSocket serverSocket = new ServerSocket(0)) {
+                return serverSocket.getLocalPort();
+            }
+        }
+    }
+
+    public static void checkAndSetEndpointAddress(SocketProtector socketProtector) {
+        if (socketProtector == null) {
+            socketProtector = socket -> {};
+        }
+//        try ()
     }
 }

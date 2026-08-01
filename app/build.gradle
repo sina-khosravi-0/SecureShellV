@@ -44,6 +44,11 @@ android {
         jvmTarget = '11'
     }
 
+    externalNativeBuild {
+        ndkBuild {
+            path "src/main/jni/Android.mk"
+        }
+    }
 }
 
 String core_version = "1.10.1"
@@ -70,7 +75,7 @@ dependencies {
     implementation(group: "", name: "libv2ray", version: "", ext: "aar")
 //    implementation project(':v2ray')
 
-    implementation 'com.github.FWink:android-stunnel-lib:master-SNAPSHOT'
+//    implementation 'com.github.FWink:android-stunnel-lib:master-SNAPSHOT'
 //    implementation 'net.droidx.media:mei2p.crypto:eddsa:0.3.0'
 //    implementation "andia:1.6.0"
 

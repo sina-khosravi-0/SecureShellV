@@ -1,5 +1,6 @@
 package com.securelight.secureshellv.vpnservice.connection;
 
+import com.securelight.secureshellv.utility.NetTools;
 import com.securelight.secureshellv.utility.Utilities;
 
 import android.util.Log;
@@ -59,7 +60,7 @@ public class SocksHeartbeatTask extends TimerTask {
             return;
         }
 
-        NetworkState tempType = Utilities.checkAndGetAccessType(socketProtector);
+        NetworkState tempType = NetTools.checkAndGetAccessType(socketProtector);
         if (tempType == NetworkState.NO_ACCESS) {
             counter = 0;
             this.accessChangeListener.onNetworkStateChanged(NetworkState.NO_ACCESS);

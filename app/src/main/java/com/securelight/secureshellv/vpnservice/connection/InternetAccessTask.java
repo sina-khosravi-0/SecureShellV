@@ -1,9 +1,5 @@
 package com.securelight.secureshellv.vpnservice.connection;
 
-import static com.securelight.secureshellv.utility.Utilities.checkAndGetAccessType;
-
-import com.securelight.secureshellv.utility.Utilities;
-
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;

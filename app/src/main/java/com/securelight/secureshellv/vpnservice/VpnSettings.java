@@ -2,6 +2,7 @@ package com.securelight.secureshellv.vpnservice;
 
 import android.util.Log;
 
+import com.securelight.secureshellv.utility.NetTools;
 import com.securelight.secureshellv.utility.Utilities;
 
 import java.io.IOException;
@@ -28,9 +29,9 @@ public class VpnSettings implements Serializable {
         iFaceSubnetMask = "255.255.255.252";
         iFacePrefix = 30;
         try {
-            socksPort = Utilities.checkOrFindFreePort(10808);
-            httpPort = Utilities.checkOrFindFreePort(10809);
-            localDnsPort = Utilities.checkOrFindFreePort(10853);
+            socksPort = NetTools.checkOrFindFreePort(10808);
+            httpPort = NetTools.checkOrFindFreePort(10809);
+            localDnsPort = NetTools.checkOrFindFreePort(10853);
         } catch (IOException e) {
             Log.e("VpnSettings", "Failed to find any open ports!");
             throw new RuntimeException(e);

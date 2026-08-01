@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.IpPrefix;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
 import android.net.Network;
@@ -43,12 +44,12 @@ import com.securelight.secureshellv.ui.homepage.HomepageActivity;
 import com.securelight.secureshellv.R;
 import com.securelight.secureshellv.statics.Intents;
 import com.securelight.secureshellv.statics.Values;
+import com.securelight.secureshellv.utility.NetTools;
 import com.securelight.secureshellv.utility.NotificationBroadcastReceiver;
 import com.securelight.secureshellv.utility.SharedPreferencesSingleton;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionManager;
 import com.securelight.secureshellv.vpnservice.connection.ConnectionState;
 import com.securelight.secureshellv.vpnservice.connection.NetworkState;
-import com.securelight.secureshellv.vpnservice.listeners.InterfaceErrorListener;
 import com.securelight.secureshellv.vpnservice.listeners.NotificationListener;
 import com.securelight.secureshellv.vpnservice.listeners.SocketProtector;
 import com.securelight.secureshellv.vpnservice.v2ray.V2rayCoreManager;
@@ -79,6 +80,7 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
         @Override
         public void onAvailable(@NonNull Network network) {
             super.onAvailable(network);
+//            NetTools.checkAndSetEndpointAddress();
             if (connectionManager != null) {
                 connectionManager.onNetworkAvailable();
             }
@@ -355,11 +357,13 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
         builder.addAddress(VpnSettings.iFaceAddress, VpnSettings.iFacePrefix);
         builder.addDnsServer("26.26.26.2");
         builder.addRoute("0.0.0.0", 0);
-
         SharedPreferencesSingleton preferences = SharedPreferencesSingleton.getInstance(this);
-        addFilterPackages(preferences);
+        packages.clear();
+        packages.addAll(preferences.getFilteredPackages());
+
 
         try {
+            builder.addDisallowedApplication(getPackageName()); // disallow self
             switch (preferences.getAppFilterMode()) {
                 case INCLUDE:
                     for (String p : packages) {
@@ -370,8 +374,6 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
                     for (String p : packages) {
                         builder.addDisallowedApplication(p);
                     }
-                case OFF:
-                    builder.addDisallowedApplication(getPackageName()); // disallow self
                     break;
             }
         } catch (PackageManager.NameNotFoundException e) {
@@ -383,11 +385,6 @@ public class SSVpnService extends VpnService implements Tun2SocksListener, Socke
         ParcelFileDescriptor vpnInterface = builder.establish();
         Log.d(TAG, "VPN interface configured: " + vpnInterface);
         return vpnInterface;
-    }
-
-    private void addFilterPackages(SharedPreferencesSingleton preferences) {
-        packages.clear();
-        packages.addAll(preferences.getFilteredPackages());
     }
 
     private void setupNotification() {
